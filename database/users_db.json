@@ -1,0 +1,351 @@
+[
+  {
+    "id": "user_1",
+    "name": "Estudiante Junvill",
+    "role": "student",
+    "avatar": "custom_dynamic",
+    "avatarConfig": {
+      "skin": "#fed7aa",
+      "hairStyle": "messy",
+      "hairColor": "#451a03",
+      "eyeStyle": "happy",
+      "shirtStyle": "hoodie",
+      "shirtColor": "#2563eb",
+      "accessory": "headphones",
+      "background": "blue_sky"
+    },
+    "title": "Aprendiz Promesa",
+    "elo": 680,
+    "puzzleRating": 600,
+    "stars": 105,
+    "gems": 27,
+    "totalPoints": 25,
+    "theme": "modern_dark",
+    "boardTheme": "board_emerald",
+    "pieceTheme": "staunton",
+    "systemSettings": {
+      "soundEnabled": true,
+      "soundVolume": 85,
+      "autoQueen": true,
+      "showCoordinates": true,
+      "highlightMoves": true,
+      "highlightLastMove": true,
+      "moveMethod": "drag_click"
+    },
+    "unlockedItems": [
+      "board_emerald",
+      "board_wood",
+      "shirt_blue",
+      "shirt_red"
+    ],
+    "lessonProgress": {
+      "l01_piezas": {
+        "stars": 5,
+        "completed": true
+      },
+      "l02_capturas": {
+        "stars": 5,
+        "completed": true
+      },
+      "l03_desprotegidas": {
+        "stars": 5,
+        "completed": true
+      },
+      "l04_valor_piezas": {
+        "stars": 5,
+        "completed": true
+      },
+      "l07_escapar_jaque": {
+        "stars": 5,
+        "completed": true
+      }
+    },
+    "botVictories": {
+      "qwerty": 3,
+      "cosmo": 1,
+      "monkey": 2
+    },
+    "stats": {
+      "gamesPlayed": 8,
+      "wins": 5,
+      "losses": 2,
+      "draws": 1,
+      "puzzlesSolved": 32,
+      "hintsUsed": 12,
+      "accuracyAvg": 86
+    },
+    "radarSkills": {
+      "tactica": 60,
+      "estrategia": 40,
+      "posicional": 35,
+      "calculo": 45,
+      "aperturas": 40,
+      "finales": 30
+    },
+    "coachSettings": {
+      "assistanceLevel": "full",
+      "botDifficulty": 1,
+      "coachAvatar": "coach_aurelio",
+      "soundEnabled": true
+    }
+  },
+  {
+    "id": "user_1786849943311",
+    "name": "César",
+    "role": "parent",
+    "avatar": "custom_dynamic",
+    "avatarConfig": {
+      "skin": "#fed7aa",
+      "hairStyle": "messy",
+      "hairColor": "#27170a",
+      "eyeStyle": "wink",
+      "shirtStyle": "tshirt",
+      "shirtColor": "#d97706",
+      "accessory": "headphones",
+      "background": "parchment_wood"
+    },
+    "title": "Tutor Familiar",
+    "elo": 466,
+    "puzzleRating": 400,
+    "stars": 105,
+    "gems": 16,
+    "totalPoints": 15,
+    "theme": "modern_dark",
+    "boardTheme": "board_emerald",
+    "pieceTheme": "staunton",
+    "systemSettings": {
+      "soundEnabled": true,
+      "soundVolume": 80,
+      "autoQueen": true,
+      "showCoordinates": true,
+      "highlightMoves": true,
+      "highlightLastMove": true,
+      "moveMethod": "drag_click"
+    },
+    "unlockedItems": [
+      "board_emerald",
+      "board_wood",
+      "shirt_blue"
+    ],
+    "lessonProgress": {
+      "l02_capturas": {
+        "stars": 5,
+        "completed": true
+      },
+      "l04_valor_piezas": {
+        "stars": 5,
+        "completed": true
+      },
+      "l05_coronacion": {
+        "stars": 5,
+        "completed": true
+      }
+    },
+    "botVictories": {},
+    "stats": {
+      "gamesPlayed": 6,
+      "wins": 0,
+      "losses": 4,
+      "draws": 2,
+      "puzzlesSolved": 0,
+      "hintsUsed": 0,
+      "accuracyAvg": 0
+    },
+    "radarSkills": {
+      "tactica": 35,
+      "estrategia": 25,
+      "posicional": 15,
+      "calculo": 15,
+      "aperturas": 15,
+      "finales": 15
+    },
+    "coachSettings": {
+      "assistanceLevel": "full",
+      "botDifficulty": 1,
+      "coachAvatar": "coach_aurelio",
+      "soundEnabled": true
+    }
+  },
+  {
+    "id": "user_1786887520687",
+    "name": "Martín",
+    "role": "student",
+    "avatar": "teen_gamer",
+    "avatarConfig": {
+      "skin": "#fed7aa",
+      "hairStyle": "short",
+      "hairColor": "#27170a",
+      "eyeStyle": "happy",
+      "shirtStyle": "tshirt",
+      "shirtColor": "#3b82f6",
+      "accessory": "none",
+      "background": "blue_sky"
+    },
+    "title": "Novato Promesa",
+    "elo": 422,
+    "puzzleRating": 400,
+    "stars": 45,
+    "gems": 13,
+    "totalPoints": 0,
+    "theme": "modern_dark",
+    "boardTheme": "board_emerald",
+    "pieceTheme": "staunton",
+    "systemSettings": {
+      "soundEnabled": true,
+      "soundVolume": 80,
+      "autoQueen": true,
+      "showCoordinates": true,
+      "highlightMoves": true,
+      "highlightLastMove": true,
+      "moveMethod": "drag_click"
+    },
+    "unlockedItems": [
+      "board_emerald",
+      "board_wood",
+      "shirt_blue"
+    ],
+    "lessonProgress": {},
+    "botVictories": {
+      "qwerty": 1
+    },
+    "stats": {
+      "gamesPlayed": 3,
+      "wins": 2,
+      "losses": 1,
+      "draws": 0,
+      "puzzlesSolved": 0,
+      "hintsUsed": 0,
+      "accuracyAvg": 0
+    },
+    "radarSkills": {
+      "tactica": 15,
+      "estrategia": 15,
+      "posicional": 15,
+      "calculo": 15,
+      "aperturas": 15,
+      "finales": 15
+    },
+    "coachSettings": {
+      "assistanceLevel": "full",
+      "botDifficulty": 1,
+      "coachAvatar": "coach_aurelio",
+      "soundEnabled": true
+    }
+  },
+  {
+    "id": "user_1786887999811",
+    "name": "Leticia",
+    "role": "student",
+    "avatar": "custom_dynamic",
+    "avatarConfig": {
+      "skin": "#fed7aa",
+      "hairStyle": "bun",
+      "hairColor": "#fbbf24",
+      "eyeStyle": "wink",
+      "shirtStyle": "hoodie",
+      "shirtColor": "#9333ea",
+      "accessory": "headphones",
+      "background": "night_stars"
+    },
+    "title": "Novato Promesa",
+    "elo": 820,
+    "puzzleRating": 400,
+    "stars": 360,
+    "gems": 48,
+    "totalPoints": 60,
+    "theme": "modern_dark",
+    "boardTheme": "board_emerald",
+    "pieceTheme": "staunton",
+    "systemSettings": {
+      "soundEnabled": true,
+      "soundVolume": 80,
+      "autoQueen": true,
+      "showCoordinates": true,
+      "highlightMoves": true,
+      "highlightLastMove": true,
+      "moveMethod": "drag_click"
+    },
+    "unlockedItems": [
+      "board_emerald",
+      "board_wood",
+      "shirt_blue"
+    ],
+    "lessonProgress": {
+      "l01_piezas": {
+        "stars": 5,
+        "completed": true
+      },
+      "l02_capturas": {
+        "stars": 5,
+        "completed": true
+      },
+      "l03_desprotegidas": {
+        "stars": 5,
+        "completed": true
+      },
+      "l04_valor_piezas": {
+        "stars": 5,
+        "completed": true
+      },
+      "l05_coronacion": {
+        "stars": 5,
+        "completed": true
+      },
+      "l06_jaque": {
+        "stars": 5,
+        "completed": true
+      },
+      "l07_escapar_jaque": {
+        "stars": 5,
+        "completed": true
+      },
+      "l08_mate_1": {
+        "stars": 5,
+        "completed": true
+      },
+      "l09_rey_ahogado": {
+        "stars": 5,
+        "completed": true
+      },
+      "l10_enroque": {
+        "stars": 5,
+        "completed": true
+      },
+      "l12_ataque_doble_peon": {
+        "stars": 5,
+        "completed": true
+      },
+      "l11_al_paso": {
+        "stars": 5,
+        "completed": true
+      }
+    },
+    "botVictories": {
+      "qwerty": 1,
+      "cosmo": 1
+    },
+    "stats": {
+      "gamesPlayed": 7,
+      "wins": 4,
+      "losses": 1,
+      "draws": 2,
+      "puzzlesSolved": 0,
+      "hintsUsed": 0,
+      "accuracyAvg": 0
+    },
+    "radarSkills": {
+      "tactica": 100,
+      "estrategia": 25,
+      "posicional": 25,
+      "calculo": 15,
+      "aperturas": 15,
+      "finales": 15
+    },
+    "coachSettings": {
+      "assistanceLevel": "full",
+      "botDifficulty": 1,
+      "coachAvatar": "coach_aurelio",
+      "soundEnabled": true
+    }
+  }
+]
