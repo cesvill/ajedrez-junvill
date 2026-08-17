@@ -80,7 +80,7 @@ export const Header = ({
           })}
         </nav>
 
-        {/* 3. BARRA RÁPIDA DE USUARIO, DIVISAS Y MANUAL */}
+        {/* 3. BARRA RÁPIDA DE USUARIO, HERRAMIENTAS Y MANUAL */}
         <div className="user-quick-bar">
           {/* Botón Destacado: Manual de Ayuda */}
           <button
@@ -90,8 +90,71 @@ export const Header = ({
             title="Manual de Ayuda y Guía del Usuario"
           >
             <BookOpen size={15} />
-            <span className="hide-mobile-compact">Manual</span>
+            <span>Manual</span>
           </button>
+
+          {/* Grupo de Herramientas y Accesos Rápidos */}
+          <div className="header-tools-cluster">
+            {/* 1. Reto Diario 🔥 */}
+            <button
+              type="button"
+              onClick={onOpenDaily}
+              className="header-icon-btn tool-btn-daily"
+              title="🔥 Reto Diario del Gran Maestro (+15⭐, +5💎)"
+            >
+              <span>🔥</span>
+            </button>
+
+            {/* 2. Diplomas y Certificados 🎖️ */}
+            <button
+              type="button"
+              onClick={onOpenCertificates}
+              className="header-icon-btn"
+              title="🎖️ Diplomas y Certificados Oficiales"
+            >
+              <Award size={15} color="#f59e0b" />
+            </button>
+
+            {/* 3. Importar / Exportar PGN 📄 */}
+            <button
+              type="button"
+              onClick={onOpenPgn}
+              className="header-icon-btn"
+              title="📄 Importar / Exportar Partidas en PGN"
+            >
+              <FileText size={15} color="#38bdf8" />
+            </button>
+
+            {/* 4. Reporte de Errores 🐞 */}
+            <button
+              type="button"
+              onClick={onOpenBugReport}
+              className="header-icon-btn tool-btn-bug"
+              title="🐞 Reportar un Error o Bug en Pantalla"
+            >
+              <Bug size={15} color="#ef4444" />
+            </button>
+
+            {/* 5. Pantalla Completa ⛶ */}
+            <button
+              type="button"
+              onClick={toggleFullscreen}
+              className="header-icon-btn hide-mobile-compact"
+              title={isFullscreen ? "Salir de Pantalla Completa" : "Modo Pantalla Completa"}
+            >
+              {isFullscreen ? <Minimize size={15} color="#10b981" /> : <Maximize size={15} color="#94a3b8" />}
+            </button>
+
+            {/* 6. Configuración ⚙️ */}
+            <button
+              type="button"
+              onClick={onOpenSettings}
+              className="header-icon-btn"
+              title="⚙️ Configuración y Preferencias (Audio, Temas, Perfiles)"
+            >
+              <Settings size={15} color="#94a3b8" />
+            </button>
+          </div>
 
           {/* Divisas del Jugador: Estrellas ⭐ */}
           <div className="currency-badge stars-badge" title="Estrellas acumuladas">
@@ -104,26 +167,6 @@ export const Header = ({
             <span>💎</span>
             <span className="currency-val">{currentUser.gems || 0}</span>
           </div>
-
-          {/* Botón de Pantalla Completa Compacto */}
-          <button
-            type="button"
-            onClick={toggleFullscreen}
-            className="header-icon-btn hide-mobile-compact"
-            title={isFullscreen ? "Salir de Pantalla Completa" : "Modo Pantalla Completa"}
-          >
-            {isFullscreen ? <Minimize size={16} color="#10b981" /> : <Maximize size={16} color="#94a3b8" />}
-          </button>
-
-          {/* Botón Configuración y Herramientas */}
-          <button
-            type="button"
-            onClick={onOpenSettings}
-            className="header-icon-btn"
-            title="Configuración y Herramientas (Audio, Tableros, Reportes)"
-          >
-            <Settings size={16} color="#94a3b8" />
-          </button>
 
           {/* Perfil del Usuario Activo */}
           <button 
