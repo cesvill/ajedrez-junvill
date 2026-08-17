@@ -3,7 +3,7 @@ import { useUser } from '../../context/UserContext';
 import { AvatarIcon } from '../../assets/avatars';
 import { Home, Swords, Bot, Puzzle, BookOpen, User, Trophy, Flame, Award, FileText, Settings, Bug, Maximize, Minimize } from 'lucide-react';
 
-export const Header = ({ activeTab, onTabChange, onOpenProfile, onOpenDaily, onOpenCertificates, onOpenPgn, onOpenSettings, onOpenBugReport }) => {
+export const Header = ({ activeTab, onTabChange, onOpenProfile, onOpenDaily, onOpenCertificates, onOpenPgn, onOpenSettings, onOpenBugReport, onOpenManual }) => {
   const { currentUser } = useUser();
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -68,6 +68,17 @@ export const Header = ({ activeTab, onTabChange, onOpenProfile, onOpenDaily, onO
 
         {/* Monedas del Usuario y Accesos Rápidos */}
         <div className="user-quick-bar">
+          {/* Botón Manual de Ayuda y Guía */}
+          <button
+            onClick={onOpenManual}
+            className="btn-gold"
+            style={{ padding: '5px 10px', fontSize: '0.78rem', gap: '5px', boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)' }}
+            title="Manual de Ayuda y Guía de Uso de la Pantalla Actual"
+          >
+            <BookOpen size={15} />
+            <span style={{ fontWeight: '900' }}>Manual</span>
+          </button>
+
           {/* Botón Reto Diario */}
           <button
             onClick={onOpenDaily}

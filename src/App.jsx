@@ -21,6 +21,7 @@ import { FamilyChallengesModal } from './views/FamilyChallengesModal';
 import { BugReportModal } from './components/BugReport/BugReportModal';
 import { BugReportFloatingButton } from './components/BugReport/BugReportFloatingButton';
 import { WelcomeProfileModal } from './components/ProfileModal/WelcomeProfileModal';
+import { ManualModal } from './components/Manual/ManualModal';
 import { parseUrlState, syncUrl } from './engine/urlRouter';
 import { getLessonById } from './curriculum/lessonsData';
 import { getBotById } from './assets/botRoster';
@@ -42,6 +43,7 @@ export const App = () => {
   });
 
   // Modales Globales
+  const [isManualOpen, setIsManualOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isFamilyChallengesOpen, setIsFamilyChallengesOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -173,6 +175,7 @@ export const App = () => {
           onOpenCertificates={() => setIsCertificatesOpen(true)}
           onOpenPgn={() => setIsPgnOpen(true)}
           onOpenBugReport={() => handleOpenBugReport()}
+          onOpenManual={() => setIsManualOpen(true)}
         />
       )}
 
@@ -339,6 +342,13 @@ export const App = () => {
           onClose={() => setIsPgnOpen(false)}
         />
       )}
+
+      {/* Modal de Manual de Ayuda y Guía del Usuario */}
+      <ManualModal
+        isOpen={isManualOpen}
+        onClose={() => setIsManualOpen(false)}
+        initialSection={activeTab}
+      />
     </div>
   );
 };
