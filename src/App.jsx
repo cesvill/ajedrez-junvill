@@ -82,7 +82,6 @@ export const App = () => {
       const b = getBotById(botId);
       if (b) {
         setActiveBotMatch(b);
-        setActiveTab('jugar');
       }
     }
 
@@ -121,8 +120,8 @@ export const App = () => {
 
     syncUrl({
       view: activeTab,
-      lessonId: activeLesson?.id || null,
-      botId: activeBotMatch?.id || null,
+      lessonId: activeTab === 'aprender' ? (activeLesson?.id || null) : null,
+      botId: activeTab === 'jugar' ? (activeBotMatch?.id || null) : null,
       roomId: isP2POpen ? urlRoomId : null,
       modal: currentModal
     }, true);
@@ -140,6 +139,16 @@ export const App = () => {
     isAvatarBuilderOpen,
     urlRoomId
   ]);
+
+  const handleTabChange = (newTab) => {
+    if (newTab !== 'jugar') {
+      setActiveBotMatch(null);
+    }
+    if (newTab !== 'aprender') {
+      setActiveLesson(null);
+    }
+    setActiveTab(newTab);
+  };
 
   const handleOpenBugReport = (customContext = {}) => {
     setBugReportContext({
@@ -167,7 +176,7 @@ export const App = () => {
       {/* Barra superior Header siempre visible */}
       <Header
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
         onOpenProfile={() => setIsProfileModalOpen(true)}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenDaily={() => setIsDailyOpen(true)}
@@ -241,7 +250,7 @@ export const App = () => {
       {/* Navegación Inferior Móvil (adaptada automáticamente por CSS en móvil) */}
       <Navbar
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
       />
 
       {/* Modal de Reproducción de Lección */}

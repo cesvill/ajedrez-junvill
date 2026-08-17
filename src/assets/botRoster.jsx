@@ -200,7 +200,15 @@ export const BOT_ROSTER = [
 ];
 
 export const BotAvatarRenderer = ({ bot, size = 64, className = "" }) => {
-  const type = bot.avatarType;
+  if (!bot) {
+    return (
+      <div style={{ width: size, height: size, borderRadius: '50%', background: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.5 }}>
+        🤖
+      </div>
+    );
+  }
+
+  const type = bot.avatarType || 'robot_retro';
 
   // --- ROBOTS ---
   if (type === 'robot_retro') {
@@ -510,7 +518,7 @@ export const BotAvatarRenderer = ({ bot, size = 64, className = "" }) => {
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" className={className}>
       <rect width="100" height="100" rx="20" fill="#334155" />
-      <circle cx="50" cy="50" r="24" fill={bot.color} />
+      <circle cx="50" cy="50" r="24" fill={bot?.color || '#3b82f6'} />
     </svg>
   );
 };
