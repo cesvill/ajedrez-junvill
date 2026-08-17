@@ -77,9 +77,9 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
     : (activeBot || BOT_ROSTER[0]);
 
   const [currentBot, setCurrentBot] = useState(initialBot);
-  const botToPlay = isResumingSaved ? initialBot : (activeBot || currentBot);
+  const botToPlay = isResumingSaved ? initialBot : (activeBot || currentBot || BOT_ROSTER[0]);
   const activeCoachId = currentUser?.coachSettings?.coachAvatar || 'coach_aurelio';
-  const activeCoach = getCoachById(activeCoachId);
+  const activeCoach = getCoachById(activeCoachId) || COACHES_LIST[0] || { id: 'coach_aurelio', name: 'Maestro Aurelio', title: 'Tutor Principal' };
 
   const [game, setGame] = useState(() => {
     if (isResumingSaved && initialSaved?.fen) {
@@ -175,7 +175,7 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
   const [playerColor, setPlayerColor] = useState(() => (isResumingSaved && initialSaved?.playerColor) || 'white'); // 'white' | 'black'
   const [showColorModal, setShowColorModal] = useState(false);
 
-  const [botLevel, setBotLevel] = useState(botToPlay.difficultyLevel || 1);
+  const [botLevel, setBotLevel] = useState(botToPlay?.difficultyLevel || 1);
   const [assistanceLevel, setAssistanceLevel] = useState(currentUser?.coachSettings?.assistanceLevel || 'full');
   const [showSettings, setShowSettings] = useState(false);
 
@@ -186,14 +186,14 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
   const [coachMessage, setCoachMessage] = useState(() => {
     if (isResumingSaved && initialSaved?.moveHistory?.length > 0) {
       return {
-        title: `Partida Reanudada vs ${initialBot.name} ♟️`,
+        title: `Partida Reanudada vs ${initialBot?.name || 'Robot'} ♟️`,
         text: `¡Bienvenido de vuelta! Hemos reanudado tu partida exactamente en tu última jugada (Turno ${Math.floor(initialSaved.moveHistory.length / 2) + 1}).`,
         severity: 'info'
       };
     }
     return {
-      title: `Partida contra ${botToPlay.name}`,
-      text: `"${botToPlay.greeting}"`,
+      title: `Partida contra ${botToPlay?.name || 'Robot'}`,
+      text: `"${botToPlay?.greeting || '¡A jugar ajedrez!'}"`,
       severity: 'neutral'
     };
   });
@@ -211,7 +211,7 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
   const lastBotReactionTimeRef = useRef(0);
 
   const triggerPlayerReaction = (reaction) => {
-    audioManager.playMove();
+    try { audioManager?.playMove?.(); } catch (e) {}
     setPlayerReaction(reaction);
     setTimeout(() => setPlayerReaction(null), 2400);
 
@@ -261,7 +261,7 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
         }));
       } catch (e) {}
     }
-  }, [game, fenHistory, moveHistory, lastMove, isGameOver, gameMode, playerColor, botToPlay.id, handicapConfig, usedHintsCount, usedTakebacksCount]);
+  }, [game, fenHistory, moveHistory, lastMove, isGameOver, gameMode, playerColor, botToPlay?.id, handicapConfig, usedHintsCount, usedTakebacksCount]);
 
   // Guardado inmediato de seguridad ante recarga de ventana
   useEffect(() => {
@@ -275,7 +275,7 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
             lastMove,
             gameMode,
             playerColor,
-            botId: botToPlay.id,
+            botId: botToPlay?.id,
             handicapConfig,
             usedHintsCount,
             usedTakebacksCount,
@@ -286,7 +286,7 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [game, fenHistory, moveHistory, lastMove, isGameOver, gameMode, playerColor, botToPlay.id, handicapConfig, usedHintsCount, usedTakebacksCount]);
+  }, [game, fenHistory, moveHistory, lastMove, isGameOver, gameMode, playerColor, botToPlay?.id, handicapConfig, usedHintsCount, usedTakebacksCount]);
 
   // Inicializar o reiniciar partida con bot si viene prop explícito de un bot DISTINTO
   useEffect(() => {
@@ -989,12 +989,12 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
 
             <div className="game-card-info">
               <div className="game-card-title">
-                {gameMode === 'pass_and_play' ? 'Jugador 2 (Negras)' : `${botToPlay.name} (${playerColor === 'white' ? 'Negras' : 'Blancas'})`}
+                {gameMode === 'pass_and_play' ? 'Jugador 2 (Negras)' : `${botToPlay?.name || 'Robot'} (${playerColor === 'white' ? 'Negras' : 'Blancas'})`}
               </div>
               <div className="game-card-subtitle">
                 {gameMode === 'pass_and_play'
                   ? (game.turn() === 'b' ? '▶ Mueve Negras' : 'Esperando a Blancas')
-                  : `${botToPlay.title} • ${botToPlay.elo} Elo`}
+                  : `${botToPlay?.title || 'Oponente Virtual'} • ${botToPlay?.elo || 600} Elo`}
               </div>
             </div>
           </div>
@@ -1035,8 +1035,8 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
             isGameRunning={!isGameOver && !isPauseMenuOpen}
             onTimeout={handleTimeout}
             playerColor={playerColor}
-            whiteName={playerColor === 'white' ? currentUser.name : (gameMode === 'pass_and_play' ? 'Jugador 1' : botToPlay.name)}
-            blackName={playerColor === 'black' ? currentUser.name : (gameMode === 'pass_and_play' ? 'Jugador 2' : botToPlay.name)}
+            whiteName={playerColor === 'white' ? (currentUser?.name || 'Jugador') : (gameMode === 'pass_and_play' ? 'Jugador 1' : (botToPlay?.name || 'Robot'))}
+            blackName={playerColor === 'black' ? (currentUser?.name || 'Jugador') : (gameMode === 'pass_and_play' ? 'Jugador 2' : (botToPlay?.name || 'Robot'))}
           />
         )}
 
@@ -1077,14 +1077,14 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
 
           <div className="game-card-left">
             <div style={{ width: '36px', height: '36px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
-              <AvatarIcon avatarId={currentUser.avatar} avatarConfig={currentUser.avatarConfig} size={36} />
+              <AvatarIcon avatarId={currentUser?.avatar || 'custom_dynamic'} avatarConfig={currentUser?.avatarConfig} size={36} />
             </div>
             <div className="game-card-info">
               <div className="game-card-title">
-                {currentUser.name} ({playerColor === 'white' ? 'Blancas' : 'Negras'})
+                {currentUser?.name || 'Estudiante'} ({playerColor === 'white' ? 'Blancas' : 'Negras'})
               </div>
               <div className="game-card-subtitle">
-                {currentUser.title} • {currentUser.elo} Elo
+                {currentUser?.title || 'Aprendiz'} • {currentUser?.elo || 650} Elo
               </div>
             </div>
           </div>
@@ -1094,8 +1094,8 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
             <ReactionsBar onSendReaction={triggerPlayerReaction} disabled={isGameOver} />
 
             <div style={{ fontSize: '0.8rem', fontWeight: '800', display: 'flex', gap: '6px' }}>
-              <span style={{ color: '#f59e0b' }}>⭐ {currentUser.stars}</span>
-              <span style={{ color: '#ef4444' }}>💎 {currentUser.gems}</span>
+              <span style={{ color: '#f59e0b' }}>⭐ {currentUser?.stars || 0}</span>
+              <span style={{ color: '#ef4444' }}>💎 {currentUser?.gems || 0}</span>
             </div>
           </div>
         </div>
@@ -1335,9 +1335,6 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
         isOpen={isModeModalOpen}
         onClose={() => {
           setIsModeModalOpen(false);
-          if (!activeBot && onExitToMenu) {
-            onExitToMenu('inicio');
-          }
         }}
         onSelectBotMode={handleSelectBotMode}
         onSelectPassAndPlay={handleSelectPassAndPlay}
@@ -1368,7 +1365,7 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
               ¿Con qué bando deseas jugar?
             </h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-parchment-muted)', marginBottom: '20px' }}>
-              Enfrentándote a <strong>{botToPlay.name}</strong> ({botToPlay.elo} Elo)
+              Enfrentándote a <strong>{botToPlay?.name || 'Robot'}</strong> ({botToPlay?.elo || 600} Elo)
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '18px' }}>
@@ -1385,7 +1382,7 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
                 onClick={() => handleSelectColorAndStart('black')}
                 style={{ padding: '12px 16px', justifyContent: 'center', fontSize: '0.95rem', background: '#1e293b', color: '#ffffff', border: '1px solid #475569' }}
               >
-                <span>⚫ Jugar con Negras (Mueve {botToPlay.name})</span>
+                <span>⚫ Jugar con Negras (Mueve {botToPlay?.name || 'Robot'})</span>
               </button>
 
               <button
@@ -1591,13 +1588,13 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
                       onOpenBugReport({
                         view: 'jugar',
                         game: {
-                          botName: activeBot?.name || 'Robot',
-                          botElo: activeBot?.elo || 600,
+                          botName: botToPlay?.name || 'Robot',
+                          botElo: botToPlay?.elo || 600,
                           moveCount: Math.floor((moveHistory?.length || 0) / 2) + 1,
-                          pgn: chessGame.pgn()
+                          pgn: game?.pgn?.() || ''
                         },
-                        fen: fenState,
-                        turn: chessGame.turn(),
+                        fen: game?.fen?.() || '',
+                        turn: game?.turn?.() || 'w',
                         orientation: playerColor
                       });
                     }
@@ -1672,8 +1669,8 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
         initialConfig={handicapConfig}
         onApplyConfig={handleSaveHandicap}
         gameMode={gameMode}
-        opponentName={gameMode === 'pass_and_play' ? 'Jugador 2' : botToPlay.name}
-        playerName={currentUser.name}
+        opponentName={gameMode === 'pass_and_play' ? 'Jugador 2' : (botToPlay?.name || 'Robot')}
+        playerName={currentUser?.name || 'Estudiante'}
       />
     </div>
   );
