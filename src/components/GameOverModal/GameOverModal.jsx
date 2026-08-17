@@ -13,6 +13,7 @@ export const GameOverModal = ({
   playerColor,
   activeCoach,
   onOpenReview,
+  onOpenVictoryCard,
   onRestartGame,
   onOpenRobots,
   onExitToMenu
@@ -144,6 +145,28 @@ export const GameOverModal = ({
               <span className="btn-sub-title">Ver jugadas brillantes, errores y precisión %</span>
             </div>
           </button>
+
+          {/* Botón Cromo de Victoria y Compartir en WhatsApp */}
+          {onOpenVictoryCard && (
+            <button
+              id="btn-gameover-victory-card"
+              className="btn-gold"
+              onClick={onOpenVictoryCard}
+              style={{
+                width: '100%',
+                padding: '10px 16px',
+                fontSize: '0.88rem',
+                fontWeight: '900',
+                justifyContent: 'center',
+                gap: '8px',
+                marginBottom: '10px',
+                boxShadow: '0 4px 14px rgba(245, 158, 11, 0.3)'
+              }}
+            >
+              <Trophy size={18} />
+              <span>📲 Tarjeta de Victoria / Compartir WhatsApp</span>
+            </button>
+          )}
 
           {/* Grid de Botones de Salida y Revancha */}
           <div className="gameover-secondary-grid">

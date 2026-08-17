@@ -13,6 +13,8 @@ import { GameModeModal } from '../components/GameModeModal/GameModeModal';
 import { ReactionsBar, ReactionFloatingBubble } from '../components/Reactions/ReactionsBar';
 import { HandicapConfigModal } from '../components/HandicapModal/HandicapConfigModal';
 import { DiceRoller } from '../components/Variants/DiceRoller';
+import { ChessClock } from '../components/ChessClock/ChessClock';
+import { VictoryCardModal } from '../components/VictoryCard/VictoryCardModal';
 import { getHandicapFen, getHandicapSummary, DEFAULT_HANDICAP_CONFIG } from '../engine/handicapEngine';
 import { audioManager } from '../engine/audio';
 import { voiceEngine } from '../engine/voiceEngine';
@@ -118,6 +120,25 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
   const [gameVariant, setGameVariant] = useState(() => (isResumingSaved && initialSaved?.gameVariant) || 'standard');
   const [currentDiceRoll, setCurrentDiceRoll] = useState(null);
   const [isRollingDice, setIsRollingDice] = useState(false);
+
+  // Reloj de Ajedrez & Tarjeta de Victoria (Fase 5)
+  const [timeControl, setTimeControl] = useState(() => (isResumingSaved && initialSaved?.timeControl) || 'unlimited');
+  const [isVictoryCardOpen, setIsVictoryCardOpen] = useState(false);
+
+  const handleTimeout = (timedOutColor) => {
+    const isPlayerWin = (timedOutColor === 'b' && playerColor === 'white') || (timedOutColor === 'w' && playerColor === 'black');
+    const winnerName = isPlayerWin ? currentUser.name : (gameMode === 'pass_and_play' ? 'Jugador 2' : botToPlay.name);
+    try { audioManager?.playVictory?.(); } catch (e) {}
+    setIsGameOver(true);
+    setGameOverSummary({
+      title: isPlayerWin ? '¡Victoria por Tiempo! ⏱️' : '¡Derrota por Tiempo! ⏱️',
+      subtitle: `Se ha agotado el tiempo de ${timedOutColor === 'w' ? 'las Blancas' : 'las Negras'}.`,
+      result: isPlayerWin ? 'win' : 'loss',
+      rewards: isPlayerWin ? '+12 Elo • +12 ⭐' : '+2 Elo'
+    });
+    recordGameResult(isPlayerWin ? 'win' : 'loss', 12, 85);
+    setIsGameOverModalOpen(true);
+  };
 
   const handleRollDice = () => {
     setIsRollingDice(true);
@@ -1006,6 +1027,19 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
           </div>
         </div>
 
+        {/* Reloj de Ajedrez (Fase 5) */}
+        {timeControl !== 'unlimited' && (
+          <ChessClock
+            timeControl={timeControl}
+            activeTurn={game.turn()}
+            isGameRunning={!isGameOver && !isPauseMenuOpen}
+            onTimeout={handleTimeout}
+            playerColor={playerColor}
+            whiteName={playerColor === 'white' ? currentUser.name : (gameMode === 'pass_and_play' ? 'Jugador 1' : botToPlay.name)}
+            blackName={playerColor === 'black' ? currentUser.name : (gameMode === 'pass_and_play' ? 'Jugador 2' : botToPlay.name)}
+          />
+        )}
+
         {/* Si la variante es Dados Mágicos, renderizar selector y tirador de dados */}
         {gameVariant === 'dice_chess' && !isGameOver && (
           <div style={{ marginBottom: '10px' }}>
@@ -1378,6 +1412,33 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
                 <Scale size={16} />
                 <span>{handicapConfig.enabled ? `⚡ Ventajas Activas: ${getHandicapSummary(handicapConfig)}` : '⚙️ Configurar Ventajas / Hándicap (Opcional)'}</span>
               </button>
+
+              {/* Selector de Reloj de Ajedrez (Fase 5) */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(0,0,0,0.05)', borderRadius: '8px', border: '1px solid var(--bg-parchment-border)', marginTop: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.80rem', fontWeight: '800', color: 'var(--text-parchment-main)' }}>
+                  <span>⏱️ Reloj de Ajedrez:</span>
+                </div>
+                <select
+                  value={timeControl}
+                  onChange={(e) => setTimeControl(e.target.value)}
+                  style={{
+                    background: 'var(--bg-parchment-card)',
+                    border: '1px solid var(--color-gold)',
+                    borderRadius: '6px',
+                    padding: '4px 8px',
+                    fontSize: '0.78rem',
+                    fontWeight: '800',
+                    color: 'var(--text-parchment-main)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="unlimited">Sin Tiempo (Infinito)</option>
+                  <option value="10m">Rápida (10 min)</option>
+                  <option value="5m3s">Blitz (5 min + 3s)</option>
+                  <option value="3m2s">Blitz Rápido (3 min + 2s)</option>
+                  <option value="1m">Bala (1 min)</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -1576,6 +1637,9 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
           setIsGameOverModalOpen(false);
           handleOpenReview();
         }}
+        onOpenVictoryCard={() => {
+          setIsVictoryCardOpen(true);
+        }}
         onRestartGame={() => {
           setIsGameOverModalOpen(false);
           handleRestartGame();
@@ -1588,6 +1652,17 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
           setIsGameOverModalOpen(false);
           if (onExitToMenu) onExitToMenu(tab);
         }}
+      />
+
+      {/* Modal de Tarjeta de Victoria / Cromo Compartible en WhatsApp (Fase 5) */}
+      <VictoryCardModal
+        isOpen={isVictoryCardOpen}
+        onClose={() => setIsVictoryCardOpen(false)}
+        currentUser={currentUser}
+        opponent={botToPlay}
+        summary={gameOverSummary}
+        moveCount={Math.floor((moveHistory?.length || 0) / 2) + 1}
+        accuracy={Math.min(96, Math.max(72, Math.round(100 - (usedHintsCount * 4))))}
       />
 
       {/* Modal de Configuración y Negociación de Ventajas / Hándicap */}

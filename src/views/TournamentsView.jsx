@@ -58,9 +58,10 @@ const TOURNAMENTS = [
 ];
 
 export const TournamentsView = () => {
-  const { currentUser, addRewards, recordGameResult } = useUser();
+  const { users = [], currentUser, setActiveUserId, addRewards, recordGameResult } = useUser();
   const activeCoach = getCoachById(currentUser?.coachSettings?.coachAvatar || 'coach_aurelio');
 
+  const [activeMainTab, setActiveMainTab] = useState('tourneys'); // 'tourneys' | 'family_league'
   const [activeTourney, setActiveTourney] = useState(null);
   const [round, setRound] = useState(1); // 1 = Semifinal, 2 = Gran Final, 3 = Campeón
   const [matchState, setMatchState] = useState('bracket'); // 'bracket' | 'playing' | 'won' | 'lost'
@@ -68,6 +69,9 @@ export const TournamentsView = () => {
   const [game, setGame] = useState(() => new Chess());
   const [isBotThinking, setIsBotThinking] = useState(false);
   const [lastMove, setLastMove] = useState(null);
+
+  // Ordenar usuarios por Puntos / Elo para la Liga Familiar
+  const rankedUsers = [...users].sort((a, b) => (b.elo + (b.stars || 0)) - (a.elo + (a.stars || 0)));
 
   const currentOpponent = activeTourney
     ? (round === 1 ? activeTourney.bots[0] : activeTourney.bots[3])
@@ -98,43 +102,29 @@ export const TournamentsView = () => {
     setIsBotThinking(true);
     setTimeout(() => {
       if (game.isGameOver()) return;
-      const botMove = getBestBotMove(game.fen(), currentOpponent.difficultyLevel || 2);
+      const botMove = getBestBotMove(game.fen(), activeTourney?.id === 'tourney_fide' ? 4 : 2);
       if (botMove) {
-        const result = game.move(botMove);
-        if (result) {
-          if (game.isCheckmate() || game.isCheck()) audioManager.playCheck();
-          else if (result.captured) audioManager.playCapture();
-          else audioManager.playMove();
+        const nextGame = new Chess(game.fen());
+        nextGame.move(botMove);
+        setGame(nextGame);
+        setLastMove(botMove);
+        setIsBotThinking(false);
 
-          setLastMove(result);
-          setGame(new Chess(game.fen()));
+        if (nextGame.isGameOver()) {
+          handleMatchOver(nextGame);
         }
       }
-      setIsBotThinking(false);
-
-      if (game.isGameOver()) {
-        handleMatchOver();
-      }
-    }, 600);
+    }, 500);
   };
 
-  const handleMatchOver = () => {
-    if (game.isCheckmate()) {
-      const playerWon = game.turn() === 'b';
-      if (playerWon) {
-        audioManager.playVictory();
-        confetti({ particleCount: 70, spread: 60 });
-        if (round === 1) {
-          setRound(2);
-          setMatchState('bracket');
-        } else {
-          // ¡Campeón del torneo!
-          setRound(3);
-          setMatchState('won');
-          addRewards(activeTourney.rewardStars, activeTourney.rewardGems);
-          recordGameResult('win', 25, 95);
-          confetti({ particleCount: 120, spread: 90 });
-        }
+  const handleMatchOver = (finalGame = game) => {
+    setIsBotThinking(false);
+    if (finalGame.isCheckmate() && finalGame.turn() === 'b') {
+      audioManager.playVictory();
+      confetti({ particleCount: 100, spread: 70 });
+      if (round === 1) {
+        setRound(2);
+        setMatchState('bracket');
       } else {
         audioManager.playWarning();
         setMatchState('lost');
