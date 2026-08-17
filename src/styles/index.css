@@ -273,6 +273,59 @@ body {
   }
 }
 
+/* Menú Desplegable de Herramientas y Manual */
+.header-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm, 8px);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: var(--text-parchment-main);
+}
+
+.header-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
+  transform: translateX(2px);
+}
+
+.header-dropdown-item.item-gold {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+.header-dropdown-item.item-gold:hover {
+  background: rgba(245, 158, 11, 0.22);
+  border-color: var(--color-gold);
+}
+
+.header-dropdown-item .item-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.header-dropdown-item .item-title {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--text-parchment-main);
+}
+
+.header-dropdown-item.item-gold .item-title {
+  color: #fbbf24;
+}
+
+.header-dropdown-item .item-sub {
+  font-size: 0.70rem;
+  color: var(--text-parchment-muted);
+}
+
 .currency-badge {
   display: flex;
   align-items: center;

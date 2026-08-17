@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useUser } from '../../context/UserContext';
 import { AvatarIcon } from '../../assets/avatars';
 import { 
@@ -19,6 +19,19 @@ export const Header = ({
 }) => {
   const { currentUser } = useUser();
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
+  const toolsMenuRef = useRef(null);
+
+  // Cerrar menú al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (toolsMenuRef.current && !toolsMenuRef.current.contains(e.target)) {
+        setIsToolsMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const handleFsChange = () => {
@@ -81,92 +94,165 @@ export const Header = ({
         </nav>
 
         {/* 3. BARRA RÁPIDA DE USUARIO, HERRAMIENTAS Y MANUAL */}
-        <div className="user-quick-bar">
-          {/* Botón Destacado: Manual de Ayuda */}
-          <button
-            type="button"
-            onClick={onOpenManual}
-            className="btn-gold header-manual-btn"
-            title="Manual de Ayuda y Guía del Usuario"
-          >
-            <BookOpen size={15} />
-            <span>Manual</span>
-          </button>
-
-          {/* Grupo de Herramientas y Accesos Rápidos */}
-          <div className="header-tools-cluster">
-            {/* 1. Reto Diario 🔥 */}
-            <button
-              type="button"
-              onClick={onOpenDaily}
-              className="header-icon-btn tool-btn-daily"
-              title="🔥 Reto Diario del Gran Maestro (+15⭐, +5💎)"
-            >
-              <span>🔥</span>
-            </button>
-
-            {/* 2. Diplomas y Certificados 🎖️ */}
-            <button
-              type="button"
-              onClick={onOpenCertificates}
-              className="header-icon-btn"
-              title="🎖️ Diplomas y Certificados Oficiales"
-            >
-              <Award size={15} color="#f59e0b" />
-            </button>
-
-            {/* 3. Importar / Exportar PGN 📄 */}
-            <button
-              type="button"
-              onClick={onOpenPgn}
-              className="header-icon-btn"
-              title="📄 Importar / Exportar Partidas en PGN"
-            >
-              <FileText size={15} color="#38bdf8" />
-            </button>
-
-            {/* 4. Reporte de Errores 🐞 */}
-            <button
-              type="button"
-              onClick={onOpenBugReport}
-              className="header-icon-btn tool-btn-bug"
-              title="🐞 Reportar un Error o Bug en Pantalla"
-            >
-              <Bug size={15} color="#ef4444" />
-            </button>
-
-            {/* 5. Pantalla Completa ⛶ */}
-            <button
-              type="button"
-              onClick={toggleFullscreen}
-              className="header-icon-btn hide-mobile-compact"
-              title={isFullscreen ? "Salir de Pantalla Completa" : "Modo Pantalla Completa"}
-            >
-              {isFullscreen ? <Minimize size={15} color="#10b981" /> : <Maximize size={15} color="#94a3b8" />}
-            </button>
-
-            {/* 6. Configuración ⚙️ */}
-            <button
-              type="button"
-              onClick={onOpenSettings}
-              className="header-icon-btn"
-              title="⚙️ Configuración y Preferencias (Audio, Temas, Perfiles)"
-            >
-              <Settings size={15} color="#94a3b8" />
-            </button>
-          </div>
-
+        {/* 3. BARRA RÁPIDA DE USUARIO, DIVISAS Y MENÚ DE HERRAMIENTAS */}
+        <div className="user-quick-bar" ref={toolsMenuRef} style={{ position: 'relative' }}>
           {/* Divisas del Jugador: Estrellas ⭐ */}
           <div className="currency-badge stars-badge" title="Estrellas acumuladas">
             <span>⭐</span>
-            <span className="currency-val">{currentUser.stars || 0}</span>
+            <span className="currency-val">{currentUser?.stars || 0}</span>
           </div>
 
           {/* Divisas del Jugador: Gemas 💎 */}
           <div className="currency-badge gems-badge" title="Gemas ganadas">
             <span>💎</span>
-            <span className="currency-val">{currentUser.gems || 0}</span>
+            <span className="currency-val">{currentUser?.gems || 0}</span>
           </div>
+
+          {/* BOTÓN DESPLEGABLE DE MENÚ DE HERRAMIENTAS & MANUAL */}
+          <button
+            type="button"
+            onClick={() => setIsToolsMenuOpen(!isToolsMenuOpen)}
+            className={`btn-secondary header-tools-toggle-btn ${isToolsMenuOpen ? 'active' : ''}`}
+            title="Abrir menú de herramientas, manual y opciones"
+            style={{
+              padding: '6px 12px',
+              fontSize: '0.82rem',
+              fontWeight: '800',
+              gap: '6px',
+              border: isToolsMenuOpen ? '1.5px solid var(--color-gold)' : '1px solid var(--bg-parchment-border)',
+              background: isToolsMenuOpen ? 'rgba(245, 158, 11, 0.15)' : 'var(--bg-parchment-card)',
+              color: isToolsMenuOpen ? 'var(--color-gold)' : 'var(--text-parchment-main)'
+            }}
+          >
+            <Settings size={15} />
+            <span>Menú ▾</span>
+          </button>
+
+          {/* MENÚ POPOVER DESPLEGABLE FLOTANTE */}
+          {isToolsMenuOpen && (
+            <div className="header-dropdown-menu" style={{
+              position: 'absolute',
+              top: 'calc(100% + 8px)',
+              right: 0,
+              width: '260px',
+              background: '#0f172a',
+              border: '2px solid var(--bg-parchment-border)',
+              borderRadius: 'var(--radius-md, 12px)',
+              padding: '8px',
+              boxShadow: '0 12px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+              zIndex: 1000,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
+              animation: 'fadeIn 0.15s ease-out'
+            }}>
+              <div style={{
+                fontSize: '0.68rem',
+                fontWeight: '900',
+                textTransform: 'uppercase',
+                letterSpacing: '0.6px',
+                color: 'var(--color-gold-dark)',
+                padding: '4px 8px 6px',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                marginBottom: '2px'
+              }}>
+                Herramientas & Guía
+              </div>
+
+              {/* 1. Manual de Usuario */}
+              <button
+                type="button"
+                className="header-dropdown-item item-gold"
+                onClick={() => { setIsToolsMenuOpen(false); onOpenManual(); }}
+              >
+                <BookOpen size={16} color="#f59e0b" />
+                <div className="item-text">
+                  <span className="item-title">Manual de Usuario</span>
+                  <span className="item-sub">Guía interactiva y reglas</span>
+                </div>
+              </button>
+
+              {/* 2. Reto Diario */}
+              <button
+                type="button"
+                className="header-dropdown-item"
+                onClick={() => { setIsToolsMenuOpen(false); onOpenDaily(); }}
+              >
+                <Flame size={16} color="#f97316" />
+                <div className="item-text">
+                  <span className="item-title">Reto Diario del Maestro</span>
+                  <span className="item-sub">+15⭐ y +5💎 cada día</span>
+                </div>
+              </button>
+
+              {/* 3. Diplomas y Certificados */}
+              <button
+                type="button"
+                className="header-dropdown-item"
+                onClick={() => { setIsToolsMenuOpen(false); onOpenCertificates(); }}
+              >
+                <Award size={16} color="#eab308" />
+                <div className="item-text">
+                  <span className="item-title">Diplomas Oficiales</span>
+                  <span className="item-sub">Certificados descargables</span>
+                </div>
+              </button>
+
+              {/* 4. Importar / Exportar PGN */}
+              <button
+                type="button"
+                className="header-dropdown-item"
+                onClick={() => { setIsToolsMenuOpen(false); onOpenPgn(); }}
+              >
+                <FileText size={16} color="#38bdf8" />
+                <div className="item-text">
+                  <span className="item-title">Visor & Editor PGN</span>
+                  <span className="item-sub">Cargar y guardar partidas</span>
+                </div>
+              </button>
+
+              {/* 5. Reportar Bug / Error */}
+              <button
+                type="button"
+                className="header-dropdown-item"
+                onClick={() => { setIsToolsMenuOpen(false); onOpenBugReport(); }}
+              >
+                <Bug size={16} color="#ef4444" />
+                <div className="item-text">
+                  <span className="item-title" style={{ color: '#f87171' }}>Reportar un Error</span>
+                  <span className="item-sub">Ayúdanos a mejorar la app</span>
+                </div>
+              </button>
+
+              <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.08)', margin: '4px 0' }} />
+
+              {/* 6. Pantalla Completa ⛶ */}
+              <button
+                type="button"
+                className="header-dropdown-item"
+                onClick={() => { setIsToolsMenuOpen(false); toggleFullscreen(); }}
+              >
+                {isFullscreen ? <Minimize size={16} color="#10b981" /> : <Maximize size={16} color="#94a3b8" />}
+                <div className="item-text">
+                  <span className="item-title">{isFullscreen ? 'Salir de Pantalla Completa' : 'Pantalla Completa'}</span>
+                  <span className="item-sub">Ocultar barras del navegador</span>
+                </div>
+              </button>
+
+              {/* 7. Ajustes ⚙️ */}
+              <button
+                type="button"
+                className="header-dropdown-item"
+                onClick={() => { setIsToolsMenuOpen(false); onOpenSettings(); }}
+              >
+                <Settings size={16} color="#94a3b8" />
+                <div className="item-text">
+                  <span className="item-title">⚙️ Ajustes del Sistema</span>
+                  <span className="item-sub">Sonido, tablero y temas</span>
+                </div>
+              </button>
+            </div>
+          )}
 
           {/* Perfil del Usuario Activo */}
           <button 
@@ -176,9 +262,9 @@ export const Header = ({
             title="Cambiar usuario o avatar"
           >
             <div className="user-avatar-mini">
-              <AvatarIcon avatarId={currentUser.avatar} avatarConfig={currentUser.avatarConfig} size={28} />
+              <AvatarIcon avatarId={currentUser?.avatar || 'custom_dynamic'} avatarConfig={currentUser?.avatarConfig} size={28} />
             </div>
-            <span className="user-name-text">{currentUser.name}</span>
+            <span className="user-name-text">{currentUser?.name || 'Estudiante'}</span>
           </button>
         </div>
       </div>

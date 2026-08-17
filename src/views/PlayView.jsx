@@ -144,8 +144,14 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
     setIsRollingDice(true);
     try { audioManager?.playMove?.(); } catch (e) {}
     setTimeout(() => {
-      const faces = ['p', 'n', 'b', 'r', 'q', 'k'];
-      const picked = faces[Math.floor(Math.random() * faces.length)];
+      // Filtrar estrictamente solo las piezas que TIENEN jugadas legales posibles en la posición actual
+      const legalMoves = game.moves({ verbose: true });
+      const availablePieces = Array.from(new Set(legalMoves.map(m => m.piece)));
+
+      // Solo elegir entre piezas con movimientos reales para evitar jugadas imposibles
+      const candidateFaces = availablePieces.length > 0 ? availablePieces : ['p', 'n'];
+      const picked = candidateFaces[Math.floor(Math.random() * candidateFaces.length)];
+      
       setCurrentDiceRoll(picked);
       setIsRollingDice(false);
       try { audioManager?.playHint?.(); } catch (e) {}
@@ -465,8 +471,10 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
 
     let botAllowedPiece = null;
     if (gameVariant === 'dice_chess') {
-      const faces = ['p', 'n', 'b', 'r', 'q', 'k'];
-      botAllowedPiece = faces[Math.floor(Math.random() * faces.length)];
+      const legalMoves = g.moves({ verbose: true });
+      const availablePieces = Array.from(new Set(legalMoves.map(m => m.piece)));
+      const candidateFaces = availablePieces.length > 0 ? availablePieces : ['p', 'n'];
+      botAllowedPiece = candidateFaces[Math.floor(Math.random() * candidateFaces.length)];
     }
 
     const botMove = getBestBotMove(fen, botLevel, botAllowedPiece, gameVariant);
