@@ -17,6 +17,7 @@ import { ChessClock } from '../components/ChessClock/ChessClock';
 import { VictoryCardModal } from '../components/VictoryCard/VictoryCardModal';
 import { getHandicapFen, getHandicapSummary, DEFAULT_HANDICAP_CONFIG } from '../engine/handicapEngine';
 import { getStartingFenForVariant, getVariantById, checkVariantWinCondition } from '../engine/variantsEngine';
+import { VariantRulesModal } from '../components/Variants/VariantRulesModal';
 import { audioManager } from '../engine/audio';
 import { voiceEngine } from '../engine/voiceEngine';
 import { useUser } from '../context/UserContext';
@@ -26,6 +27,7 @@ import { Swords, Lightbulb, HelpCircle, RotateCcw, Play, RefreshCw, Settings, Sh
 export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMenu, onOpenBugReport }) => {
   const { currentUser, updateCurrentUser, recordGameResult, recordBotWin } = useUser();
   const [isPauseMenuOpen, setIsPauseMenuOpen] = useState(false);
+  const [isVariantRulesOpen, setIsVariantRulesOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
@@ -1016,8 +1018,30 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
             )}
 
             <div className="game-card-info">
-              <div className="game-card-title">
-                {gameMode === 'pass_and_play' ? 'Jugador 2 (Negras)' : `${botToPlay?.name || 'Robot'} (${playerColor === 'white' ? 'Negras' : 'Blancas'})`}
+              <div className="game-card-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>{gameMode === 'pass_and_play' ? 'Jugador 2 (Negras)' : `${botToPlay?.name || 'Robot'} (${playerColor === 'white' ? 'Negras' : 'Blancas'})`}</span>
+                {gameVariant !== 'standard' && (
+                  <button
+                    onClick={() => setIsVariantRulesOpen(true)}
+                    style={{
+                      padding: '2px 8px',
+                      fontSize: '0.70rem',
+                      fontWeight: '800',
+                      borderRadius: 'var(--radius-full)',
+                      color: '#38bdf8',
+                      border: '1px solid rgba(56, 189, 248, 0.5)',
+                      background: 'rgba(56, 189, 248, 0.12)',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '3px'
+                    }}
+                    title="Ver particularidades y reglas de esta modalidad"
+                  >
+                    <HelpCircle size={11} />
+                    <span>Reglas</span>
+                  </button>
+                )}
               </div>
               <div className="game-card-subtitle">
                 {gameMode === 'pass_and_play'
@@ -1153,6 +1177,32 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
             <div className="coach-speech-text">
               {coachMessage.text}
             </div>
+
+            {gameVariant !== 'standard' && (
+              <button
+                type="button"
+                onClick={() => setIsVariantRulesOpen(true)}
+                style={{
+                  marginTop: '10px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '5px 12px',
+                  background: 'rgba(56, 189, 248, 0.12)',
+                  border: '1.5px solid #38bdf8',
+                  borderRadius: 'var(--radius-full)',
+                  color: '#38bdf8',
+                  fontSize: '0.78rem',
+                  fontWeight: '800',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                title="Ver reglas mínimas y particularidades de esta modalidad"
+              >
+                <HelpCircle size={14} color="#38bdf8" />
+                <span>📜 Ver Reglas de {getVariantById(gameVariant).name}</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -1695,6 +1745,13 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
         gameMode={gameMode}
         opponentName={gameMode === 'pass_and_play' ? 'Jugador 2' : (botToPlay?.name || 'Robot')}
         playerName={currentUser?.name || 'Estudiante'}
+      />
+
+      {/* Modal de Reglas Mínimas de la Variante */}
+      <VariantRulesModal
+        isOpen={isVariantRulesOpen}
+        onClose={() => setIsVariantRulesOpen(false)}
+        variantId={gameVariant}
       />
     </div>
   );

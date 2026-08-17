@@ -19,7 +19,14 @@ export const CHESS_VARIANTS = [
     description: 'Partida estándar con las 32 piezas reglamentarias y todas las leyes oficiales del ajedrez.',
     startingFen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
     hasDice: false,
-    specialWinCondition: null
+    specialWinCondition: null,
+    rules: {
+      goal: 'Dar Jaque Mate al Rey rival.',
+      mechanics: [
+        'Partida estándar completa con 32 piezas y reglamento oficial FIDE.'
+      ],
+      proTip: 'Controla el centro, desarrolla tus piezas menores y enroca a tiempo.'
+    }
   },
   {
     id: 'dice_chess',
@@ -34,7 +41,16 @@ export const CHESS_VARIANTS = [
     description: 'En cada turno el dado determina qué pieza mover. ¡Solo salen piezas con movimientos legales!',
     startingFen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
     hasDice: true,
-    specialWinCondition: null
+    specialWinCondition: null,
+    rules: {
+      goal: 'Dar Jaque Mate al Rey rival como en ajedrez tradicional.',
+      mechanics: [
+        'En cada turno se lanza un dado que te indica qué tipo de pieza estás obligado a mover.',
+        'El dado es inteligente: solo selecciona piezas que tengan al menos una jugada legal disponible en esa posición.',
+        'Si estás jugando con ayudas de principiante o intermedio, tienes opción de relanzar el dado.'
+      ],
+      proTip: 'Mantén varias piezas activas para que cualquier tirada del dado te ofrezca buenas jugadas tácticas.'
+    }
   },
   {
     id: 'king_of_the_hill',
@@ -49,7 +65,16 @@ export const CHESS_VARIANTS = [
     description: 'El primer Rey que pise una de las 4 casillas centrales (d4, d5, e4, e5) gana la partida de inmediato.',
     startingFen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
     hasDice: false,
-    specialWinCondition: 'king_center'
+    specialWinCondition: 'king_center',
+    rules: {
+      goal: 'Llevar a tu propio Rey a cualquiera de las 4 casillas centrales (d4, d5, e4, e5) o dar Jaque Mate tradicional.',
+      mechanics: [
+        'Las casillas centrales d4, d5, e4 y e5 forman "La Cima de la Colina".',
+        '¡El primer jugador que logre situar su Rey en cualquiera de esas 4 casillas gana la partida al instante!',
+        'El Jaque Mate tradicional sigue siendo válido como victoria.'
+      ],
+      proTip: 'Avanza tus peones para abrir paso a tu Rey hacia el centro mientras vigilas que el Rey rival no se cuele en la colina.'
+    }
   },
   {
     id: 'fischer_960',
@@ -64,7 +89,18 @@ export const CHESS_VARIANTS = [
     description: 'Piezas mayores en orden aleatorio simétrico. Sin aperturas de memoria: pura intuición táctica.',
     startingFen: 'fischer_random',
     hasDice: false,
-    specialWinCondition: null
+    specialWinCondition: null,
+    rules: {
+      goal: 'Dar Jaque Mate al Rey rival.',
+      mechanics: [
+        'La primera fila de piezas mayores se genera aleatoriamente al inicio de la partida.',
+        'Ambos bandos inician con la misma posición simétrica idéntica.',
+        'Los dos Alfiles siempre inician en casillas de distinto color (uno clara y otro oscura).',
+        'El Rey siempre inicia en alguna casilla entre sus dos Torres para permitir el enroque.',
+        'Las reglas de movimiento, captura y coronación son exactamente iguales al ajedrez tradicional.'
+      ],
+      proTip: 'No intentes recordar jugadas de apertura memorizadas; analiza la armonía de tus piezas desde la primera jugada.'
+    }
   },
 
   // --- GRUPO 2: MINIJUEGOS PEDAGÓGICOS DE APRENDIZAJE ---
@@ -81,7 +117,16 @@ export const CHESS_VARIANTS = [
     description: 'Solo Reyes y Peones. El primer peón que corone gana la partida al instante. ¡Ideal para aprender estructuras y avances!',
     startingFen: '4k3/pppppppp/8/8/8/8/PPPPPPPP/4K3 w - - 0 1',
     hasDice: false,
-    specialWinCondition: 'first_promotion'
+    specialWinCondition: 'first_promotion',
+    rules: {
+      goal: '¡El primer jugador que corone un Peón (llegando a la última fila) gana la partida de inmediato!',
+      mechanics: [
+        'El tablero comienza únicamente con los 2 Reyes y los 16 Peones (8 blancos y 8 negros).',
+        'Los peones avanzan 1 casilla (o 2 en su primer movimiento) y capturan en diagonal.',
+        'También ganas si capturas todos los peones del rival dejándolo sin opciones.'
+      ],
+      proTip: 'Crea cadenas de peones unidas para que se protejan entre sí y utiliza a tu Rey como bloqueador y escolta.'
+    }
   },
   {
     id: 'knights_and_pawns',
@@ -96,7 +141,16 @@ export const CHESS_VARIANTS = [
     description: 'Reyes + 8 Peones + 2 Caballos por bando. Domina los saltos, puestos avanzados y ataques dobles.',
     startingFen: '1n2k1n1/pppppppp/8/8/8/8/PPPPPPPP/1N2K1N1 w - - 0 1',
     hasDice: false,
-    specialWinCondition: 'first_promotion_or_mate'
+    specialWinCondition: 'first_promotion_or_mate',
+    rules: {
+      goal: 'Coronar el primer Peón o dar Jaque Mate al Rey rival.',
+      mechanics: [
+        'El tablero inicia con los 2 Reyes, 16 Peones y 4 Caballos (2 por bando).',
+        'Los caballos pueden saltar por encima de cadenas cerradas de peones.',
+        '¡Cualquier peón que corone a Dama otorga la victoria automática inmediata!'
+      ],
+      proTip: 'Coloca tus caballos en casillas centrales protegidas por tus peones para amenazar ataques dobles (horquillas).'
+    }
   },
   {
     id: 'bishops_and_pawns',
@@ -111,7 +165,16 @@ export const CHESS_VARIANTS = [
     description: 'Reyes + 8 Peones + 2 Alfiles por bando. Aprende el valor de las diagonales abiertas y casillas de color opuesto.',
     startingFen: '2b1k1b1/pppppppp/8/8/8/8/PPPPPPPP/2B1K1B1 w - - 0 1',
     hasDice: false,
-    specialWinCondition: 'first_promotion_or_mate'
+    specialWinCondition: 'first_promotion_or_mate',
+    rules: {
+      goal: 'Coronar el primer Peón o dar Jaque Mate al Rey rival.',
+      mechanics: [
+        'El tablero inicia con los 2 Reyes, 16 Peones y 4 Alfiles (2 por bando).',
+        'Los alfiles dominan largas diagonales pero nunca pueden cambiar de color de casilla.',
+        '¡El primer peón en coronar asegura la victoria automática!'
+      ],
+      proTip: 'Coloca tus peones en casillas del color contrario a tu alfil para no estorbar sus diagonales de ataque.'
+    }
   },
   {
     id: 'rooks_and_pawns',
@@ -126,7 +189,16 @@ export const CHESS_VARIANTS = [
     description: 'Reyes + 8 Peones + 2 Torres. Domina la conquista de columnas abiertas, la 7ma fila y actividad de torres.',
     startingFen: 'r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w KQkq - 0 1',
     hasDice: false,
-    specialWinCondition: 'first_promotion_or_mate'
+    specialWinCondition: 'first_promotion_or_mate',
+    rules: {
+      goal: 'Coronar el primer Peón o dar Jaque Mate al Rey rival.',
+      mechanics: [
+        'El tablero inicia con los 2 Reyes, 16 Peones y 4 Torres (2 por bando).',
+        'Las torres necesitan columnas abiertas o semiabiertas para proyectar su fuerza.',
+        '¡El primer peón en coronar asegura la victoria automática!'
+      ],
+      proTip: 'Abre columnas cambiando peones y coloca tu torre detrás de tu peón pasado para empujarlo hasta la 8ª fila.'
+    }
   },
   {
     id: 'queens_and_pawns',
@@ -141,7 +213,16 @@ export const CHESS_VARIANTS = [
     description: 'Reyes + 8 Peones + 1 Dama por bando. Máxima agilidad, combinaciones tácticas directas y ataque rápido.',
     startingFen: '3qk3/pppppppp/8/8/8/8/PPPPPPPP/3QK3 w - - 0 1',
     hasDice: false,
-    specialWinCondition: 'first_promotion_or_mate'
+    specialWinCondition: 'first_promotion_or_mate',
+    rules: {
+      goal: 'Coronar el primer Peón o dar Jaque Mate al Rey rival.',
+      mechanics: [
+        'El tablero inicia con los 2 Reyes, 16 Peones y 2 Damas (1 por bando).',
+        'Partida de altísima velocidad y combinaciones tácticas directas.',
+        '¡Coronar un segundo peón a Dama asegura la victoria automática inmediata!'
+      ],
+      proTip: 'Cuida permanentemente al rey: los ataques de dama y peones pueden producir redes de mate relámpago.'
+    }
   }
 ];
 
@@ -179,7 +260,6 @@ export const generateFischerRandomFen = () => {
 
   // 4. Dos Caballos en casillas vacías restantes
   const emptyForKnights = row.map((v, i) => v === null ? i : null).filter(v => v !== null);
-  // Escoger 2 índices al azar
   const shuffledKnights = emptyForKnights.sort(() => Math.random() - 0.5);
   row[shuffledKnights[0]] = 'N';
   row[shuffledKnights[1]] = 'N';
@@ -247,8 +327,8 @@ export const checkVariantWinCondition = (chessGame, lastMove, variantId) => {
     }
   }
 
-  // 2. GUERRA DE PEONES: Victoria si un peón corona a Dama/Torre/etc.
-  if (variantId === 'pawn_wars' || variantId === 'knights_and_pawns' || variantId === 'bishops_and_pawns' || variantId === 'rooks_and_pawns' || variantId === 'queens_and_pawns') {
+  // 2. GUERRA DE PEONES & MINIJUEGOS: Victoria si un peón corona a Dama/Torre/etc.
+  if (['pawn_wars', 'knights_and_pawns', 'bishops_and_pawns', 'rooks_and_pawns', 'queens_and_pawns'].includes(variantId)) {
     if (lastMove.promotion) {
       const winnerColor = lastMove.color;
       return {
