@@ -12,6 +12,7 @@ import { GameOverModal } from '../components/GameOverModal/GameOverModal';
 import { GameModeModal } from '../components/GameModeModal/GameModeModal';
 import { ReactionsBar, ReactionFloatingBubble } from '../components/Reactions/ReactionsBar';
 import { HandicapConfigModal } from '../components/HandicapModal/HandicapConfigModal';
+import { DiceRoller } from '../components/Variants/DiceRoller';
 import { getHandicapFen, getHandicapSummary, DEFAULT_HANDICAP_CONFIG } from '../engine/handicapEngine';
 import { audioManager } from '../engine/audio';
 import { voiceEngine } from '../engine/voiceEngine';
@@ -113,6 +114,39 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
 
   // Modalidad de Juego: 'bot' (Contra IA) | 'pass_and_play' (2 Jugadores local)
   const [gameMode, setGameMode] = useState(() => (isResumingSaved && initialSaved?.gameMode) || 'bot');
+  // Variantes Lúdicas (Fase 4): 'standard' | 'dice_chess' | 'king_of_the_hill'
+  const [gameVariant, setGameVariant] = useState(() => (isResumingSaved && initialSaved?.gameVariant) || 'standard');
+  const [currentDiceRoll, setCurrentDiceRoll] = useState(null);
+  const [isRollingDice, setIsRollingDice] = useState(false);
+
+  const handleRollDice = () => {
+    setIsRollingDice(true);
+    try { audioManager?.playMove?.(); } catch (e) {}
+    setTimeout(() => {
+      const faces = ['p', 'n', 'b', 'r', 'q', 'k'];
+      const picked = faces[Math.floor(Math.random() * faces.length)];
+      setCurrentDiceRoll(picked);
+      setIsRollingDice(false);
+      try { audioManager?.playHint?.(); } catch (e) {}
+    }, 400);
+  };
+
+  const hasLegalMovesForDiceRoll = useMemo(() => {
+    if (gameVariant !== 'dice_chess' || !currentDiceRoll) return true;
+    if (currentDiceRoll === 'k') return true;
+    const moves = game.moves({ verbose: true });
+    return moves.some(m => m.piece === currentDiceRoll);
+  }, [game, gameVariant, currentDiceRoll]);
+
+  const handlePassDiceTurn = () => {
+    try { audioManager?.playWarning?.(); } catch (e) {}
+    setCurrentDiceRoll(null);
+    if (gameMode === 'bot') {
+      setIsBotThinking(true);
+      setTimeout(() => executeBotMove(game, game.fen()), 300);
+    }
+  };
+
   // Se abre el modal solo si NO hay una partida en curso guardada y no se seleccionó un bot específico
   const [isModeModalOpen, setIsModeModalOpen] = useState(() => (!isResumingSaved && !activeBot));
 
@@ -332,6 +366,29 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
     setHints(null);
     setCurrentHintLevel(0);
 
+    // Si es Dados Mágicos, reiniciar la tirada del turno tras mover
+    if (gameVariant === 'dice_chess') {
+      setCurrentDiceRoll(null);
+    }
+
+    // REGLA REY DE LA COLINA: Conquista inmediata si el Rey pisa d4, d5, e4 o e5
+    if (gameVariant === 'king_of_the_hill' && moveResult.piece === 'k' && ['d4', 'd5', 'e4', 'e5'].includes(moveResult.to)) {
+      const isPlayerWin = moveResult.color === (playerColor === 'white' ? 'w' : 'b');
+      const winnerName = isPlayerWin ? currentUser.name : (gameMode === 'pass_and_play' ? 'Jugador 2' : botToPlay.name);
+      try { audioManager?.playVictory?.(); } catch (e) {}
+      confetti({ particleCount: 120, spread: 80 });
+      setIsGameOver(true);
+      setGameOverSummary({
+        title: `¡Conquista de la Colina en ${moveResult.to.toUpperCase()}! ⛰️👑`,
+        subtitle: `¡El Rey de ${winnerName} ha alcanzado y conquistado la cima de la colina central! Victoria instantánea.`,
+        result: isPlayerWin ? 'win' : 'loss',
+        rewards: '+15 Elo • +15 ⭐'
+      });
+      recordGameResult(isPlayerWin ? 'win' : 'loss', 15, 90);
+      setIsGameOverModalOpen(true);
+      return;
+    }
+
     const drawCheck = checkDrawType(updatedGame, updatedFenHistory);
     if (updatedGame.isCheckmate() || drawCheck.isDraw) {
       handleGameOver(updatedGame, drawCheck.isDraw ? drawCheck : null);
@@ -385,7 +442,23 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
       return;
     }
 
-    const botMove = getBestBotMove(fen, botLevel);
+    let botAllowedPiece = null;
+    if (gameVariant === 'dice_chess') {
+      const faces = ['p', 'n', 'b', 'r', 'q', 'k'];
+      botAllowedPiece = faces[Math.floor(Math.random() * faces.length)];
+    }
+
+    const botMove = getBestBotMove(fen, botLevel, botAllowedPiece, gameVariant);
+    if (!botMove && gameVariant === 'dice_chess') {
+      setIsBotThinking(false);
+      setCoachMessage({
+        title: `🎲 ${botToPlay.name} sacó ${botAllowedPiece?.toUpperCase()} pero no puede moverla`,
+        text: `${botToPlay.name} no tiene jugadas legales con esa pieza. ¡El turno pasa a ti! Lanza el dado.`,
+        severity: 'info'
+      });
+      return;
+    }
+
     if (botMove) {
       const movingPiece = g.get(botMove.from);
 
@@ -412,15 +485,25 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
             audioManager.playMove();
           }
 
-          const nextFen = nextGame.fen();
-
           setGame(nextGame);
           setLastMove(result);
           setMoveHistory(prev => [...prev, result]);
-          setFenHistory(prev => [...prev, nextFen]);
           setAnimatingMove(null);
-          setHints(null);
-          setCurrentHintLevel(0);
+
+          const nextFen = nextGame.fen();
+
+          // REGLA REY DE LA COLINA: Victoria del Bot si su Rey llega al centro
+          if (gameVariant === 'king_of_the_hill' && result.piece === 'k' && ['d4', 'd5', 'e4', 'e5'].includes(result.to)) {
+            setIsGameOver(true);
+            setGameOverSummary({
+              title: `¡${botToPlay.name} conquistó la Colina en ${result.to.toUpperCase()}! ⛰️👑`,
+              subtitle: `El Rey de ${botToPlay.name} ha alcanzado la cima de la colina central y gana la partida.`,
+              result: 'loss',
+              rewards: '+2 Elo'
+            });
+            setIsGameOverModalOpen(true);
+            return;
+          }
 
           // Reacciones emocionales del Robot
           if (nextGame.isCheckmate()) {
@@ -923,11 +1006,25 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
           </div>
         </div>
 
+        {/* Si la variante es Dados Mágicos, renderizar selector y tirador de dados */}
+        {gameVariant === 'dice_chess' && !isGameOver && (
+          <div style={{ marginBottom: '10px' }}>
+            <DiceRoller
+              currentRoll={currentDiceRoll}
+              onRoll={handleRollDice}
+              isRolling={isRollingDice}
+              turn={game.turn()}
+              hasLegalMovesForRoll={hasLegalMovesForDiceRoll}
+              onPassTurn={handlePassDiceTurn}
+            />
+          </div>
+        )}
+
         {/* Tablero de Ajedrez con Orientación Dinámica y Animación de Vuelo */}
         <ChessBoard
           fen={game.fen()}
           orientation={playerColor}
-          interactive={isPlayerTurn && !isGameOver && !isBotThinking && !animatingMove}
+          interactive={isPlayerTurn && !isGameOver && !isBotThinking && !animatingMove && (gameVariant !== 'dice_chess' || (currentDiceRoll !== null && hasLegalMovesForDiceRoll))}
           onMove={handlePlayerMove}
           lastMove={lastMove}
           animatingMove={animatingMove}
@@ -935,6 +1032,8 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
           dangerSquares={dangerSquares}
           hintQuadrant={activeHint?.quadrant}
           hintSquare={activeHint?.square}
+          hillSquares={gameVariant === 'king_of_the_hill' ? ['d4', 'd5', 'e4', 'e5'] : []}
+          allowedPieceType={gameVariant === 'dice_chess' ? currentDiceRoll : null}
         />
 
         {/* Tarjeta del Jugador con Altura Fija Rigurosa */}
@@ -1209,6 +1308,12 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
         onSelectBotMode={handleSelectBotMode}
         onSelectPassAndPlay={handleSelectPassAndPlay}
         onSelectP2P={onOpenP2P}
+        onSelectVariant={(variantKey) => {
+          setGameVariant(variantKey);
+          setGameMode('bot');
+          setIsModeModalOpen(false);
+          setShowColorModal(true);
+        }}
         onOpenRobotsView={onOpenRobots}
         activeBot={botToPlay}
       />

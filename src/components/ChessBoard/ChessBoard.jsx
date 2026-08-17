@@ -27,7 +27,9 @@ export const ChessBoard = ({
   hintQuadrant = null,
   hintSquare = null,
   dangerSquares = [],
-  allowFreeMove = false
+  allowFreeMove = false,
+  hillSquares = [],
+  allowedPieceType = null
 }) => {
   const { currentUser } = useUser();
   const shouldShowLegalMoves = showLegalMoves !== null 
@@ -54,8 +56,12 @@ export const ChessBoard = ({
     const piece = game.get(selectedSquare);
     if (!piece) return null;
     if (!allowFreeMove && piece.color !== game.turn()) return null;
+    // Si la variante es Dados Mágicos y se restringió la pieza (y no es comodín 'k')
+    if (allowedPieceType && allowedPieceType !== 'k' && piece.type !== allowedPieceType) {
+      return null;
+    }
     return selectedSquare;
-  }, [selectedSquare, game, allowFreeMove]);
+  }, [selectedSquare, game, allowFreeMove, allowedPieceType]);
 
   const activeLegalMoves = useMemo(() => {
     if (!validSelectedSquare) return [];
@@ -315,6 +321,24 @@ export const ChessBoard = ({
                     <span className="square-coord file" style={{ color: isLight ? themeColors.dark : themeColors.light }}>
                       {file}
                     </span>
+                  )}
+
+                  {/* Indicador de Cima de la Colina (Rey de la Colina) */}
+                  {hillSquares && hillSquares.includes(square) && (
+                    <div style={{
+                      position: 'absolute',
+                      inset: 0,
+                      border: '2px dashed rgba(245, 158, 11, 0.75)',
+                      background: 'rgba(245, 158, 11, 0.14)',
+                      pointerEvents: 'none',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      justifyContent: 'flex-end',
+                      padding: '2px',
+                      zIndex: 1
+                    }}>
+                      <span style={{ fontSize: '0.68rem', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))' }}>⛰️</span>
+                    </div>
                   )}
 
                   {/* Indicador de jugada legal (si está habilitado en los ajustes) */}

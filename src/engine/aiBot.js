@@ -162,12 +162,31 @@ const minimax = (chess, depth, alpha, beta, isMaximizing) => {
 };
 
 /**
- * Selecciona la mejor jugada para el bot según su nivel
+ * Selecciona la mejor jugada para el bot según su nivel y variante
  */
-export const getBestBotMove = (fen, level = 1) => {
+export const getBestBotMove = (fen, level = 1, allowedPiece = null, variant = 'standard') => {
   const chess = new Chess(fen);
-  const moves = chess.moves({ verbose: true });
+  let moves = chess.moves({ verbose: true });
   if (moves.length === 0) return null;
+
+  // Filtrado por pieza permitida en Dados Mágicos (si no es comodín 'k')
+  if (allowedPiece && allowedPiece !== 'k') {
+    const pieceMoves = moves.filter(m => m.piece === allowedPiece);
+    if (pieceMoves.length > 0) {
+      moves = pieceMoves;
+    } else {
+      return null; // Sin jugadas legales para esta tirada
+    }
+  }
+
+  // REGLA REY DE LA COLINA: Si el bot puede colocar su Rey en d4, d5, e4 o e5, lo hace para ganar al instante
+  if (variant === 'king_of_the_hill') {
+    const hillSquares = ['d4', 'd5', 'e4', 'e5'];
+    const winningHillMove = moves.find(m => m.piece === 'k' && hillSquares.includes(m.to));
+    if (winningHillMove) {
+      return winningHillMove;
+    }
+  }
 
   const isWhite = chess.turn() === 'w';
 
