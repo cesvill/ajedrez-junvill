@@ -3,13 +3,14 @@ import {
   BookOpen, Search, X, ChevronRight, Home, Swords, Bot, Puzzle, 
   Trophy, User, Sparkles, Clock, Dices, Mountain, HelpCircle, 
   Award, FileText, ShieldAlert, Share2, Compass, CheckCircle2,
-  Coins, Gift, Smile, Flame, Scale, Globe
+  Coins, Gift, Smile, Flame, Scale, Globe, Star
 } from 'lucide-react';
 
 export const MANUAL_SECTIONS = [
   {
     id: 'inicio',
     title: 'Pantalla de Inicio (Centro de Mando)',
+    shortTitle: '🏠 1. Inicio y Centro de Mando',
     icon: Home,
     badge: 'Dashboard',
     color: '#3b82f6',
@@ -37,11 +38,46 @@ export const MANUAL_SECTIONS = [
     ]
   },
   {
-    id: 'economia',
-    title: 'Puntos, Estrellas ⭐ y Diamantes 💎 (Economía)',
-    icon: Coins,
-    badge: 'Recompensas',
+    id: 'guia_diversion_especial',
+    title: '🌟 Guía Especial: Las 5 Fases de Diversión & Gamificación Familiar',
+    shortTitle: '🌟 2. Centro de Diversión y 5 Fases',
+    icon: Sparkles,
+    badge: 'Especial Familiar',
     color: '#f59e0b',
+    content: [
+      {
+        subtitle: '1. Filosofía de Ajedrez Junvill: Aprender Jugando',
+        text: 'Ajedrez Junvill no es solo un tablero tradicional: es un videojuego educativo y familiar diseñado para que niños, padres y abuelos disfruten juntos sin frustración, combinando rigor técnico FIDE con magia, recompensas y emoción.'
+      },
+      {
+        subtitle: '2. 🎭 Fase 1: Reacciones y Caras en Tiempo Real',
+        text: 'Barra de emoticonos interactivos para enviar caras animadas (😄, 🤔, 😲, 👏, 🔥) y 15 robots con inteligencia emocional que reaccionan con sorpresa, risas o lamentos ante jugadas brillantes y capturas.'
+      },
+      {
+        subtitle: '3. 🎨 Fase 2: Avatares 3D de Cuerpo Completo y Avatar Studio',
+        text: 'Personajes ilustrados en alta definición de cuerpo entero sobre pedestales de madera noble con física de flotación y personalización completa de piel, peinados, ropa y accesorios reales.'
+      },
+      {
+        subtitle: '4. 📖 Fase 3: Entrenador de Aperturas Guiadas',
+        text: 'Biblioteca interactiva para aprender las 12 aperturas maestras (Italiana, Ruy López, Siciliana, Francesa, Gambito de Dama, Londres) jugada a jugada con flechas y explicaciones estratégicas.'
+      },
+      {
+        subtitle: '5. 🎲 Fase 4: Variantes Familiares (Dados Mágicos & Rey de la Colina)',
+        text: 'Ajedrez con Dados Mágicos (el azar nivela la partida entre niños y adultos) y Rey de la Colina (conquistar el centro con el Rey otorga victoria instantánea).'
+      },
+      {
+        subtitle: '6. 🏆 Fase 5: Liga Familiar, Exportación y Reloj',
+        text: 'Tabla de clasificación y podio del hogar 🥇🥈🥉, tarjetas coleccionables listas para enviar a WhatsApp y reloj de ajedrez opcional con partidas rápidas y blitz.'
+      }
+    ]
+  },
+  {
+    id: 'economia',
+    title: 'Economía del Juego: Puntos, Estrellas ⭐ y Diamantes 💎',
+    shortTitle: '💎 3. Estrellas ⭐ vs Diamantes 💎',
+    icon: Coins,
+    badge: 'Economía',
+    color: '#10b981',
     content: [
       {
         subtitle: '1. ¿Para qué sirven las Estrellas ⭐?',
@@ -64,6 +100,7 @@ export const MANUAL_SECTIONS = [
   {
     id: 'retos_familia',
     title: 'Retos de Familia, Misiones y Cofres 🎁',
+    shortTitle: '🎁 4. Retos de Familia y Misiones',
     icon: Gift,
     badge: 'Hogar',
     color: '#ec4899',
@@ -83,53 +120,12 @@ export const MANUAL_SECTIONS = [
     ]
   },
   {
-    id: 'reacciones',
-    title: '🎭 Reacciones y Emociones en Tiempo Real (Fase 1)',
-    icon: Smile,
-    badge: 'Fase 1',
-    color: '#38bdf8',
-    content: [
-      {
-        subtitle: '1. Barra de Emoticonos y Caras Animadas',
-        text: 'Durante la partida, en la barra inferior dispones de un botón de emojis para expresar alegría 😄, concentración 🤔, sorpresa 😲, aplausos 👏 o fuego 🔥.'
-      },
-      {
-        subtitle: '2. Inteligencia Emocional de los Robots',
-        text: 'Los 15 robots de IA no son fríos: reaccionan en tiempo real a lo que ocurre en el tablero. Si haces una jugada brillante mostrarán sorpresa 😮; si te dan jaque sonreirán con confianza 😏; y si pierden su dama expresarán lamento 🥺.'
-      },
-      {
-        subtitle: '3. Burbujas Flotantes con Sonido Sutil',
-        text: 'Las reacciones emergen flotando suavemente sobre el avatar correspondiente con un efecto de sonido agradable que no interrumpe el pensamiento táctico.'
-      }
-    ]
-  },
-  {
-    id: 'avatares_3d',
-    title: '🎨 Avatares 3D y Avatar Studio (Fase 2)',
-    icon: User,
-    badge: 'Fase 2',
-    color: '#a855f7',
-    content: [
-      {
-        subtitle: '1. Ilustraciones HD de Cuerpo Completo en Pedestal',
-        text: 'Los avatares ya no son simples círculos: ahora cuentan con ilustraciones de cuerpo entero sobre un pedestal de madera noble con física de flotación interactiva.'
-      },
-      {
-        subtitle: '2. Personalización Total en el Avatar Studio',
-        text: 'Modifica el tono de piel, peinados modernos (con flequillo, rizado, liso, corto), ojos expresivos, ropa (sudaderas, trajes formales, camisetas) y accesorios (coronas, auriculares, capas, gafas).'
-      },
-      {
-        subtitle: '3. Estados de Ánimo Reactivos',
-        text: 'Tu avatar cambia de expresión según tu desempeño en la partida: concentrado al pensar, alegre en victorias y motivado para volver a intentarlo tras una derrota.'
-      }
-    ]
-  },
-  {
     id: 'aprender',
     title: '📚 Escuela de Ajedrez (110 Lecciones y Peón al Paso)',
+    shortTitle: '📚 5. Escuela y 110 Lecciones',
     icon: BookOpen,
     badge: 'Currículo',
-    color: '#10b981',
+    color: '#3b82f6',
     content: [
       {
         subtitle: '1. Las 5 Etapas Curriculares',
@@ -154,8 +150,53 @@ export const MANUAL_SECTIONS = [
     ]
   },
   {
+    id: 'reacciones',
+    title: '🎭 Reacciones y Emociones en Tiempo Real (Fase 1)',
+    shortTitle: '🎭 6. Reacciones en Vivo (Fase 1)',
+    icon: Smile,
+    badge: 'Fase 1',
+    color: '#38bdf8',
+    content: [
+      {
+        subtitle: '1. Barra de Emoticonos y Caras Animadas',
+        text: 'Durante la partida, en la barra inferior dispones de un botón de emojis para expresar alegría 😄, concentración 🤔, sorpresa 😲, aplausos 👏 o fuego 🔥.'
+      },
+      {
+        subtitle: '2. Inteligencia Emocional de los Robots',
+        text: 'Los 15 robots de IA no son fríos: reaccionan en tiempo real a lo que ocurre en el tablero. Si haces una jugada brillante mostrarán sorpresa 😮; si te dan jaque sonreirán con confianza 😏; y si pierden su dama expresarán lamento 🥺.'
+      },
+      {
+        subtitle: '3. Burbujas Flotantes con Sonido Sutil',
+        text: 'Las reacciones emergen flotando suavemente sobre el avatar correspondiente con un efecto de sonido agradable que no interrumpe el pensamiento táctico.'
+      }
+    ]
+  },
+  {
+    id: 'avatares_3d',
+    title: '🎨 Avatares 3D y Avatar Studio (Fase 2)',
+    shortTitle: '🎨 7. Avatares 3D Studio (Fase 2)',
+    icon: User,
+    badge: 'Fase 2',
+    color: '#a855f7',
+    content: [
+      {
+        subtitle: '1. Ilustraciones HD de Cuerpo Completo en Pedestal',
+        text: 'Los avatares ya no son simples círculos: ahora cuentan con ilustraciones de cuerpo entero sobre un pedestal de madera noble con física de flotación interactiva.'
+      },
+      {
+        subtitle: '2. Personalización Total en el Avatar Studio',
+        text: 'Modifica el tono de piel, peinados modernos (con flequillo, rizado, liso, corto), ojos expresivos, ropa (sudaderas, trajes formales, camisetas) y accesorios (coronas, auriculares, capas, gafas).'
+      },
+      {
+        subtitle: '3. Estados de Ánimo Reactivos',
+        text: 'Tu avatar cambia de expresión según tu desempeño en la partida: concentrado al pensar, alegre en victorias y motivado para volver a intentarlo tras una derrota.'
+      }
+    ]
+  },
+  {
     id: 'aperturas',
     title: '📖 Entrenador de Aperturas Guiadas (Fase 3)',
+    shortTitle: '📖 8. Aperturas Guiadas (Fase 3)',
     icon: Compass,
     badge: 'Fase 3',
     color: '#8b5cf6',
@@ -177,6 +218,7 @@ export const MANUAL_SECTIONS = [
   {
     id: 'variantes',
     title: '🎲 Variantes Familiares y Modos Mágicos (Fase 4)',
+    shortTitle: '🎲 9. Dados y Colina (Fase 4)',
     icon: Dices,
     badge: 'Fase 4',
     color: '#f43f5e',
@@ -198,6 +240,7 @@ export const MANUAL_SECTIONS = [
   {
     id: 'reloj_partidas',
     title: '⏱️ Reloj de Ajedrez, IA y Multijugador P2P',
+    shortTitle: '⏱️ 10. Reloj, Robots y P2P',
     icon: Clock,
     badge: 'Partidas',
     color: '#06b6d4',
@@ -219,6 +262,7 @@ export const MANUAL_SECTIONS = [
   {
     id: 'liga_exportacion',
     title: '🏆 Liga Familiar, Diplomas y WhatsApp (Fase 5)',
+    shortTitle: '🏆 11. Liga, Diplomas y WhatsApp',
     icon: Trophy,
     badge: 'Fase 5',
     color: '#eab308',
@@ -268,9 +312,10 @@ export const ManualModal = ({
     const q = searchQuery.toLowerCase();
     return MANUAL_SECTIONS.filter(s => {
       const matchTitle = s.title.toLowerCase().includes(q);
+      const matchShortTitle = (s.shortTitle || '').toLowerCase().includes(q);
       const matchBadge = s.badge.toLowerCase().includes(q);
       const matchContent = s.content.some(c => c.subtitle.toLowerCase().includes(q) || c.text.toLowerCase().includes(q));
-      return matchTitle || matchBadge || matchContent;
+      return matchTitle || matchShortTitle || matchBadge || matchContent;
     });
   }, [searchQuery]);
 
@@ -281,7 +326,7 @@ export const ManualModal = ({
       <div
         className="modal-card"
         style={{
-          maxWidth: '960px',
+          maxWidth: '980px',
           width: '100%',
           height: '88vh',
           maxHeight: '840px',
@@ -369,9 +414,11 @@ export const ManualModal = ({
 
         {/* CUERPO DEL MANUAL: SIDEBAR DE CAPÍTULOS + PANEL DE CONTENIDO */}
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-          {/* Sidebar de Secciones */}
+          {/* Sidebar de Secciones con Ancho Cómodo y Sin Cortes */}
           <div style={{
-            width: '290px',
+            width: '310px',
+            minWidth: '290px',
+            flex: '0 0 310px',
             background: '#090d16',
             borderRight: '1.5px solid #1e293b',
             overflowY: 'auto',
@@ -395,20 +442,21 @@ export const ManualModal = ({
                     justifyContent: 'space-between',
                     padding: '10px 12px',
                     borderRadius: '8px',
-                    marginBottom: '5px',
+                    marginBottom: '6px',
                     cursor: 'pointer',
                     background: isSelected ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.22) 0%, rgba(217, 119, 6, 0.30) 100%)' : '#0f172a',
                     border: isSelected ? '1.5px solid #f59e0b' : '1px solid #1e293b',
                     color: isSelected ? '#fbbf24' : '#cbd5e1',
                     fontWeight: isSelected ? '900' : '700',
-                    fontSize: '0.83rem',
+                    fontSize: '0.82rem',
+                    lineHeight: '1.3',
                     transition: 'all 0.15s ease'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, marginRight: '6px' }}>
                     <Icon size={16} color={isSelected ? '#fbbf24' : sec.color} style={{ flexShrink: 0 }} />
-                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {sec.title}
+                    <span style={{ wordBreak: 'break-word' }}>
+                      {sec.shortTitle || sec.title}
                     </span>
                   </div>
                   <ChevronRight size={14} style={{ opacity: isSelected ? 1 : 0.4, flexShrink: 0, color: isSelected ? '#fbbf24' : '#64748b' }} />
