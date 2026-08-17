@@ -2,7 +2,8 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { 
   BookOpen, Search, X, ChevronRight, Home, Swords, Bot, Puzzle, 
   Trophy, User, Sparkles, Clock, Dices, Mountain, HelpCircle, 
-  Award, FileText, ShieldAlert, Share2, Compass, CheckCircle2 
+  Award, FileText, ShieldAlert, Share2, Compass, CheckCircle2,
+  Coins, Gift, Smile, Flame, Scale, Globe
 } from 'lucide-react';
 
 export const MANUAL_SECTIONS = [
@@ -36,8 +37,96 @@ export const MANUAL_SECTIONS = [
     ]
   },
   {
+    id: 'economia',
+    title: 'Puntos, Estrellas ⭐ y Diamantes 💎 (Economía)',
+    icon: Coins,
+    badge: 'Recompensas',
+    color: '#f59e0b',
+    content: [
+      {
+        subtitle: '1. ¿Para qué sirven las Estrellas ⭐?',
+        text: 'Las Estrellas son la medida de tu maestría educativa. Se ganan al completar lecciones del currículo (hasta 5 estrellas por lección) y resolviendo problemas tácticos. Te permiten desbloquear etapas avanzadas, subir en la Liga Familiar y validar tus Diplomas Oficiales.'
+      },
+      {
+        subtitle: '2. ¿Para qué sirven los Diamantes / Gemas 💎?',
+        text: 'Las Gemas son la divisa mágica del juego. Se ganan ganando Torneos Oficiales 🏆, cumpliendo el Reto Diario 🔥 y completando las Misiones de Papá y Mamá 🎁. Se gastan en el Avatar Studio para desbloquear nuevos tableros (Esmeralda, Madera noble, Neón, Océano), piezas y atuendos exclusivos.'
+      },
+      {
+        subtitle: '3. Puntos Curriculares (0 a 110)',
+        text: 'Cada lección completada otorga 1 Punto Curricular. Al alcanzar los 110 puntos se desbloquea el Gran Diploma Maestro de Graduación emitido por Ajedrez Junvill.'
+      },
+      {
+        subtitle: '4. Puntuación Elo (Fuerza de Juego)',
+        text: 'Tu Elo sube cuando derrotas a robots o ganas torneos, y se ajusta según la dificultad del oponente. Comienzas como Aprendiz (400-650 Elo) y puedes llegar hasta Gran Maestro (+2200 Elo).'
+      }
+    ]
+  },
+  {
+    id: 'retos_familia',
+    title: 'Retos de Familia, Misiones y Cofres 🎁',
+    icon: Gift,
+    badge: 'Hogar',
+    color: '#ec4899',
+    content: [
+      {
+        subtitle: '1. Misiones Creadas por Papá y Mamá',
+        text: 'Los padres o profesores pueden crear misiones personalizadas para los niños (ejemplo: "Hacer 3 lecciones antes de ver TV", "Derrotar a Sparky", "Resolver 5 tácticas diarias").'
+      },
+      {
+        subtitle: '2. Cofres y Recompensas Reales o Virtuales',
+        text: 'Al completar los objetivos, los niños pueden reclamar gemas 💎 virtuales o recompensas pactadas en casa (tiempo de parque, postre favorito, salida familiar).'
+      },
+      {
+        subtitle: '3. Panel de Control Parental',
+        text: 'Permite a los adultos activar o desactivar retos, verificar el progreso del estudiante y reiniciar misiones diarias o semanales en 1 clic.'
+      }
+    ]
+  },
+  {
+    id: 'reacciones',
+    title: '🎭 Reacciones y Emociones en Tiempo Real (Fase 1)',
+    icon: Smile,
+    badge: 'Fase 1',
+    color: '#38bdf8',
+    content: [
+      {
+        subtitle: '1. Barra de Emoticonos y Caras Animadas',
+        text: 'Durante la partida, en la barra inferior dispones de un botón de emojis para expresar alegría 😄, concentración 🤔, sorpresa 😲, aplausos 👏 o fuego 🔥.'
+      },
+      {
+        subtitle: '2. Inteligencia Emocional de los Robots',
+        text: 'Los 15 robots de IA no son fríos: reaccionan en tiempo real a lo que ocurre en el tablero. Si haces una jugada brillante mostrarán sorpresa 😮; si te dan jaque sonreirán con confianza 😏; y si pierden su dama expresarán lamento 🥺.'
+      },
+      {
+        subtitle: '3. Burbujas Flotantes con Sonido Sutil',
+        text: 'Las reacciones emergen flotando suavemente sobre el avatar correspondiente con un efecto de sonido agradable que no interrumpe el pensamiento táctico.'
+      }
+    ]
+  },
+  {
+    id: 'avatares_3d',
+    title: '🎨 Avatares 3D y Avatar Studio (Fase 2)',
+    icon: User,
+    badge: 'Fase 2',
+    color: '#a855f7',
+    content: [
+      {
+        subtitle: '1. Ilustraciones HD de Cuerpo Completo en Pedestal',
+        text: 'Los avatares ya no son simples círculos: ahora cuentan con ilustraciones de cuerpo entero sobre un pedestal de madera noble con física de flotación interactiva.'
+      },
+      {
+        subtitle: '2. Personalización Total en el Avatar Studio',
+        text: 'Modifica el tono de piel, peinados modernos (con flequillo, rizado, liso, corto), ojos expresivos, ropa (sudaderas, trajes formales, camisetas) y accesorios (coronas, auriculares, capas, gafas).'
+      },
+      {
+        subtitle: '3. Estados de Ánimo Reactivos',
+        text: 'Tu avatar cambia de expresión según tu desempeño en la partida: concentrado al pensar, alegre en victorias y motivado para volver a intentarlo tras una derrota.'
+      }
+    ]
+  },
+  {
     id: 'aprender',
-    title: 'Escuela de Ajedrez (110 Lecciones)',
+    title: '📚 Escuela de Ajedrez (110 Lecciones y Peón al Paso)',
     icon: BookOpen,
     badge: 'Currículo',
     color: '#10b981',
@@ -66,14 +155,14 @@ export const MANUAL_SECTIONS = [
   },
   {
     id: 'aperturas',
-    title: 'Entrenador de Aperturas Guiadas',
+    title: '📖 Entrenador de Aperturas Guiadas (Fase 3)',
     icon: Compass,
-    badge: 'Estrategia',
+    badge: 'Fase 3',
     color: '#8b5cf6',
     content: [
       {
         subtitle: '1. Biblioteca de 12 Grandes Aperturas',
-        text: 'Aprende la Apertura Italiana, Ruy López (Española), Defensa Siciliana, Francesa, Caro-Kann, Gambito de Dama, India de Rey y más.'
+        text: 'Aprende la Apertura Italiana, Ruy López (Española), Defensa Siciliana, Francesa, Caro-Kann, Gambito de Dama, Sistema Londres, India de Rey y más.'
       },
       {
         subtitle: '2. Explicaciones Jugada a Jugada',
@@ -86,128 +175,65 @@ export const MANUAL_SECTIONS = [
     ]
   },
   {
-    id: 'robots',
-    title: 'Robots e Inteligencia Artificial (IA)',
-    icon: Bot,
-    badge: '15 Bots',
-    color: '#f59e0b',
+    id: 'variantes',
+    title: '🎲 Variantes Familiares y Modos Mágicos (Fase 4)',
+    icon: Dices,
+    badge: 'Fase 4',
+    color: '#f43f5e',
     content: [
       {
-        subtitle: '1. Graduación de Dificultad (400 a 2200 Elo)',
-        text: '15 personajes con avatares e historias únicas: desde robots amigables para niños como Qwerty y Pip hasta grandes maestros de torneo como GM Kaspar.'
+        subtitle: '1. 🎲 Ajedrez con Dados Mágicos (Dice Chess)',
+        text: 'En cada turno el tirador de dados determina qué pieza debes mover (Peón, Caballo, Alfil, Torre, Dama o Rey/Comodín). El tablero filtra únicamente las piezas válidas. ¡Iguala partidas entre niños y grandes con diversión y azar táctico!'
       },
       {
-        subtitle: '2. Tutor Pedagógico y Alertas de Peligro',
-        text: 'Durante la partida, tu profesor Don Aurelio analiza tus jugadas y emite una "Alerta de Peligro" con sonido de advertencia si el bot amenaza una de tus piezas valiosas.'
+        subtitle: '2. ⛰️👑 Rey de la Colina (King of the Hill)',
+        text: 'Las 4 casillas centrales (d4, d5, e4, e5) forman la cima de la colina dorada. ¡El primer jugador o robot que logre colocar a su Rey en cualquiera de estas casillas gana la partida al instante!'
       },
       {
-        subtitle: '3. Reacciones Emocionales en Tiempo Real',
-        text: 'Los bots responden con emojis y expresiones flotantes sobre el tablero ante capturas de dama, jaques o jugadas brillantes.'
+        subtitle: '3. ⚖️ Negociación de Hándicap / Ventajas',
+        text: 'Permite dar ventajas pedagógicas al jugador novato: peón o pieza de ventaja inicial, pistas ilimitadas o posibilidad de deshacer movimientos para nivelar el juego en familia.'
       }
     ]
   },
   {
-    id: 'jugar',
-    title: 'Partidas, Reloj y Variantes Familiares',
-    icon: Swords,
-    badge: 'Juego',
-    color: '#ec4899',
-    content: [
-      {
-        subtitle: '1. Modalidades de Juego',
-        text: 'Contra Robots (IA con tutor), Dos Jugadores en la Misma Pantalla (Pasa y Juega) y Multijugador Online P2P (Salas privadas con código y QR).'
-      },
-      {
-        subtitle: '2. 🎲 Variante: Ajedrez con Dados Mágicos (Dice Chess)',
-        text: 'En cada turno se lanza un dado que determina si debes mover Peón, Caballo, Alfil, Torre, Dama o Rey/Comodín. ¡Nivela la partida entre niños y adultos con azar y emoción!'
-      },
-      {
-        subtitle: '3. ⛰️👑 Variante: Rey de la Colina (King of the Hill)',
-        text: 'Las 4 casillas centrales (d4, d5, e4, e5) forman la colina central. ¡El primer Rey que pise el centro gana la partida inmediatamente!'
-      },
-      {
-        subtitle: '4. ⏱️ Reloj de Ajedrez Opcional',
-        text: 'Configura partidas Sin Tiempo (Infinito), Rápida 10 min, Blitz 5m+3s, Blitz 3m+2s o Bala 1 min con alertas de tiempo bajo y derrota por caída de bandera.'
-      },
-      {
-        subtitle: '5. ⚙️ Hándicap Pedagógico Negociable',
-        text: 'Otorga ventajas al jugador novato: peón/pieza de ventaja inicial, pistas ilimitadas o posibilidad de retroceder jugadas.'
-      }
-    ]
-  },
-  {
-    id: 'problemas',
-    title: 'Problemas Tácticos y Reto Diario',
-    icon: Puzzle,
-    badge: 'Táctica',
+    id: 'reloj_partidas',
+    title: '⏱️ Reloj de Ajedrez, IA y Multijugador P2P',
+    icon: Clock,
+    badge: 'Partidas',
     color: '#06b6d4',
     content: [
       {
-        subtitle: '1. Sala de Puzzles por Temas',
-        text: 'Entrena ejercicios de Mate en 1, Mate en 2, Horquillas, Clavadas, Enfiladas y Piezas Atrapadas con Elo táctico dinámico.'
+        subtitle: '1. ⏱️ Reloj de Ajedrez Dual',
+        text: 'Configura partidas Sin Tiempo (Infinito), Rápida 10 min, Blitz 5m+3s, Blitz 3m+2s o Bala 1 min con ticks sonoros en los últimos 10 segundos y derrota por tiempo.'
       },
       {
-        subtitle: '2. Reto Diario del Gran Maestro',
-        text: 'Un puzzle diario especial con multiplicador de racha de días consecutivos que otorga estrellas y gemas para la tienda.'
+        subtitle: '2. 🤖 Partidas contra 15 Robots con Tutor en Vivo',
+        text: 'Enfrenta a bots graduados desde 400 hasta 2200 Elo con pistas, alertas de peligro y análisis posicional en tiempo real.'
+      },
+      {
+        subtitle: '3. 🌐 Multijugador Online P2P y Modo Pasa y Juega',
+        text: 'Crea una sala privada, escanea el código QR o comparte el enlace para jugar en 2 celulares o computadores en tiempo real sin servidores intermediarios.'
       }
     ]
   },
   {
-    id: 'torneos',
-    title: 'Torneos y Liga Familiar (Ranking)',
+    id: 'liga_exportacion',
+    title: '🏆 Liga Familiar, Diplomas y WhatsApp (Fase 5)',
     icon: Trophy,
-    badge: 'Competencia',
+    badge: 'Fase 5',
     color: '#eab308',
     content: [
       {
-        subtitle: '1. 🏆 4 Copas de Torneo Oficiales',
-        text: 'Copa Promesas (400-800), Torneo Zoo (800-1300), Abierto Yusupov (1300-1800) y Grand Prix FIDE (1800-2200+) con eliminatorias a 2 rondas.'
+        subtitle: '1. 👑 Liga Familiar (Tabla de Clasificación del Hogar)',
+        text: 'Podio 🥇 🥈 🥉 y ranking general ordenable de todos los perfiles de la familia según Puntos de Liga, Elo, Estrellas ⭐, Victorias 🏆 y Lecciones completadas.'
       },
       {
-        subtitle: '2. 👑 Liga Familiar (Tabla de Clasificación del Hogar)',
-        text: 'Podio 🥇 🥈 🥉 y ranking general ordenable de todos los perfiles de la familia según Puntos, Elo, Estrellas, Victorias y Lecciones completadas.'
+        subtitle: '2. 📲 Tarjeta Coleccionable de Victoria (WhatsApp)',
+        text: 'Al finalizar cualquier partida, genera un cromo de lujo con los avatares del duelo, precisión de jugadas y resultado, listo para compartir en WhatsApp o guardar como imagen PNG.'
       },
       {
-        subtitle: '3. 📜 Diplomas y Certificados Imprimibles',
-        text: 'Certificados oficiales generados automáticamente con el nombre del alumno al completar las etapas del plan de estudios.'
-      }
-    ]
-  },
-  {
-    id: 'yo',
-    title: 'Avatar Studio 3D y Personalización',
-    icon: User,
-    badge: 'Personalización',
-    color: '#a855f7',
-    content: [
-      {
-        subtitle: '1. Creador de Personajes en Pedestal 3D',
-        text: 'Personaliza el tono de piel, peinados modernos, ojos expresivos, ropa elegante y accesorios reales (coronas, auriculares, capas).'
-      },
-      {
-        subtitle: '2. Tienda de Recompensas',
-        text: 'Usa tus gemas ganadas en partidas y torneos para desbloquear tableros temáticos (Esmeralda, Madera, Neón, Océano) y nuevos atuendos.'
-      }
-    ]
-  },
-  {
-    id: 'compartir',
-    title: 'Cromos de Victoria y Compartir WhatsApp',
-    icon: Share2,
-    badge: 'Exportación',
-    color: '#22c55e',
-    content: [
-      {
-        subtitle: '1. Tarjeta Coleccionable de Victoria',
-        text: 'Al finalizar cualquier partida, genera un cromo de lujo con los avatares del duelo, precisión de movimientos, estrellas y resultado.'
-      },
-      {
-        subtitle: '2. Compartir en WhatsApp en 1 Clic',
-        text: 'Abre WhatsApp automáticamente con un mensaje formateado listo para enviar a familiares o amigos.'
-      },
-      {
-        subtitle: '3. Descarga de Imagen en Alta Resolución (PNG)',
-        text: 'Descarga el cromo en formato imagen PNG con marco dorado para guardar o imprimir.'
+        subtitle: '3. 📜 Diplomas y Certificados Oficiales',
+        text: 'Diplomas oficiales descargables e imprimibles con sello dorado y firma del maestro Don Aurelio al culminar las etapas del plan de estudios.'
       }
     ]
   }
@@ -223,21 +249,28 @@ export const ManualModal = ({
   const [activeSectionId, setActiveSectionId] = useState(initialSection);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Actualizar sección inicial al abrir según dónde esté el usuario
+  // Mapear pestaña activa de la app con la sección correspondiente del manual
   useEffect(() => {
     if (initialSection) {
-      setActiveSectionId(initialSection);
+      if (initialSection === 'robots') setActiveSectionId('reloj_partidas');
+      else if (initialSection === 'jugar') setActiveSectionId('variantes');
+      else if (initialSection === 'torneos') setActiveSectionId('liga_exportacion');
+      else if (initialSection === 'yo') setActiveSectionId('avatares_3d');
+      else if (initialSection === 'aprender') setActiveSectionId('aprender');
+      else if (initialSection === 'problemas') setActiveSectionId('economia');
+      else setActiveSectionId(initialSection);
     }
   }, [initialSection, isOpen]);
 
-  // Filtrado por búsqueda
+  // Filtrado por búsqueda en tiempo real
   const filteredSections = useMemo(() => {
     if (!searchQuery.trim()) return MANUAL_SECTIONS;
     const q = searchQuery.toLowerCase();
     return MANUAL_SECTIONS.filter(s => {
       const matchTitle = s.title.toLowerCase().includes(q);
+      const matchBadge = s.badge.toLowerCase().includes(q);
       const matchContent = s.content.some(c => c.subtitle.toLowerCase().includes(q) || c.text.toLowerCase().includes(q));
-      return matchTitle || matchContent;
+      return matchTitle || matchBadge || matchContent;
     });
   }, [searchQuery]);
 
@@ -248,10 +281,10 @@ export const ManualModal = ({
       <div
         className="modal-card"
         style={{
-          maxWidth: '920px',
+          maxWidth: '960px',
           width: '100%',
           height: '88vh',
-          maxHeight: '820px',
+          maxHeight: '840px',
           background: '#0f172a',
           border: '2px solid #f59e0b',
           borderRadius: '16px',
@@ -280,11 +313,11 @@ export const ManualModal = ({
               <BookOpen size={22} />
             </div>
             <div>
-              <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '1.30rem', color: '#ffffff', margin: 0, fontWeight: '900', letterSpacing: '0.3px' }}>
-                MANUAL DE AYUDA & GUÍA DEL USUARIO 📖
+              <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '1.25rem', color: '#ffffff', margin: 0, fontWeight: '900', letterSpacing: '0.3px' }}>
+                MANUAL MAESTRO & GUÍA DEL USUARIO 📖
               </h2>
               <span style={{ fontSize: '0.76rem', color: '#94a3b8' }}>
-                Explora todas las funciones, reglas especiales y características de Ajedrez Junvill
+                Reglas, modalidades familiares, economía de estrellas/gemas y las 5 fases de Ajedrez Junvill
               </span>
             </div>
           </div>
@@ -300,7 +333,7 @@ export const ManualModal = ({
               <Search size={16} style={{ position: 'absolute', left: '10px', color: '#94a3b8', pointerEvents: 'none' }} />
               <input
                 type="text"
-                placeholder="Buscar tema (ej. dados, peón al paso, reloj)..."
+                placeholder="Buscar tema (ej. dados, peón al paso, reloj, gemas)..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{
@@ -338,14 +371,14 @@ export const ManualModal = ({
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
           {/* Sidebar de Secciones */}
           <div style={{
-            width: '270px',
+            width: '290px',
             background: '#090d16',
             borderRight: '1.5px solid #1e293b',
             overflowY: 'auto',
             padding: '12px 10px'
           }}>
             <div style={{ fontSize: '0.74rem', fontWeight: '900', color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.6px', padding: '6px 8px', marginBottom: '6px' }}>
-              Índice de Capítulos:
+              Índice de Capítulos ({filteredSections.length}):
             </div>
 
             {filteredSections.map((sec) => {
