@@ -248,26 +248,27 @@ export const ManualModal = ({
       <div
         className="modal-card"
         style={{
-          maxWidth: '900px',
+          maxWidth: '920px',
           width: '100%',
-          height: '86vh',
-          maxHeight: '800px',
-          background: 'var(--bg-parchment-card)',
-          border: '2px solid var(--color-gold)',
-          borderRadius: 'var(--radius-lg, 16px)',
-          boxShadow: '0 24px 60px rgba(0, 0, 0, 0.8)',
+          height: '88vh',
+          maxHeight: '820px',
+          background: '#0f172a',
+          border: '2px solid #f59e0b',
+          borderRadius: '16px',
+          boxShadow: '0 25px 70px rgba(0, 0, 0, 0.95)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-          padding: 0
+          padding: 0,
+          color: '#ffffff'
         }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* CABECERA CON BÚSQUEDA Y BOTÓN CERRAR */}
         <div style={{
           padding: '16px 20px',
-          background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(30, 41, 59, 0.3) 100%)',
-          borderBottom: '1.5px solid var(--bg-parchment-border)',
+          background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+          borderBottom: '1.5px solid #334155',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -275,14 +276,14 @@ export const ManualModal = ({
           flexWrap: 'wrap'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ background: 'var(--color-gold)', color: '#000', padding: '6px', borderRadius: '10px', display: 'flex' }}>
-              <BookOpen size={20} />
+            <div style={{ background: '#f59e0b', color: '#0f172a', padding: '7px', borderRadius: '10px', display: 'flex' }}>
+              <BookOpen size={22} />
             </div>
             <div>
-              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', color: 'var(--text-parchment-main)', margin: 0, fontWeight: '900' }}>
-                Manual de Ayuda & Guía del Usuario 📖
+              <h2 style={{ fontFamily: 'Georgia, serif', fontSize: '1.30rem', color: '#ffffff', margin: 0, fontWeight: '900', letterSpacing: '0.3px' }}>
+                MANUAL DE AYUDA & GUÍA DEL USUARIO 📖
               </h2>
-              <span style={{ fontSize: '0.74rem', color: 'var(--text-parchment-muted)' }}>
+              <span style={{ fontSize: '0.76rem', color: '#94a3b8' }}>
                 Explora todas las funciones, reglas especiales y características de Ajedrez Junvill
               </span>
             </div>
@@ -296,7 +297,7 @@ export const ManualModal = ({
               display: 'flex',
               alignItems: 'center'
             }}>
-              <Search size={16} style={{ position: 'absolute', left: '10px', color: 'var(--text-parchment-muted)', pointerEvents: 'none' }} />
+              <Search size={16} style={{ position: 'absolute', left: '10px', color: '#94a3b8', pointerEvents: 'none' }} />
               <input
                 type="text"
                 placeholder="Buscar tema (ej. dados, peón al paso, reloj)..."
@@ -304,19 +305,19 @@ export const ManualModal = ({
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{
                   width: '100%',
-                  padding: '7px 12px 7px 32px',
-                  borderRadius: 'var(--radius-full)',
-                  border: '1px solid var(--bg-parchment-border)',
-                  background: 'var(--bg-parchment-main, #ffffff)',
-                  fontSize: '0.80rem',
-                  color: 'var(--text-parchment-main)',
+                  padding: '8px 12px 8px 34px',
+                  borderRadius: '999px',
+                  border: '1.5px solid #334155',
+                  background: '#1e293b',
+                  fontSize: '0.82rem',
+                  color: '#ffffff',
                   outline: 'none'
                 }}
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  style={{ position: 'absolute', right: '8px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-parchment-muted)' }}
+                  style={{ position: 'absolute', right: '8px', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
                 >
                   <X size={14} />
                 </button>
@@ -325,10 +326,10 @@ export const ManualModal = ({
 
             <button
               onClick={onClose}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-parchment-muted)', padding: '4px' }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '4px' }}
               title="Cerrar Manual"
             >
-              <X size={22} />
+              <X size={24} />
             </button>
           </div>
         </div>
@@ -337,13 +338,13 @@ export const ManualModal = ({
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
           {/* Sidebar de Secciones */}
           <div style={{
-            width: '260px',
-            background: 'rgba(0, 0, 0, 0.03)',
-            borderRight: '1.5px solid var(--bg-parchment-border)',
+            width: '270px',
+            background: '#090d16',
+            borderRight: '1.5px solid #1e293b',
             overflowY: 'auto',
-            padding: '10px'
+            padding: '12px 10px'
           }}>
-            <div style={{ fontSize: '0.72rem', fontWeight: '900', color: 'var(--color-gold-dark)', textTransform: 'uppercase', letterSpacing: '0.5px', padding: '6px 8px', marginBottom: '4px' }}>
+            <div style={{ fontSize: '0.74rem', fontWeight: '900', color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.6px', padding: '6px 8px', marginBottom: '6px' }}>
               Índice de Capítulos:
             </div>
 
@@ -359,25 +360,25 @@ export const ManualModal = ({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: '9px 12px',
+                    padding: '10px 12px',
                     borderRadius: '8px',
-                    marginBottom: '4px',
+                    marginBottom: '5px',
                     cursor: 'pointer',
-                    background: isSelected ? 'var(--color-gold-light)' : 'transparent',
-                    border: isSelected ? '1.5px solid var(--color-gold)' : '1px solid transparent',
-                    color: isSelected ? 'var(--color-gold-dark)' : 'var(--text-parchment-main)',
+                    background: isSelected ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.22) 0%, rgba(217, 119, 6, 0.30) 100%)' : '#0f172a',
+                    border: isSelected ? '1.5px solid #f59e0b' : '1px solid #1e293b',
+                    color: isSelected ? '#fbbf24' : '#cbd5e1',
                     fontWeight: isSelected ? '900' : '700',
-                    fontSize: '0.82rem',
+                    fontSize: '0.83rem',
                     transition: 'all 0.15s ease'
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-                    <Icon size={16} color={isSelected ? 'var(--color-gold-dark)' : sec.color} style={{ flexShrink: 0 }} />
+                    <Icon size={16} color={isSelected ? '#fbbf24' : sec.color} style={{ flexShrink: 0 }} />
                     <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {sec.title}
                     </span>
                   </div>
-                  <ChevronRight size={14} style={{ opacity: isSelected ? 1 : 0.4, flexShrink: 0 }} />
+                  <ChevronRight size={14} style={{ opacity: isSelected ? 1 : 0.4, flexShrink: 0, color: isSelected ? '#fbbf24' : '#64748b' }} />
                 </div>
               );
             })}
@@ -387,42 +388,43 @@ export const ManualModal = ({
           <div style={{
             flex: 1,
             overflowY: 'auto',
-            padding: '22px 26px',
-            background: 'var(--bg-parchment-card)'
+            padding: '24px 28px',
+            background: '#0b1120'
           }}>
             {/* Título de Sección */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', borderBottom: '1px solid var(--bg-parchment-border)', paddingBottom: '12px' }}>
-              <div style={{ background: activeSection.color, color: '#fff', padding: '8px', borderRadius: '10px', display: 'flex' }}>
-                <activeSection.icon size={22} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px', borderBottom: '1.5px solid #1e293b', paddingBottom: '14px' }}>
+              <div style={{ background: activeSection.color, color: '#fff', padding: '10px', borderRadius: '12px', display: 'flex', boxShadow: `0 4px 14px ${activeSection.color}40` }}>
+                <activeSection.icon size={24} />
               </div>
               <div>
-                <span style={{ fontSize: '0.70rem', background: 'rgba(245, 158, 11, 0.2)', color: 'var(--color-gold-dark)', padding: '2px 8px', borderRadius: 'var(--radius-full)', fontWeight: '900', textTransform: 'uppercase' }}>
+                <span style={{ fontSize: '0.72rem', background: '#f59e0b', color: '#0f172a', padding: '2px 9px', borderRadius: '999px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   {activeSection.badge}
                 </span>
-                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.35rem', color: 'var(--text-parchment-main)', margin: '2px 0 0', fontWeight: '900' }}>
+                <h3 style={{ fontFamily: 'Georgia, serif', fontSize: '1.45rem', color: '#ffffff', margin: '3px 0 0', fontWeight: '900' }}>
                   {activeSection.title}
                 </h3>
               </div>
             </div>
 
-            {/* Bloques de Explicación */}
+            {/* Bloques de Explicación con Alto Contraste */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               {activeSection.content.map((item, idx) => (
                 <div
                   key={idx}
                   style={{
-                    background: 'rgba(255, 255, 255, 0.5)',
-                    border: '1.5px solid var(--bg-parchment-border)',
+                    background: '#1e293b',
+                    border: '1.5px solid #334155',
+                    borderLeft: '4px solid #f59e0b',
                     borderRadius: '10px',
-                    padding: '14px 16px',
-                    boxShadow: 'var(--shadow-sm)'
+                    padding: '16px 18px',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)'
                   }}
                 >
-                  <h4 style={{ margin: '0 0 6px', fontSize: '0.96rem', fontWeight: '900', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle2 size={16} color="var(--color-gold)" />
+                  <h4 style={{ margin: '0 0 8px', fontSize: '1.02rem', fontWeight: '900', color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <CheckCircle2 size={18} color="#f59e0b" style={{ flexShrink: 0 }} />
                     <span>{item.subtitle}</span>
                   </h4>
-                  <p style={{ margin: 0, fontSize: '0.86rem', color: 'var(--text-parchment-main)', lineHeight: '1.55' }}>
+                  <p style={{ margin: 0, fontSize: '0.90rem', color: '#f1f5f9', lineHeight: '1.6', fontWeight: '400' }}>
                     {item.text}
                   </p>
                 </div>
