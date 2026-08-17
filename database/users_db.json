@@ -182,10 +182,10 @@
       "background": "blue_sky"
     },
     "title": "Novato Promesa",
-    "elo": 422,
+    "elo": 452,
     "puzzleRating": 400,
-    "stars": 45,
-    "gems": 13,
+    "stars": 60,
+    "gems": 16,
     "totalPoints": 0,
     "theme": "modern_dark",
     "boardTheme": "board_emerald",
@@ -206,11 +206,11 @@
     ],
     "lessonProgress": {},
     "botVictories": {
-      "qwerty": 1
+      "qwerty": 2
     },
     "stats": {
-      "gamesPlayed": 3,
-      "wins": 2,
+      "gamesPlayed": 5,
+      "wins": 4,
       "losses": 1,
       "draws": 0,
       "puzzlesSolved": 0,

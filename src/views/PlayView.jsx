@@ -523,6 +523,7 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
           setGame(nextGame);
           setLastMove(result);
           setMoveHistory(prev => [...prev, result]);
+          setFenHistory(prev => [...prev, nextFen]);
           setAnimatingMove(null);
 
           const nextFen = nextGame.fen();
@@ -757,24 +758,17 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
     const targetMoveCount = Math.max(0, moveHistory.length - stepsToUndo);
     const newMoveHistory = moveHistory.slice(0, targetMoveCount);
     
-    // Obtener el FEN objetivo directamente de fenHistory o reconstruir desde la posición inicial
-    let targetFen = null;
-    let newFenHistory = [];
-    if (fenHistory.length > stepsToUndo) {
-      newFenHistory = fenHistory.slice(0, fenHistory.length - stepsToUndo);
-      targetFen = newFenHistory[newFenHistory.length - 1];
-    } else {
-      const startingFen = getHandicapFen(handicapConfig);
-      const replayGame = new Chess(startingFen);
-      newFenHistory = [startingFen];
-      for (const m of newMoveHistory) {
+    const startingFen = getStartingFenForVariant(gameVariant, handicapConfig);
+    const replayGame = new Chess(startingFen);
+    const newFenHistory = [startingFen];
+    for (const m of newMoveHistory) {
+      try {
         replayGame.move(m);
         newFenHistory.push(replayGame.fen());
-      }
-      targetFen = replayGame.fen();
+      } catch (e) {}
     }
 
-    const undoneGame = new Chess(targetFen);
+    const undoneGame = new Chess(replayGame.fen());
 
     setGame(undoneGame);
     setMoveHistory(newMoveHistory);
@@ -795,7 +789,7 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
       title: 'Jugada deshecha ↩️',
       text: handicapConfig.takebacksMode === 'limited'
         ? `Se deshizo tu jugada y la del rival. Te quedan ${Math.max(0, remainingTakebacks - 1)} retrocesos.`
-        : 'Se deshizo tu jugada y la respuesta del rival. Es tu turno de nuevo.',
+        : 'Se deshizo tu última jugada y la respuesta del rival. ¡Es tu turno de nuevo!',
       severity: 'neutral'
     });
   };
@@ -925,13 +919,33 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
   };
 
   const handleOpenReview = () => {
-    if (moveHistory.length === 0) {
-      alert('Juega al menos un movimiento para poder analizar la partida.');
+    if (!moveHistory || moveHistory.length === 0) {
+      alert('Juega al menos un movimiento para poder analizar la partida con el motor.');
       return;
     }
-    const analysis = analyzeFullGame(fenHistory, moveHistory);
-    setReviewData(analysis);
-    setIsReviewOpen(true);
+
+    // Asegurar que fenHistory tenga la longitud exacta (1 por cada jugada + la inicial)
+    let validFenHistory = fenHistory;
+    if (!validFenHistory || validFenHistory.length !== moveHistory.length + 1) {
+      const startingFen = getStartingFenForVariant(gameVariant, handicapConfig);
+      const replayGame = new Chess(startingFen);
+      validFenHistory = [startingFen];
+      for (const m of moveHistory) {
+        try {
+          replayGame.move(m);
+          validFenHistory.push(replayGame.fen());
+        } catch (e) {}
+      }
+      setFenHistory(validFenHistory);
+    }
+
+    const analysis = analyzeFullGame(validFenHistory, moveHistory);
+    if (analysis) {
+      setReviewData(analysis);
+      setIsReviewOpen(true);
+    } else {
+      alert('No se pudo generar el análisis. Realiza al menos 1 jugada completa.');
+    }
   };
 
   const handleSelectCoach = (coachId) => {

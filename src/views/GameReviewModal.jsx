@@ -21,18 +21,10 @@ export const GameReviewModal = ({ isOpen, onClose, reviewData, fenHistory, moveH
   const [mistakeSolved, setMistakeSolved] = useState(false);
   const [mistakeFen, setMistakeFen] = useState(null);
 
-  if (!isOpen || !reviewData) return null;
-
-  const { classifiedMoves, evaluations, whiteAccuracy, blackAccuracy, whiteCounts, blackCounts, keyMistakes } = reviewData;
-
-  const currentFen = fenHistory[currentMoveIdx] || fenHistory[0];
-  const currentMoveInfo = currentMoveIdx > 0 ? classifiedMoves[currentMoveIdx - 1] : null;
-  const currentEvalCp = evaluations[currentMoveIdx]?.evalCp || 0;
-
   // Auto-reproducción de la partida
   useEffect(() => {
     let interval = null;
-    if (isPlaying) {
+    if (isPlaying && isOpen && fenHistory && fenHistory.length > 0) {
       interval = setInterval(() => {
         setCurrentMoveIdx(prev => {
           if (prev + 1 < fenHistory.length) {
@@ -46,10 +38,37 @@ export const GameReviewModal = ({ isOpen, onClose, reviewData, fenHistory, moveH
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [isPlaying, fenHistory.length]);
+  }, [isPlaying, isOpen, fenHistory]);
+
+  const currentMistake = (isOpen && reviewData?.keyMistakes) ? reviewData.keyMistakes[mistakeIdx] : null;
+
+  useEffect(() => {
+    if (currentMistake) {
+      setMistakeFen(currentMistake.fenBefore);
+      setMistakeSolved(false);
+    }
+  }, [mistakeIdx, currentMistake]);
+
+  // Resetear posición inicial al abrir
+  useEffect(() => {
+    if (isOpen) {
+      setCurrentMoveIdx(0);
+      setIsPlaying(false);
+      setMistakeIdx(0);
+      setMistakeSolved(false);
+    }
+  }, [isOpen]);
+
+  if (!isOpen || !reviewData) return null;
+
+  const { classifiedMoves = [], evaluations = [], whiteAccuracy = 100, blackAccuracy = 100, whiteCounts = {}, blackCounts = {}, keyMistakes = [] } = reviewData;
+
+  const currentFen = (fenHistory && fenHistory[currentMoveIdx]) || (fenHistory && fenHistory[0]) || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+  const currentMoveInfo = currentMoveIdx > 0 ? classifiedMoves[currentMoveIdx - 1] : null;
+  const currentEvalCp = evaluations[currentMoveIdx]?.evalCp || 0;
 
   const handleNext = () => {
-    if (currentMoveIdx + 1 < fenHistory.length) {
+    if (fenHistory && currentMoveIdx + 1 < fenHistory.length) {
       setCurrentMoveIdx(prev => prev + 1);
       audioManager.playMove();
     }
@@ -63,17 +82,7 @@ export const GameReviewModal = ({ isOpen, onClose, reviewData, fenHistory, moveH
   };
 
   const handleFirst = () => setCurrentMoveIdx(0);
-  const handleLast = () => setCurrentMoveIdx(fenHistory.length - 1);
-
-  // Manejo de corrección de errores
-  const currentMistake = keyMistakes[mistakeIdx] || null;
-
-  useEffect(() => {
-    if (currentMistake) {
-      setMistakeFen(currentMistake.fenBefore);
-      setMistakeSolved(false);
-    }
-  }, [mistakeIdx, currentMistake]);
+  const handleLast = () => setCurrentMoveIdx((fenHistory?.length || 1) - 1);
 
   const handleMistakeMove = (moveResult) => {
     if (!currentMistake || mistakeSolved) return;
