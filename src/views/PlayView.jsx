@@ -20,7 +20,7 @@ import { audioManager } from '../engine/audio';
 import { voiceEngine } from '../engine/voiceEngine';
 import { useUser } from '../context/UserContext';
 import confetti from 'canvas-confetti';
-import { Swords, Lightbulb, HelpCircle, RotateCcw, Play, RefreshCw, Settings, ShieldAlert, Sparkles, Trophy, CheckCircle, UserCheck, FileSearch, Globe, Volume2, VolumeX, Shuffle, Users, Bot, Maximize, Minimize, Pause, BookOpen, Puzzle, User, Home, ArrowLeft, Scale, X, Bug } from 'lucide-react';
+import { Swords, Lightbulb, HelpCircle, RotateCcw, Play, RefreshCw, Settings, ShieldAlert, Sparkles, Trophy, CheckCircle, UserCheck, FileSearch, Globe, Volume2, VolumeX, Shuffle, Users, Bot, Maximize, Minimize, Pause, BookOpen, Puzzle, User, Home, ArrowLeft, Scale, X, Bug, Save, Trash2 } from 'lucide-react';
 
 export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMenu, onOpenBugReport }) => {
   const { currentUser, updateCurrentUser, recordGameResult, recordBotWin } = useUser();
@@ -1457,26 +1457,71 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
                 <span>🎮 Cambiar Modalidad (Robots / 2 Jugadores / P2P)</span>
               </button>
 
-              {/* Botón Principal de Salir a Home */}
+              {/* Opción 1: Salir Temporalmente (Guardar para Continuar Después) */}
               <button
                 className="btn-secondary"
                 onClick={() => {
                   setIsPauseMenuOpen(false);
+                  // Guardar explícitamente la partida en curso
+                  if (!isGameOver && moveHistory.length > 0) {
+                    try {
+                      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                        fen: game.fen(),
+                        fenHistory,
+                        moveHistory,
+                        lastMove,
+                        gameMode,
+                        playerColor,
+                        botId: botToPlay?.id,
+                        handicapConfig,
+                        usedHintsCount,
+                        usedTakebacksCount,
+                        updatedAt: Date.now()
+                      }));
+                    } catch (e) {}
+                  }
                   if (onExitToMenu) onExitToMenu('inicio');
                 }}
                 style={{
                   width: '100%',
                   justifyContent: 'center',
                   padding: '11px',
-                  fontSize: '0.90rem',
+                  fontSize: '0.88rem',
+                  fontWeight: '800',
+                  color: '#38bdf8',
+                  borderColor: 'rgba(56, 189, 248, 0.4)',
+                  background: 'rgba(56, 189, 248, 0.08)'
+                }}
+                title="Guarda la posición actual para continuarla en cualquier momento"
+              >
+                <Save size={16} color="#38bdf8" />
+                <span>Salir Temporalmente (Guardar Partida)</span>
+              </button>
+
+              {/* Opción 2: Salir y Eliminar Partida en Curso */}
+              <button
+                className="btn-secondary"
+                onClick={() => {
+                  if (window.confirm('¿Seguro que deseas salir y eliminar la partida en curso? Se perderá el avance actual.')) {
+                    setIsPauseMenuOpen(false);
+                    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+                    if (onExitToMenu) onExitToMenu('inicio');
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  justifyContent: 'center',
+                  padding: '11px',
+                  fontSize: '0.88rem',
                   fontWeight: '800',
                   color: '#ef4444',
                   borderColor: 'rgba(239, 68, 68, 0.4)',
                   background: 'rgba(239, 68, 68, 0.08)'
                 }}
+                title="Elimina la partida actual y vuelve al menú principal sin guardar"
               >
-                <Home size={17} color="#ef4444" />
-                <span>🚪 Salir de la Partida (Ir a Inicio)</span>
+                <Trash2 size={16} color="#ef4444" />
+                <span>Salir y Eliminar Partida</span>
               </button>
 
               <div style={{ height: '1px', background: 'var(--bg-parchment-border)', margin: '6px 0' }} />
