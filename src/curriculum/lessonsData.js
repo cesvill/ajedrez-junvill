@@ -822,63 +822,63 @@ export const CURRICULUM_SECTIONS = [
         "steps": [
           {
             "type": "theory",
-            "title": "La regla especial del Peón al Paso (En Passant)",
-            "text": "Cuando un peón enemigo salta 2 casillas en su primer movimiento y queda al lado de tu peón en la 5ª fila (o 4ª fila para las negras), puedes capturarlo en diagonal moviendo tu peón a la casilla que él saltó (justo detrás de él), como si sólo hubiera avanzado 1 casilla. ¡Esta regla sólo es válida en el turno inmediatamente siguiente!",
+            "title": "¿Por qué capturar en una casilla vacía? (El Peón al Paso)",
+            "text": "En el ajedrez normal, los peones solo comen en diagonal si hay una pieza enemiga ahí. ¡Pero el Peón al Paso (En Passant) es la ÚNICA excepción de todo el juego! Cuando el peón negro intenta 'escapar' saltando 2 casillas de f7 a f5 y se pone a tu lado, la regla dice: ¡no se vale escapar de un peón en 5ª fila! Mueves tu peón blanco a la casilla vacía f6 (la que él saltó) y, como por arte de magia, ¡el peón negro de f5 queda capturado y desaparece del tablero!",
             "fen": "4k3/8/8/4Pp2/8/8/8/4K3 w - f6 0 1"
           },
           {
             "id": "ex_1",
             "fen": "4k3/8/8/4Pp2/8/8/8/4K3 w - f6 0 1",
-            "instruction": "Paso 1: Las negras avanzaron su peón de f7 a f5 dos casillas (mira la flecha). Mueve tu peón de e5 a la casilla f6 (o arrástralo sobre el peón negro) para capturarlo al paso.",
+            "instruction": "Paso 1: El peón negro saltó 2 casillas (f7 a f5) para ponerse a tu lado. ¡Atrápalo al paso! Mueve tu peón de e5 a la casilla vacía f6 (con el aro rojo). Al pisar f6, ¡el peón negro de f5 desaparecerá capturado!",
             "solution": {
               "from": "e5",
               "to": "f6"
             },
-            "hint": "Mueve tu peón blanco de e5 a la casilla resaltada f6.",
-            "feedback": "¡Captura al paso realizada con éxito! El peón negro de f5 ha sido eliminado."
+            "hint": "Mueve tu peón blanco a la casilla vacía f6 (detrás del peón negro). ¡Verás cómo desaparece el peón de f5!",
+            "feedback": "¡Magia del ajedrez! Al pisar la casilla f6, el peón negro de f5 ha sido capturado al paso."
           },
           {
             "id": "ex_2",
             "fen": "4k3/8/8/3Pp3/8/8/8/4K3 w - e6 0 1",
-            "instruction": "Paso 2: Las negras acaban de jugar e7-e5 colocándose junto a tu peón de d5. ¡Captúralo al paso moviendo tu peón de d5 a e6!",
+            "instruction": "Paso 2: Las negras intentaron escapar jugando e7 a e5 junto a tu peón de d5. ¡Mueve de d5 a la casilla vacía e6 para capturar al paso el peón de e5!",
             "solution": {
               "from": "d5",
               "to": "e6"
             },
-            "hint": "Mueve tu peón de d5 a e6 para capturar al paso.",
-            "feedback": "¡Excelente En Passant! El peón negro de e5 ha sido capturado."
+            "hint": "Mueve tu peón blanco de d5 a la casilla vacía e6.",
+            "feedback": "¡Excelente En Passant! El peón negro de e5 ha sido eliminado al saltar la casilla e6."
           },
           {
             "id": "ex_3",
             "fen": "4k3/8/8/2pP4/8/8/8/4K3 w - c6 0 1",
-            "instruction": "Paso 3: Las negras jugaron c7-c5 colocándose junto a tu peón de d5. ¡Captúralo al paso moviendo de d5 a c6!",
+            "instruction": "Paso 3: Las negras jugaron c7 a c5 junto a tu peón de d5. ¡Mueve de d5 a la casilla vacía c6 para capturar al paso el peón de c5!",
             "solution": {
               "from": "d5",
               "to": "c6"
             },
-            "hint": "Mueve de d5 a c6 para capturar al paso.",
-            "feedback": "¡Gran captura! Abres líneas para tus piezas en el flanco de dama."
+            "hint": "Mueve tu peón de d5 a la casilla vacía c6.",
+            "feedback": "¡Gran captura al paso! Desbaratas el flanco de dama enemigo."
           },
           {
             "id": "ex_4",
             "fen": "4k3/8/8/8/3pP3/8/8/4K3 b - e3 0 1",
-            "instruction": "Paso 4: Juegas con negras. Las blancas avanzaron su peón de e2 a e4 dos pasos colocándose junto a tu peón de d4. ¡Captúralo al paso moviendo tu peón de d4 a e3!",
+            "instruction": "Paso 4: Juegas con negras. Las blancas avanzaron su peón de e2 a e4 dos pasos junto a tu peón de d4. ¡Mueve de d4 a la casilla vacía e3 para capturar al paso el peón de e4!",
             "solution": {
               "from": "d4",
               "to": "e3"
             },
-            "hint": "Mueve el peón negro de d4 a la casilla e3.",
-            "feedback": "¡Captura al paso con negras! Creas un peón pasado peligroso."
+            "hint": "Mueve el peón negro de d4 a la casilla vacía e3.",
+            "feedback": "¡Captura al paso con negras! Creas un peón pasado camino al triunfo."
           },
           {
             "id": "ex_5",
             "fen": "4k3/8/8/2Pp4/8/8/8/4K3 w - d6 0 1",
-            "instruction": "Paso 5: Las negras jugaron d7-d5 para intentar frenar tu avance. ¡Captura al paso de c5 a d6 para crear un peón pasado hacia la coronación!",
+            "instruction": "Paso 5: Las negras jugaron d7 a d5 junto a tu peón de c5. ¡Mueve de c5 a la casilla vacía d6 para capturar al paso el peón de d5 y abrir camino a coronar!",
             "solution": {
               "from": "c5",
               "to": "d6"
             },
-            "hint": "Captura al paso con tu peón de c5 a d6.",
+            "hint": "Mueve tu peón blanco de c5 a la casilla vacía d6.",
             "feedback": "¡Regla del peón al paso dominada al 100%! Nunca olvidarás este recurso táctico."
           }
         ]
