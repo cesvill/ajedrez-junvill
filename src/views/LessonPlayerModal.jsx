@@ -57,6 +57,46 @@ export const LessonPlayerModal = ({ lesson, onClose, onOpenBugReport }) => {
     return null;
   };
 
+  const getPreMoveFen = (step) => {
+    if (!step || !step.fen) return null;
+    const fenParts = step.fen.split(' ');
+    const epTarget = fenParts[3];
+    if (!epTarget || epTarget === '-') return null;
+    const file = epTarget[0];
+    const rank = epTarget[1];
+
+    try {
+      if (rank === '6') {
+        // Negras acaban de mover f7-f5. Posición previa: peón en f7
+        const g = new Chess(step.fen);
+        g.remove(`${file}5`);
+        g.put({ type: 'p', color: 'b' }, `${file}7`);
+        const fenTokens = g.fen().split(' ');
+        fenTokens[1] = 'b'; // Turno de negras
+        fenTokens[3] = '-'; // Sin casilla en passant previa
+        return {
+          fenBefore: fenTokens.join(' '),
+          move: { from: `${file}7`, to: `${file}5` }
+        };
+      } else if (rank === '3') {
+        // Blancas acaban de mover e2-e4. Posición previa: peón en e2
+        const g = new Chess(step.fen);
+        g.remove(`${file}4`);
+        g.put({ type: 'p', color: 'w' }, `${file}2`);
+        const fenTokens = g.fen().split(' ');
+        fenTokens[1] = 'w'; // Turno de blancas
+        fenTokens[3] = '-';
+        return {
+          fenBefore: fenTokens.join(' '),
+          move: { from: `${file}2`, to: `${file}4` }
+        };
+      }
+    } catch (e) {
+      console.warn('Error calculating pre-move FEN', e);
+    }
+    return null;
+  };
+
   const [exerciseState, setExerciseState] = useState({
     status: 'pending', // 'pending' | 'success' | 'failed'
     feedback: ''
@@ -68,13 +108,31 @@ export const LessonPlayerModal = ({ lesson, onClose, onOpenBugReport }) => {
   const [hintLevel, setHintLevel] = useState(0); // 0: sin pista, 1: concepto, 2: casilla origen, 3: jugada completa
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Sincronizar estado y flecha de jugada previa al cambiar de paso
+  // Sincronizar estado y animar en vivo el movimiento del rival al cambiar de paso
   useEffect(() => {
     const step = lesson.steps[currentStepIdx] || lesson.steps[0];
-    setFenState(step.fen);
-    setLastPlayedMove(getInitialMoveForStep(step));
-    setExerciseState({ status: 'pending', feedback: '' });
-    setHintLevel(0);
+    const preMoveInfo = getPreMoveFen(step);
+
+    if (preMoveInfo) {
+      // Mostrar primero la posición antes del salto y animar en vivo el avance del rival
+      setFenState(preMoveInfo.fenBefore);
+      setLastPlayedMove(null);
+      setExerciseState({ status: 'pending', feedback: '' });
+      setHintLevel(0);
+
+      const timer = setTimeout(() => {
+        try { audioManager?.playMove?.(); } catch (e) {}
+        setFenState(step.fen);
+        setLastPlayedMove(preMoveInfo.move);
+      }, 550);
+
+      return () => clearTimeout(timer);
+    } else {
+      setFenState(step.fen);
+      setLastPlayedMove(getInitialMoveForStep(step));
+      setExerciseState({ status: 'pending', feedback: '' });
+      setHintLevel(0);
+    }
   }, [currentStepIdx, lesson]);
 
   useEffect(() => {
@@ -243,8 +301,20 @@ export const LessonPlayerModal = ({ lesson, onClose, onOpenBugReport }) => {
     const stepKey = `junvill_lesson_step_${currentUser?.id || 'default'}_${lesson.id}`;
     try { sessionStorage.removeItem(stepKey); } catch (e) {}
     setCurrentStepIdx(0);
-    setFenState(lesson.steps[0].fen);
-    setLastPlayedMove(null);
+    const firstStep = lesson.steps[0];
+    const preMoveInfo = getPreMoveFen(firstStep);
+    if (preMoveInfo) {
+      setFenState(preMoveInfo.fenBefore);
+      setLastPlayedMove(null);
+      setTimeout(() => {
+        try { audioManager?.playMove?.(); } catch (e) {}
+        setFenState(firstStep.fen);
+        setLastPlayedMove(preMoveInfo.move);
+      }, 550);
+    } else {
+      setFenState(firstStep.fen);
+      setLastPlayedMove(getInitialMoveForStep(firstStep));
+    }
     setExerciseState({ status: 'pending', feedback: '' });
     setHintLevel(0);
   };
