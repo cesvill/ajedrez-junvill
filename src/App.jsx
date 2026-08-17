@@ -164,22 +164,20 @@ export const App = () => {
 
   return (
     <div id="app-root" data-theme={currentUser?.theme || 'modern_dark'}>
-      {/* Ocultar barra superior durante la partida para maximizar el espacio de juego */}
-      {!isPlayingActiveGame && (
-        <Header
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          onOpenProfile={() => setIsProfileModalOpen(true)}
-          onOpenSettings={() => setIsSettingsOpen(true)}
-          onOpenDaily={() => setIsDailyOpen(true)}
-          onOpenCertificates={() => setIsCertificatesOpen(true)}
-          onOpenPgn={() => setIsPgnOpen(true)}
-          onOpenBugReport={() => handleOpenBugReport()}
-          onOpenManual={() => setIsManualOpen(true)}
-        />
-      )}
+      {/* Barra superior Header siempre visible */}
+      <Header
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onOpenProfile={() => setIsProfileModalOpen(true)}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenDaily={() => setIsDailyOpen(true)}
+        onOpenCertificates={() => setIsCertificatesOpen(true)}
+        onOpenPgn={() => setIsPgnOpen(true)}
+        onOpenBugReport={() => handleOpenBugReport()}
+        onOpenManual={() => setIsManualOpen(true)}
+      />
 
-      <main className={`main-content ${isPlayingActiveGame ? 'in-game-fullscreen' : ''}`}>
+      <main className="main-content">
         {activeTab === 'inicio' && (
           <HomeView
             onNavigate={(targetTab) => setActiveTab(targetTab)}
@@ -237,18 +235,14 @@ export const App = () => {
         )}
       </main>
 
-      {/* Botón Flotante Permanente de Reporte de Errores (solo fuera de partida para no obstruir) */}
-      {!isPlayingActiveGame && (
-        <BugReportFloatingButton onClick={() => handleOpenBugReport()} />
-      )}
+      {/* Botón Flotante Permanente de Reporte de Errores */}
+      <BugReportFloatingButton onClick={() => handleOpenBugReport()} />
 
-      {/* Navegación Inferior Móvil (oculta durante la partida para no quitar espacio al tablero) */}
-      {!isPlayingActiveGame && (
-        <Navbar
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-        />
-      )}
+      {/* Navegación Inferior Móvil (adaptada automáticamente por CSS en móvil) */}
+      <Navbar
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      />
 
       {/* Modal de Reproducción de Lección */}
       {activeLesson && (
