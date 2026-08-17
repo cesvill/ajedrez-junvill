@@ -16,6 +16,7 @@ import { DiceRoller } from '../components/Variants/DiceRoller';
 import { ChessClock } from '../components/ChessClock/ChessClock';
 import { VictoryCardModal } from '../components/VictoryCard/VictoryCardModal';
 import { getHandicapFen, getHandicapSummary, DEFAULT_HANDICAP_CONFIG } from '../engine/handicapEngine';
+import { getStartingFenForVariant, getVariantById, checkVariantWinCondition } from '../engine/variantsEngine';
 import { audioManager } from '../engine/audio';
 import { voiceEngine } from '../engine/voiceEngine';
 import { useUser } from '../context/UserContext';
@@ -398,16 +399,19 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
       setCurrentDiceRoll(null);
     }
 
-    // REGLA REY DE LA COLINA: Conquista inmediata si el Rey pisa d4, d5, e4 o e5
-    if (gameVariant === 'king_of_the_hill' && moveResult.piece === 'k' && ['d4', 'd5', 'e4', 'e5'].includes(moveResult.to)) {
+    // COMPROBAR VICTORIA ESPECIAL POR VARIANTE (Rey de la Colina o Minijuegos Pedagógicos)
+    const variantWin = checkVariantWinCondition(updatedGame, moveResult, gameVariant);
+    if (variantWin) {
       const isPlayerWin = moveResult.color === (playerColor === 'white' ? 'w' : 'b');
-      const winnerName = isPlayerWin ? currentUser.name : (gameMode === 'pass_and_play' ? 'Jugador 2' : botToPlay.name);
+      const winnerName = isPlayerWin 
+        ? (currentUser?.name || 'Estudiante') 
+        : (gameMode === 'pass_and_play' ? (moveResult.color === 'w' ? 'Jugador 1 (Blancas)' : 'Jugador 2 (Negras)') : (botToPlay?.name || 'Robot'));
       try { audioManager?.playVictory?.(); } catch (e) {}
       confetti({ particleCount: 120, spread: 80 });
       setIsGameOver(true);
       setGameOverSummary({
-        title: `¡Conquista de la Colina en ${moveResult.to.toUpperCase()}! ⛰️👑`,
-        subtitle: `¡El Rey de ${winnerName} ha alcanzado y conquistado la cima de la colina central! Victoria instantánea.`,
+        title: variantWin.title,
+        subtitle: variantWin.subtitle,
         result: isPlayerWin ? 'win' : 'loss',
         rewards: '+15 Elo • +15 ⭐'
       });
@@ -521,12 +525,13 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
 
           const nextFen = nextGame.fen();
 
-          // REGLA REY DE LA COLINA: Victoria del Bot si su Rey llega al centro
-          if (gameVariant === 'king_of_the_hill' && result.piece === 'k' && ['d4', 'd5', 'e4', 'e5'].includes(result.to)) {
+          // COMPROBAR VICTORIA ESPECIAL POR VARIANTE DEL BOT (Rey de la Colina o Minijuegos)
+          const variantWin = checkVariantWinCondition(nextGame, result, gameVariant);
+          if (variantWin) {
             setIsGameOver(true);
             setGameOverSummary({
-              title: `¡${botToPlay.name} conquistó la Colina en ${result.to.toUpperCase()}! ⛰️👑`,
-              subtitle: `El Rey de ${botToPlay.name} ha alcanzado la cima de la colina central y gana la partida.`,
+              title: variantWin.title,
+              subtitle: variantWin.subtitle,
               result: 'loss',
               rewards: '+2 Elo'
             });
@@ -814,19 +819,30 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
     }
   };
 
-  const handleSelectBotMode = (bot) => {
-    setGameMode('bot');
+  const handleStartMatch = ({ opponentMode = 'bot', bot = null, variantId = 'standard' }) => {
+    setGameVariant(variantId);
+    setGameMode(opponentMode);
+    if (bot) {
+      setCurrentBot(bot);
+      setBotLevel(bot.difficultyLevel || 1);
+    }
     setIsModeModalOpen(false);
-    setShowColorModal(true);
+
+    if (opponentMode === 'bot') {
+      setShowColorModal(true);
+    } else {
+      handleSelectPassAndPlay(variantId);
+    }
   };
 
-  const handleSelectPassAndPlay = () => {
+  const handleSelectPassAndPlay = (variantKey = gameVariant) => {
     try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
     setGameMode('pass_and_play');
+    setGameVariant(variantKey);
     setIsModeModalOpen(false);
     setShowColorModal(false);
     
-    const startingFen = getHandicapFen(handicapConfig);
+    const startingFen = getStartingFenForVariant(variantKey, handicapConfig);
     const newG = new Chess(startingFen);
     setGame(newG);
     setFenHistory([startingFen]);
@@ -840,13 +856,15 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
     setIsBotThinking(false);
     setAnimatingMove(null);
     setPlayerColor('white');
+    setCurrentDiceRoll(null);
 
+    const variantData = getVariantById(variantKey);
     const summary = getHandicapSummary(handicapConfig);
     setCoachMessage({
-      title: 'Modo 2 Jugadores (Pasa y Juega)',
+      title: `${variantData.icon} 2 Jugadores: ${variantData.name}`,
       text: handicapConfig.enabled 
         ? `Partida iniciada (${summary}). Mueven las Blancas (Jugador 1).`
-        : 'Partida iniciada. Mueven las Blancas (Jugador 1). Ambos juegan en esta misma pantalla alternando turnos.',
+        : `Partida de ${variantData.name} iniciada. Mueven las Blancas (Jugador 1). Ambos juegan en esta misma pantalla alternando turnos.`,
       severity: 'neutral'
     });
   };
@@ -862,7 +880,7 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
     setPlayerColor(finalColor);
     setShowColorModal(false);
 
-    const startingFen = getHandicapFen(handicapConfig);
+    const startingFen = getStartingFenForVariant(gameVariant, handicapConfig);
     const newG = new Chess(startingFen);
     setGame(newG);
     setFenHistory([startingFen]);
@@ -875,13 +893,15 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
     setReviewData(null);
     setIsBotThinking(false);
     setAnimatingMove(null);
+    setCurrentDiceRoll(null);
 
+    const variantData = getVariantById(gameVariant);
     const summary = getHandicapSummary(handicapConfig);
     setCoachMessage({
-      title: `Nueva Partida vs ${botToPlay.name}`,
+      title: `${variantData.icon} ${variantData.name} vs ${botToPlay?.name || 'Robot'}`,
       text: finalColor === 'black' 
-        ? `Juegas con Negras. ${botToPlay.name} moverá primero.${handicapConfig.enabled ? ` (${summary})` : ''}` 
-        : `"${botToPlay.greeting}"${handicapConfig.enabled ? ` • Ventajas: ${summary}` : ''}`,
+        ? `Modalidad ${variantData.name}. Juegas con Negras. ${botToPlay?.name || 'Robot'} moverá primero.${handicapConfig.enabled ? ` (${summary})` : ''}` 
+        : `${variantData.description} ${botToPlay?.greeting || '¡A jugar!'}${handicapConfig.enabled ? ` • Ventajas: ${summary}` : ''}`,
       severity: 'neutral'
     });
 
@@ -1302,15 +1322,8 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
         onClose={() => {
           setIsModeModalOpen(false);
         }}
-        onSelectBotMode={handleSelectBotMode}
-        onSelectPassAndPlay={handleSelectPassAndPlay}
+        onStartMatch={handleStartMatch}
         onSelectP2P={onOpenP2P}
-        onSelectVariant={(variantKey) => {
-          setGameVariant(variantKey);
-          setGameMode('bot');
-          setIsModeModalOpen(false);
-          setShowColorModal(true);
-        }}
         onOpenRobotsView={onOpenRobots}
         activeBot={botToPlay}
       />
@@ -1331,7 +1344,7 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
               ¿Con qué bando deseas jugar?
             </h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-parchment-muted)', marginBottom: '20px' }}>
-              Enfrentándote a <strong>{botToPlay?.name || 'Robot'}</strong> ({botToPlay?.elo || 600} Elo)
+              Modalidad: <strong style={{ color: 'var(--color-gold)' }}>{getVariantById(gameVariant).name}</strong> • vs <strong>{botToPlay?.name || 'Robot'}</strong> ({botToPlay?.elo || 600} Elo)
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '18px' }}>

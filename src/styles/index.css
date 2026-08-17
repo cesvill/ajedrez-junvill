@@ -2036,6 +2036,18 @@ body {
   transform: translateY(-2px);
 }
 
+/* Tarjetas de Variantes Interactivas */
+.variant-card-hover {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.variant-card-hover:hover {
+  transform: translateY(-3px);
+  filter: brightness(1.12);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
+}
+
+
 
 
 
