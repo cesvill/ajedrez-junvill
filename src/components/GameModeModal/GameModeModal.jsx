@@ -48,7 +48,8 @@ export const GameModeModal = ({
   };
 
   const popularVariants = CHESS_VARIANTS.filter(v => v.category === 'popular');
-  const learningVariants = CHESS_VARIANTS.filter(v => v.category === 'learning');
+  const kinglessVariants = CHESS_VARIANTS.filter(v => v.category === 'learning');
+  const intermediateVariants = CHESS_VARIANTS.filter(v => v.category === 'intermediate_learning');
 
   return (
     <>
@@ -391,15 +392,15 @@ export const GameModeModal = ({
                 </div>
               </div>
 
-              {/* SECCIÓN 2: MINIJUEGOS PEDAGÓGICOS DE APRENDIZAJE PROGRESIVO */}
+              {/* SECCIÓN 2: MINIJUEGOS PEDAGÓGICOS SIN REYES (INICIACIÓN PURA) */}
               <div>
                 <div style={{ fontSize: '0.80rem', fontWeight: '900', color: '#10b981', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <GraduationCap size={16} color="#10b981" />
-                  <span>Minijuegos Pedagógicos de Entrenamiento Progresivo:</span>
+                  <span>🌱 Minijuegos Sin Reyes (Iniciación & Entrenamiento Puro):</span>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '10px' }}>
-                  {learningVariants.map((variant) => (
+                  {kinglessVariants.map((variant) => (
                     <div
                       key={variant.id}
                       onClick={() => handleSelectVariantAndStart(variant.id)}
@@ -461,6 +462,79 @@ export const GameModeModal = ({
                   ))}
                 </div>
               </div>
+
+              {/* SECCIÓN 3: MINIJUEGOS CON REY ESCOLTA (ENTRENAMIENTO INTERMEDIO) */}
+              {intermediateVariants.length > 0 && (
+                <div>
+                  <div style={{ fontSize: '0.80rem', fontWeight: '900', color: '#14b8a6', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Trophy size={15} color="#14b8a6" />
+                    <span>👑 Minijuegos con Rey Escolta (Oposición y Finales):</span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '10px' }}>
+                    {intermediateVariants.map((variant) => (
+                      <div
+                        key={variant.id}
+                        onClick={() => handleSelectVariantAndStart(variant.id)}
+                        style={{
+                          background: variant.borderGradient,
+                          border: `1.5px solid ${variant.borderColor}`,
+                          borderRadius: 'var(--radius-md, 10px)',
+                          padding: '12px 14px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
+                          transition: 'all 0.15s ease'
+                        }}
+                        className="variant-card-hover"
+                      >
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '900', color: variant.borderColor, fontSize: '0.94rem' }}>
+                              <span>{variant.icon}</span>
+                              <span>{variant.name}</span>
+                            </div>
+                            <span style={{ fontSize: '0.66rem', background: variant.borderColor, color: 'white', padding: '1px 6px', borderRadius: 'var(--radius-full)', fontWeight: '800' }}>
+                              {variant.badge}
+                            </span>
+                          </div>
+                          <p style={{ fontSize: '0.74rem', color: 'var(--text-parchment-muted)', margin: '0 0 8px', lineHeight: '1.3' }}>
+                            {variant.description}
+                          </p>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+                          <button
+                            type="button"
+                            className="btn-secondary"
+                            style={{ flex: 1, padding: '6px', fontSize: '0.76rem', justifyContent: 'center', color: variant.borderColor, borderColor: variant.borderColor }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSelectVariantAndStart(variant.id);
+                            }}
+                          >
+                            <span>Practicar {variant.name}</span>
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-secondary"
+                            style={{ padding: '6px 8px', fontSize: '0.72rem', gap: '3px', borderColor: 'rgba(255,255,255,0.2)', color: 'var(--text-parchment-muted)' }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setRulesVariantId(variant.id);
+                            }}
+                            title={`Ver reglas mínimas de ${variant.name}`}
+                          >
+                            <HelpCircle size={13} />
+                            <span>Reglas</span>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

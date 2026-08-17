@@ -1,4 +1,5 @@
 import { Chess } from 'chess.js';
+import { createChessGame, isKinglessFen } from './kinglessEngine';
 import { getBestBotMove } from './aiBot';
 import { getCoachById } from '../assets/coachesData';
 
@@ -20,7 +21,7 @@ const PIECE_NAMES_ES = {
  * Genera un conjunto de 4 pistas progresivas para la posición actual
  */
 export const generateScaffoldedHints = (fen, coachId = 'coach_aurelio') => {
-  const chess = new Chess(fen);
+  const chess = createChessGame(fen);
   // Evaluación rápida nivel 2 para respuesta instantánea a 0ms sin congelar la UI
   const bestMove = getBestBotMove(fen, 2);
   const coach = getCoachById(coachId);
@@ -100,11 +101,11 @@ export const generateScaffoldedHints = (fen, coachId = 'coach_aurelio') => {
  * Evalúa en tiempo real si el jugador o el bot cometieron un error o dejaron piezas colgadas
  */
 export const evaluatePositionCoach = (previousFen, currentFen, lastMove, coachId = 'coach_aurelio') => {
-  const prevGame = new Chess(previousFen);
-  const currGame = new Chess(currentFen);
+  const prevGame = createChessGame(previousFen);
+  const currGame = createChessGame(currentFen);
   const coach = getCoachById(coachId);
 
-  if (currGame.isCheckmate()) {
+  if (currGame.isCheckmate && currGame.isCheckmate()) {
     return {
       type: 'victory',
       title: '¡JAQUE MATE!',
@@ -113,7 +114,7 @@ export const evaluatePositionCoach = (previousFen, currentFen, lastMove, coachId
     };
   }
 
-  if (currGame.isCheck()) {
+  if (currGame.isCheck && currGame.isCheck()) {
     return {
       type: 'check',
       title: '¡Jaque!',
@@ -122,7 +123,7 @@ export const evaluatePositionCoach = (previousFen, currentFen, lastMove, coachId
     };
   }
 
-  if (currGame.isDraw()) {
+  if (currGame.isDraw && currGame.isDraw()) {
     return {
       type: 'draw',
       title: 'Tablas',
@@ -174,7 +175,7 @@ export const evaluatePositionCoach = (previousFen, currentFen, lastMove, coachId
 export const explainWhyMove = (fen, move) => {
   if (!move) return 'Selecciona una jugada previa para analizar su impacto.';
   
-  const chess = new Chess(fen);
+  const chess = createChessGame(fen);
   const piece = chess.get(move.to) || chess.get(move.from);
   const pieceName = piece ? PIECE_NAMES_ES[piece.type] : 'La pieza';
 

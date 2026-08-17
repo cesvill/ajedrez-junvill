@@ -1,4 +1,5 @@
 import { Chess } from 'chess.js';
+import { isKinglessFen, getBestKinglessBotMove } from './kinglessEngine';
 
 /**
  * Motor de IA para el oponente con dificultad graduable (Nivel 1 a 5)
@@ -165,6 +166,10 @@ const minimax = (chess, depth, alpha, beta, isMaximizing) => {
  * Selecciona la mejor jugada para el bot según su nivel y variante
  */
 export const getBestBotMove = (fen, level = 1, allowedPiece = null, variant = 'standard') => {
+  if (isKinglessFen(fen)) {
+    return getBestKinglessBotMove(fen, level);
+  }
+
   const chess = new Chess(fen);
   let moves = chess.moves({ verbose: true });
   if (moves.length === 0) return null;

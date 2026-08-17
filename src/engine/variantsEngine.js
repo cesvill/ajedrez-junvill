@@ -1,11 +1,13 @@
 /**
  * Motor de Variantes de Ajedrez y Minijuegos Pedagógicos
- * Incluye Ajedrez Tradicional, Dados Mágicos, Rey de la Colina, Guerra de Peones,
- * Minijuegos de Piezas (Caballos, Alfiles, Torres, Damas) y Fischer Random 960.
+ * Incluye Ajedrez Tradicional, Dados Mágicos, Rey de la Colina, Fischer 960,
+ * Minijuegos Sin Reyes (Iniciación y Entrenamiento Puro) y Minijuegos con Rey Escolta.
  */
 
 export const CHESS_VARIANTS = [
-  // --- GRUPO 1: MODALIDADES PRINCIPALES Y POPULARES ---
+  // =========================================================================
+  // GRUPO 1: MODALIDADES PRINCIPALES Y POPULARES
+  // =========================================================================
   {
     id: 'standard',
     category: 'popular',
@@ -103,42 +105,168 @@ export const CHESS_VARIANTS = [
     }
   },
 
-  // --- GRUPO 2: MINIJUEGOS PEDAGÓGICOS DE APRENDIZAJE ---
+  // =========================================================================
+  // GRUPO 2: MINIJUEGOS PEDAGÓGICOS SIN REY (INICIACIÓN & ENTRENAMIENTO PURO)
+  // =========================================================================
+  {
+    id: 'pawn_wars_pure',
+    category: 'learning',
+    name: 'Guerra de Peones Pura',
+    subtitle: '8 Peones vs 8 Peones',
+    icon: '⚔️♟️',
+    badge: 'Sin Reyes • Nivel 1',
+    badgeColor: '#10b981',
+    borderGradient: 'linear-gradient(135deg, rgba(16, 185, 129, 0.20) 0%, rgba(4, 120, 87, 0.32) 100%)',
+    borderColor: '#10b981',
+    description: 'Sin reyes ni jaques. 8 peones contra 8 peones: el primero que corone en la 8ª fila o capture todos los peones gana.',
+    startingFen: '8/pppppppp/8/8/8/8/PPPPPPPP/8 w - - 0 1',
+    hasDice: false,
+    specialWinCondition: 'first_promotion',
+    rules: {
+      goal: '¡El primer jugador que corone un Peón (llegando a la última fila) o capture todos los peones rivales gana la partida!',
+      mechanics: [
+        '¡Tablero 100% libre de reyes y jaques! Solo los 16 peones en sus filas iniciales.',
+        'Los peones avanzan 1 casilla (o 2 en su primer movimiento) y capturan en diagonal.',
+        'Ideal para aprender estructuras, bloqueos, peones pasados y cadenas de defensa.'
+      ],
+      proTip: 'Crea cadenas de peones unidas para que se defiendan entre sí y busca abrir un peón pasado en las columnas laterales.'
+    }
+  },
+  {
+    id: 'pawns_vs_knights',
+    category: 'learning',
+    name: 'Peones vs. Caballos (PECA)',
+    subtitle: '8 Peones vs 2 Caballos',
+    icon: '🐴♟️',
+    badge: 'Sin Reyes • Nivel 2',
+    badgeColor: '#8b5cf6',
+    borderGradient: 'linear-gradient(135deg, rgba(139, 92, 246, 0.20) 0%, rgba(91, 33, 182, 0.32) 100%)',
+    borderColor: '#8b5cf6',
+    description: '8 Peones Blancos intentan llegar a la 8ª fila mientras 2 Caballos Negros defienden la meta. ¡Domina los saltos y horquillas!',
+    startingFen: '1n4n1/8/8/8/8/8/PPPPPPPP/8 w - - 0 1',
+    hasDice: false,
+    specialWinCondition: 'first_promotion_or_wipe',
+    rules: {
+      goal: 'Las Blancas ganan si coronan al menos 1 peón. Las Negras ganan si capturan a los 8 peones antes de que lleguen.',
+      mechanics: [
+        'Sin reyes en el tablero: combate puro de asalto vs defensa táctica.',
+        'Las Blancas controlan una muralla de 8 peones.',
+        'Las Negras controlan 2 Caballos ágiles con saltos en "L" para interceptar peones.'
+      ],
+      proTip: 'Como Blancas, avanza tus peones en grupo sin dejar peones aislados. Como Negras, busca casillas centrales para lanzar horquillas.'
+    }
+  },
+  {
+    id: 'rooks_sweeper',
+    category: 'learning',
+    name: 'La Torre Cazadora',
+    subtitle: '8 Peones vs 1 Torre',
+    icon: '🏰♟️',
+    badge: 'Sin Reyes • Nivel 3',
+    badgeColor: '#f97316',
+    borderGradient: 'linear-gradient(135deg, rgba(249, 115, 22, 0.20) 0%, rgba(194, 65, 12, 0.32) 100%)',
+    borderColor: '#f97316',
+    description: '8 Peones Blancos en avalancha contra 1 Torre Negra. ¿Podrán los peones romper la barrera o la torre limpiará las columnas?',
+    startingFen: '3r4/8/8/8/8/8/PPPPPPPP/8 w - - 0 1',
+    hasDice: false,
+    specialWinCondition: 'first_promotion_or_wipe',
+    rules: {
+      goal: 'Las Blancas ganan si logran coronar 1 peón. Las Negras ganan si la Torre barre a todos los peones.',
+      mechanics: [
+        'Sin reyes: entrenamiento puro de líneas abiertas y visión horizontal/vertical.',
+        'La Torre debe cortar filas y colocarse detrás de los peones para frenar su paso.',
+        'Los peones deben avanzar coordinados para sobrecargar la capacidad de captura de la torre.'
+      ],
+      proTip: 'Avanza peones en flancos opuestos simultáneamente para obligar a la torre a elegir cuál perseguir.'
+    }
+  },
+  {
+    id: 'bishops_duel',
+    category: 'learning',
+    name: 'Alfiles Cruzados vs Peones',
+    subtitle: '8 Peones vs 2 Alfiles',
+    icon: '♗♟️',
+    badge: 'Sin Reyes • Nivel 4',
+    badgeColor: '#06b6d4',
+    borderGradient: 'linear-gradient(135deg, rgba(6, 182, 212, 0.20) 0%, rgba(14, 116, 144, 0.32) 100%)',
+    borderColor: '#06b6d4',
+    description: '8 Peones Blancos vs 2 Alfiles Negros (uno de casillas claras y otro oscuras). Aprende a dominar diagonales largas.',
+    startingFen: '2b2b2/8/8/8/8/8/PPPPPPPP/8 w - - 0 1',
+    hasDice: false,
+    specialWinCondition: 'first_promotion_or_wipe',
+    rules: {
+      goal: 'Las Blancas ganan coronando un peón. Los Alfiles ganan capturando los 8 peones.',
+      mechanics: [
+        'Sin reyes en el tablero.',
+        'Los alfiles controlan largas diagonales cruzadas.',
+        '¡Un peón que se cuele por una diagonal desprotegida asegura la victoria!'
+      ],
+      proTip: 'Aprovecha las casillas donde los alfiles no tienen visión simultánea y crea rupturas con peones encadenados.'
+    }
+  },
+  {
+    id: 'queens_duel',
+    category: 'learning',
+    name: 'Duelo de Damas y Peones',
+    subtitle: '1 Dama + 8 Peones por bando',
+    icon: '👸♟️',
+    badge: 'Sin Reyes • Nivel 5',
+    badgeColor: '#e11d48',
+    borderGradient: 'linear-gradient(135deg, rgba(225, 29, 72, 0.20) 0%, rgba(159, 18, 57, 0.32) 100%)',
+    borderColor: '#e11d48',
+    description: '1 Dama + 8 Peones por bando sin reyes. Juego de máxima velocidad, ataques dobles masivos y coronaciones relámpago.',
+    startingFen: '3q4/pppppppp/8/8/8/8/PPPPPPPP/3Q4 w - - 0 1',
+    hasDice: false,
+    specialWinCondition: 'first_promotion_or_wipe',
+    rules: {
+      goal: 'El primer jugador que corone un peón a una segunda Dama o capture todas las piezas rivales gana.',
+      mechanics: [
+        'Sin reyes: la partida es 100% agresiva y dinámica.',
+        'Las damas se desplazan en todas las direcciones para apoyar el avance de peones o cazar piezas desprotegidas.',
+        'Coronar un peón otorga una segunda Dama y la victoria inmediata.'
+      ],
+      proTip: 'Usa tu Dama para clavar y presionar los peones rivales mientras abres camino libre a tus peones más avanzados.'
+    }
+  },
+
+  // =========================================================================
+  // GRUPO 3: MINIJUEGOS CON REY ESCOLTA (ENTRENAMIENTO INTERMEDIO)
+  // =========================================================================
   {
     id: 'pawn_wars',
-    category: 'learning',
-    name: 'Guerra de Peones',
+    category: 'intermediate_learning',
+    name: 'Reyes y Peones (Escolta)',
     subtitle: 'Reyes + 8 Peones',
-    icon: '⚔️♟️',
-    badge: 'Nivel 1 • Peones',
-    badgeColor: '#10b981',
-    borderGradient: 'linear-gradient(135deg, rgba(16, 185, 129, 0.18) 0%, rgba(4, 120, 87, 0.28) 100%)',
-    borderColor: '#10b981',
-    description: 'Solo Reyes y Peones. El primer peón que corone gana la partida al instante. ¡Ideal para aprender estructuras y avances!',
+    icon: '👑♟️',
+    badge: 'Con Rey • Escolta',
+    badgeColor: '#14b8a6',
+    borderGradient: 'linear-gradient(135deg, rgba(20, 184, 166, 0.18) 0%, rgba(15, 118, 110, 0.28) 100%)',
+    borderColor: '#14b8a6',
+    description: 'Aprende la oposición de reyes y cómo usar a tu Rey como bloqueador y escolta de peones pasados.',
     startingFen: '4k3/pppppppp/8/8/8/8/PPPPPPPP/4K3 w - - 0 1',
     hasDice: false,
     specialWinCondition: 'first_promotion',
     rules: {
-      goal: '¡El primer jugador que corone un Peón (llegando a la última fila) gana la partida de inmediato!',
+      goal: 'El primer jugador que corone un Peón o dé Jaque Mate al Rey rival gana.',
       mechanics: [
-        'El tablero comienza únicamente con los 2 Reyes y los 16 Peones (8 blancos y 8 negros).',
-        'Los peones avanzan 1 casilla (o 2 en su primer movimiento) y capturan en diagonal.',
-        'También ganas si capturas todos los peones del rival dejándolo sin opciones.'
+        'El tablero inicia con los 2 Reyes y los 16 Peones.',
+        'El Rey debe usarse activamente para abrir paso a los peones pasados o bloquear al rey rival.',
+        'Coronar a Dama otorga la victoria automática.'
       ],
-      proTip: 'Crea cadenas de peones unidas para que se protejan entre sí y utiliza a tu Rey como bloqueador y escolta.'
+      proTip: 'Coloca a tu Rey DELANTE de tu peón pasado para ganar la oposición y empujar al rey rival hacia atrás.'
     }
   },
   {
     id: 'knights_and_pawns',
-    category: 'learning',
-    name: 'Caballería e Infantería',
+    category: 'intermediate_learning',
+    name: 'Caballería con Rey',
     subtitle: 'Reyes + Peones + Caballos',
-    icon: '🐴♟️',
-    badge: 'Nivel 2 • Caballos',
+    icon: '🐴👑',
+    badge: 'Con Rey • Caballos',
     badgeColor: '#8b5cf6',
     borderGradient: 'linear-gradient(135deg, rgba(139, 92, 246, 0.18) 0%, rgba(91, 33, 182, 0.28) 100%)',
     borderColor: '#8b5cf6',
-    description: 'Reyes + 8 Peones + 2 Caballos por bando. Domina los saltos, puestos avanzados y ataques dobles.',
+    description: 'Reyes + 8 Peones + 2 Caballos por bando. Domina los puestos avanzados y la coordinación rey-caballo.',
     startingFen: '1n2k1n1/pppppppp/8/8/8/8/PPPPPPPP/1N2K1N1 w - - 0 1',
     hasDice: false,
     specialWinCondition: 'first_promotion_or_mate',
@@ -146,82 +274,10 @@ export const CHESS_VARIANTS = [
       goal: 'Coronar el primer Peón o dar Jaque Mate al Rey rival.',
       mechanics: [
         'El tablero inicia con los 2 Reyes, 16 Peones y 4 Caballos (2 por bando).',
-        'Los caballos pueden saltar por encima de cadenas cerradas de peones.',
-        '¡Cualquier peón que corone a Dama otorga la victoria automática inmediata!'
+        'Los caballos saltan cadenas de peones para amenazar al Rey o capturar peones clave.',
+        'Cualquier peón que corone otorga la victoria inmediata.'
       ],
-      proTip: 'Coloca tus caballos en casillas centrales protegidas por tus peones para amenazar ataques dobles (horquillas).'
-    }
-  },
-  {
-    id: 'bishops_and_pawns',
-    category: 'learning',
-    name: 'Duelo de Diagonales',
-    subtitle: 'Reyes + Peones + Alfiles',
-    icon: '♗♟️',
-    badge: 'Nivel 3 • Alfiles',
-    badgeColor: '#06b6d4',
-    borderGradient: 'linear-gradient(135deg, rgba(6, 182, 212, 0.18) 0%, rgba(14, 116, 144, 0.28) 100%)',
-    borderColor: '#06b6d4',
-    description: 'Reyes + 8 Peones + 2 Alfiles por bando. Aprende el valor de las diagonales abiertas y casillas de color opuesto.',
-    startingFen: '2b1k1b1/pppppppp/8/8/8/8/PPPPPPPP/2B1K1B1 w - - 0 1',
-    hasDice: false,
-    specialWinCondition: 'first_promotion_or_mate',
-    rules: {
-      goal: 'Coronar el primer Peón o dar Jaque Mate al Rey rival.',
-      mechanics: [
-        'El tablero inicia con los 2 Reyes, 16 Peones y 4 Alfiles (2 por bando).',
-        'Los alfiles dominan largas diagonales pero nunca pueden cambiar de color de casilla.',
-        '¡El primer peón en coronar asegura la victoria automática!'
-      ],
-      proTip: 'Coloca tus peones en casillas del color contrario a tu alfil para no estorbar sus diagonales de ataque.'
-    }
-  },
-  {
-    id: 'rooks_and_pawns',
-    category: 'learning',
-    name: 'Batalla de Torres',
-    subtitle: 'Reyes + Peones + Torres',
-    icon: '🏰♟️',
-    badge: 'Nivel 4 • Torres',
-    badgeColor: '#f97316',
-    borderGradient: 'linear-gradient(135deg, rgba(249, 115, 22, 0.18) 0%, rgba(194, 65, 12, 0.28) 100%)',
-    borderColor: '#f97316',
-    description: 'Reyes + 8 Peones + 2 Torres. Domina la conquista de columnas abiertas, la 7ma fila y actividad de torres.',
-    startingFen: 'r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w KQkq - 0 1',
-    hasDice: false,
-    specialWinCondition: 'first_promotion_or_mate',
-    rules: {
-      goal: 'Coronar el primer Peón o dar Jaque Mate al Rey rival.',
-      mechanics: [
-        'El tablero inicia con los 2 Reyes, 16 Peones y 4 Torres (2 por bando).',
-        'Las torres necesitan columnas abiertas o semiabiertas para proyectar su fuerza.',
-        '¡El primer peón en coronar asegura la victoria automática!'
-      ],
-      proTip: 'Abre columnas cambiando peones y coloca tu torre detrás de tu peón pasado para empujarlo hasta la 8ª fila.'
-    }
-  },
-  {
-    id: 'queens_and_pawns',
-    category: 'learning',
-    name: 'Duelo de Damas Reales',
-    subtitle: 'Reyes + Peones + Dama',
-    icon: '👸👑',
-    badge: 'Nivel 5 • Damas',
-    badgeColor: '#e11d48',
-    borderGradient: 'linear-gradient(135deg, rgba(225, 29, 72, 0.18) 0%, rgba(159, 18, 57, 0.28) 100%)',
-    borderColor: '#e11d48',
-    description: 'Reyes + 8 Peones + 1 Dama por bando. Máxima agilidad, combinaciones tácticas directas y ataque rápido.',
-    startingFen: '3qk3/pppppppp/8/8/8/8/PPPPPPPP/3QK3 w - - 0 1',
-    hasDice: false,
-    specialWinCondition: 'first_promotion_or_mate',
-    rules: {
-      goal: 'Coronar el primer Peón o dar Jaque Mate al Rey rival.',
-      mechanics: [
-        'El tablero inicia con los 2 Reyes, 16 Peones y 2 Damas (1 por bando).',
-        'Partida de altísima velocidad y combinaciones tácticas directas.',
-        '¡Coronar un segundo peón a Dama asegura la victoria automática inmediata!'
-      ],
-      proTip: 'Cuida permanentemente al rey: los ataques de dama y peones pueden producir redes de mate relámpago.'
+      proTip: 'Instala un caballo en una casilla central protegida por tu peón (puesto avanzado) donde ningún peón rival pueda expulsarlo.'
     }
   }
 ];
@@ -234,37 +290,35 @@ export const getVariantById = (variantId) => {
 };
 
 /**
+ * Comprueba si una variante es de tipo sin rey
+ */
+export const isKinglessVariantId = (variantId) => {
+  return ['pawn_wars_pure', 'pawns_vs_knights', 'rooks_sweeper', 'bishops_duel', 'queens_duel'].includes(variantId);
+};
+
+/**
  * Genera una posición inicial válida de Fischer Random 960 (Chess960)
- * Reglas FIDE:
- * 1. Los alfiles deben estar en casillas de distinto color (uno en casilla clara, otro en oscura).
- * 2. El Rey debe estar ubicado entre las dos Torres (para permitir enroque a ambos lados).
- * 3. Las piezas negras son el espejo idéntico de las blancas.
  */
 export const generateFischerRandomFen = () => {
   const row = new Array(8).fill(null);
 
-  // 1. Alfil en casilla clara (índices 1, 3, 5, 7)
   const lightSquares = [1, 3, 5, 7];
   const b1 = lightSquares[Math.floor(Math.random() * lightSquares.length)];
   row[b1] = 'B';
 
-  // 2. Alfil en casilla oscura (índices 0, 2, 4, 6)
   const darkSquares = [0, 2, 4, 6];
   const b2 = darkSquares[Math.floor(Math.random() * darkSquares.length)];
   row[b2] = 'B';
 
-  // 3. Dama en una de las casillas vacías restantes
   const emptyForQueen = row.map((v, i) => v === null ? i : null).filter(v => v !== null);
   const q = emptyForQueen[Math.floor(Math.random() * emptyForQueen.length)];
   row[q] = 'Q';
 
-  // 4. Dos Caballos en casillas vacías restantes
   const emptyForKnights = row.map((v, i) => v === null ? i : null).filter(v => v !== null);
   const shuffledKnights = emptyForKnights.sort(() => Math.random() - 0.5);
   row[shuffledKnights[0]] = 'N';
   row[shuffledKnights[1]] = 'N';
 
-  // 5. Las 3 casillas restantes DEBEN ser: Torre, Rey, Torre en orden
   const remaining = row.map((v, i) => v === null ? i : null).filter(v => v !== null).sort((a, b) => a - b);
   row[remaining[0]] = 'R';
   row[remaining[1]] = 'K';
@@ -317,7 +371,7 @@ export const checkVariantWinCondition = (chessGame, lastMove, variantId) => {
   // 1. REY DE LA COLINA: Victoria si el Rey llega a d4, d5, e4 o e5
   if (variantId === 'king_of_the_hill') {
     if (lastMove.piece === 'k' && ['d4', 'd5', 'e4', 'e5'].includes(lastMove.to)) {
-      const winnerColor = lastMove.color; // 'w' o 'b'
+      const winnerColor = lastMove.color;
       return {
         winner: winnerColor,
         reason: 'hill_conquest',
@@ -327,16 +381,34 @@ export const checkVariantWinCondition = (chessGame, lastMove, variantId) => {
     }
   }
 
-  // 2. GUERRA DE PEONES & MINIJUEGOS: Victoria si un peón corona a Dama/Torre/etc.
-  if (['pawn_wars', 'knights_and_pawns', 'bishops_and_pawns', 'rooks_and_pawns', 'queens_and_pawns'].includes(variantId)) {
-    if (lastMove.promotion) {
+  // 2. MINIJUEGOS SIN REY Y GUERRA DE PEONES
+  if (['pawn_wars_pure', 'pawns_vs_knights', 'rooks_sweeper', 'bishops_duel', 'queens_duel', 'pawn_wars', 'knights_and_pawns'].includes(variantId)) {
+    // Victoria por coronación (alcanzar la 8ª o 1ª fila)
+    if (lastMove.promotion || (lastMove.color === 'w' && lastMove.to[1] === '8') || (lastMove.color === 'b' && lastMove.to[1] === '1')) {
       const winnerColor = lastMove.color;
       return {
         winner: winnerColor,
         reason: 'pawn_promoted',
-        title: `¡Coronación Decisiva en ${lastMove.to.toUpperCase()}! 👑✨`,
-        subtitle: `¡Las ${winnerColor === 'w' ? 'Blancas' : 'Negras'} coronaron un peón y aseguran la victoria en este minijuego pedagógico!`
+        title: `¡Meta Alcanzada en ${lastMove.to.toUpperCase()}! 🏆✨`,
+        subtitle: `¡Las ${winnerColor === 'w' ? 'Blancas' : 'Negras'} cruzaron el tablero y aseguran la victoria en este minijuego!`
       };
+    }
+
+    // Victoria por captura total de piezas rivales
+    if (chessGame && typeof chessGame.fen === 'function') {
+      const nextFen = chessGame.fen();
+      const boardStr = nextFen.split(' ')[0];
+      const oppColor = lastMove.color === 'w' ? 'b' : 'w';
+      const hasOppPieces = oppColor === 'w' ? /[PNBRQ]/.test(boardStr) : /[pnbrq]/.test(boardStr);
+      if (!hasOppPieces) {
+        const winnerColor = lastMove.color;
+        return {
+          winner: winnerColor,
+          reason: 'all_captured',
+          title: `¡Todas las piezas rivales capturadas! 🎯`,
+          subtitle: `¡Las ${winnerColor === 'w' ? 'Blancas' : 'Negras'} limpiaron el tablero y ganan el minijuego!`
+        };
+      }
     }
   }
 

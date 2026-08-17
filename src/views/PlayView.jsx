@@ -17,6 +17,7 @@ import { ChessClock } from '../components/ChessClock/ChessClock';
 import { VictoryCardModal } from '../components/VictoryCard/VictoryCardModal';
 import { getHandicapFen, getHandicapSummary, DEFAULT_HANDICAP_CONFIG } from '../engine/handicapEngine';
 import { getStartingFenForVariant, getVariantById, checkVariantWinCondition } from '../engine/variantsEngine';
+import { createChessGame, isKinglessFen } from '../engine/kinglessEngine';
 import { VariantRulesModal } from '../components/Variants/VariantRulesModal';
 import { audioManager } from '../engine/audio';
 import { voiceEngine } from '../engine/voiceEngine';
@@ -87,10 +88,10 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
   const [game, setGame] = useState(() => {
     if (isResumingSaved && initialSaved?.fen) {
       try {
-        return new Chess(initialSaved.fen);
+        return createChessGame(initialSaved.fen);
       } catch (e) {}
     }
-    return new Chess();
+    return createChessGame();
   });
 
   const [fenHistory, setFenHistory] = useState(() => {
@@ -323,14 +324,17 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
 
   // Función para determinar el tipo exacto de tablas según el reglamento FIDE
   const checkDrawType = (chessGame, currentFenHistory = []) => {
-    if (chessGame.isStalemate()) {
+    if (isKinglessFen(chessGame.fen())) {
+      return { isDraw: false };
+    }
+    if (chessGame.isStalemate && chessGame.isStalemate()) {
       return {
         isDraw: true,
         title: '🤝 Tablas por Rey Ahogado',
         text: 'El rey no está en jaque, pero el jugador en turno no tiene ninguna jugada legal disponible. ¡Empate por ahogado!'
       };
     }
-    if (chessGame.isInsufficientMaterial()) {
+    if (chessGame.isInsufficientMaterial && chessGame.isInsufficientMaterial()) {
       return {
         isDraw: true,
         title: '🤝 Tablas por Material Insuficiente',
@@ -385,7 +389,7 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
     if (gameMode === 'bot' && !isPlayerTurn) return;
 
     const prevFen = game.fen();
-    const updatedGame = new Chess(newFen);
+    const updatedGame = createChessGame(newFen);
     const updatedFenHistory = [...fenHistory, newFen];
     
     // Actualizar estados inmediatamente
@@ -509,7 +513,7 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
 
       // Al aterrizar la pieza (360ms), aplicar el nuevo estado en un único render síncrono limpio
       setTimeout(() => {
-        const nextGame = new Chess(g.fen());
+        const nextGame = createChessGame(g.fen());
         const result = nextGame.move(botMove);
         if (result) {
           if (nextGame.isCheckmate() || nextGame.isCheck()) {
@@ -839,7 +843,7 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
     setShowColorModal(false);
     
     const startingFen = getStartingFenForVariant(variantKey, handicapConfig);
-    const newG = new Chess(startingFen);
+    const newG = createChessGame(startingFen);
     setGame(newG);
     setFenHistory([startingFen]);
     setMoveHistory([]);
@@ -877,7 +881,7 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
     setShowColorModal(false);
 
     const startingFen = getStartingFenForVariant(gameVariant, handicapConfig);
-    const newG = new Chess(startingFen);
+    const newG = createChessGame(startingFen);
     setGame(newG);
     setFenHistory([startingFen]);
     setMoveHistory([]);
@@ -959,6 +963,7 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
     if (!handicapConfig.blunderWarning || isGameOver || isBotThinking) return [];
     try {
       const fen = game.fen();
+      if (isKinglessFen(fen)) return [];
       const oppColor = gameMode === 'pass_and_play' 
         ? (game.turn() === 'w' ? 'b' : 'w')
         : (playerColor === 'white' ? 'b' : 'w');

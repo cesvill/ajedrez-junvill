@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { Chess } from 'chess.js';
+import { isKinglessFen, KinglessChess, createChessGame } from '../../engine/kinglessEngine';
 import { PieceIcon } from '../../assets/pieces';
 import { audioManager } from '../../engine/audio';
 import { useUser } from '../../context/UserContext';
@@ -39,8 +40,14 @@ export const ChessBoard = ({
   // Estado síncrono puro: cero doble render por useEffect
   const game = useMemo(() => {
     try {
+      if (isKinglessFen(fen)) {
+        return new KinglessChess(fen);
+      }
       return new Chess(fen);
     } catch (e) {
+      if (isKinglessFen(fen)) {
+        return new KinglessChess(fen);
+      }
       console.error("Invalid FEN:", fen, e);
       return new Chess();
     }
@@ -116,10 +123,10 @@ export const ChessBoard = ({
 
   const executeMove = (moveObj) => {
     try {
-      const clonedGame = new Chess(game.fen());
+      const clonedGame = createChessGame(game.fen());
       const moveResult = clonedGame.move(moveObj);
       if (moveResult) {
-        if (clonedGame.isCheckmate() || clonedGame.isCheck()) {
+        if ((clonedGame.isCheckmate && clonedGame.isCheckmate()) || (clonedGame.isCheck && clonedGame.isCheck())) {
           audioManager.playCheck();
         } else if (moveResult.captured) {
           audioManager.playCapture();
