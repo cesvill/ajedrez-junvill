@@ -1194,7 +1194,7 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
           </div>
         )}
 
-        {/* Grid Ergonómico de Botones de Acción Táctiles (Prioridad Alta) */}
+        {/* Grid Ergonómico de Botones de Acción Táctiles (Tutor y Ayudas Pedagógicas) */}
         <div className="game-actions-grid">
           {/* Botón Principal de Revisión de Partida */}
           <button
@@ -1207,6 +1207,7 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
             <span>Revisar Partida (Game Review) 🔍</span>
           </button>
 
+          {/* 1. Solicitar Pista Pedagógica */}
           <button
             className="btn-gold"
             onClick={handleRequestHint}
@@ -1224,16 +1225,19 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
             </span>
           </button>
 
+          {/* 2. Preguntar ¿Por qué se jugó ese movimiento? */}
           <button
             className="btn-secondary"
             onClick={handleWhyMoveInquiry}
             disabled={!lastMove}
             style={{ justifyContent: 'center' }}
+            title="Explicación del Maestro sobre la jugada anterior"
           >
             <HelpCircle size={17} />
             <span>¿Por qué?</span>
           </button>
 
+          {/* 3. Deshacer Jugada */}
           <button
             className="btn-secondary"
             onClick={handleUndoMove}
@@ -1249,52 +1253,6 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
                   ? `Deshacer (${remainingTakebacks})`
                   : 'Deshacer'}
             </span>
-          </button>
-
-          <button
-            className="btn-gold"
-            onClick={handleOpenModalidad}
-            title="Cambiar modalidad de juego"
-            style={{ justifyContent: 'center' }}
-          >
-            <Swords size={17} />
-            <span>Modalidad</span>
-          </button>
-
-          <button
-            className="btn-secondary"
-            onClick={handleRestartGame}
-            title="Nueva partida"
-            style={{ justifyContent: 'center' }}
-          >
-            <RefreshCw size={17} />
-            <span>Nueva Partida</span>
-          </button>
-
-          <button
-            onClick={onOpenP2P}
-            className="btn-secondary"
-            style={{ justifyContent: 'center' }}
-            title="Jugar online P2P contra un amigo"
-          >
-            <Globe size={17} />
-            <span>Retar Amigo P2P</span>
-          </button>
-
-          <button
-            onClick={toggleFullscreen}
-            className="btn-secondary"
-            style={{
-              justifyContent: 'center',
-              border: isFullscreen ? '1.5px solid #10b981' : '1.5px solid #3b82f6',
-              background: isFullscreen ? 'rgba(16, 185, 129, 0.12)' : 'rgba(59, 130, 246, 0.12)',
-              color: isFullscreen ? '#10b981' : '#3b82f6',
-              fontWeight: '800'
-            }}
-            title={isFullscreen ? "Salir de Pantalla Completa" : "Pantalla Completa (Ocultar Barra URL)"}
-          >
-            {isFullscreen ? <Minimize size={17} color="#10b981" /> : <Maximize size={17} color="#3b82f6" />}
-            <span>{isFullscreen ? 'Modo Normal' : 'Pantalla Completa'}</span>
           </button>
         </div>
 
