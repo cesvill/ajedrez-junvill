@@ -188,7 +188,7 @@ export const GameModeModal = ({
         <div style={{ marginBottom: '16px' }}>
           <div style={{ fontSize: '0.82rem', fontWeight: '900', color: 'var(--color-gold-dark)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Sparkles size={16} color="#f59e0b" />
-            <span>Variantes Familiares Lúdicas (Fase 4):</span>
+            <span>Variantes Familiares y Modos Mágicos:</span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
