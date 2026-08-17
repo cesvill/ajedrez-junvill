@@ -39,35 +39,35 @@ export const MANUAL_SECTIONS = [
   },
   {
     id: 'guia_diversion_especial',
-    title: '🌟 Guía Especial: Las 5 Fases de Diversión & Gamificación Familiar',
-    shortTitle: '🌟 2. Centro de Diversión y 5 Fases',
+    title: '🌟 Guía de Modalidades Familiares & Formas de Jugar',
+    shortTitle: '🌟 2. Todas las Formas de Jugar',
     icon: Sparkles,
-    badge: 'Especial Familiar',
+    badge: 'Guía Rápida',
     color: '#f59e0b',
     content: [
       {
-        subtitle: '1. Filosofía de Ajedrez Junvill: Aprender Jugando',
-        text: 'Ajedrez Junvill no es solo un tablero tradicional: es un videojuego educativo y familiar diseñado para que niños, padres y abuelos disfruten juntos sin frustración, combinando rigor técnico FIDE con magia, recompensas y emoción.'
+        subtitle: '1. ¿Cómo jugar con Dados Mágicos 🎲?',
+        text: '👉 Paso a paso: Ve a la pestaña "⚔️ Jugar". En el menú "¿Cómo quieres jugar hoy?", pulsa la tarjeta rosa "🎲 Jugar Dados Mágicos". En cada turno, lanza el dado y mueve únicamente la pieza indicada. ¡Ideal para que niños y adultos jueguen en igualdad!'
       },
       {
-        subtitle: '2. 🎭 Fase 1: Reacciones y Caras en Tiempo Real',
-        text: 'Barra de emoticonos interactivos para enviar caras animadas (😄, 🤔, 😲, 👏, 🔥) y 15 robots con inteligencia emocional que reaccionan con sorpresa, risas o lamentos ante jugadas brillantes y capturas.'
+        subtitle: '2. ¿Cómo jugar Rey de la Colina ⛰️👑?',
+        text: '👉 Paso a paso: Ve a la pestaña "⚔️ Jugar" y selecciona la tarjeta dorada "⛰️👑 Rey de la Colina". El primer jugador o robot que logre llevar a su Rey a cualquiera de las 4 casillas centrales (d4, d5, e4, e5) gana la partida al instante.'
       },
       {
-        subtitle: '3. 🎨 Fase 2: Avatares 3D de Cuerpo Completo y Avatar Studio',
-        text: 'Personajes ilustrados en alta definición de cuerpo entero sobre pedestales de madera noble con física de flotación y personalización completa de piel, peinados, ropa y accesorios reales.'
+        subtitle: '3. ¿Cómo activar el Reloj de Ajedrez ⏱️?',
+        text: '👉 Paso a paso: Al iniciar una partida en "⚔️ Jugar", en la ventana donde eliges jugar con Blancas o Negras, encontrarás el selector "⏱️ Reloj de Ajedrez". Puedes elegir: Rápida 10 min, Blitz 5 min (+3s), Blitz 3 min (+2s) o Bala 1 min.'
       },
       {
-        subtitle: '4. 📖 Fase 3: Entrenador de Aperturas Guiadas',
-        text: 'Biblioteca interactiva para aprender las 12 aperturas maestras (Italiana, Ruy López, Siciliana, Francesa, Gambito de Dama, Londres) jugada a jugada con flechas y explicaciones estratégicas.'
+        subtitle: '4. ¿Cómo dar Ventajas / Hándicap ⚖️?',
+        text: '👉 Paso a paso: En la ventana de inicio de partida antes de comenzar, pulsa el botón "⚖️ Configurar Ventajas / Hándicap". Podrás otorgar piezas de ventaja al principiante, permitir retroceder jugadas o activar pistas infinitas del tutor.'
       },
       {
-        subtitle: '5. 🎲 Fase 4: Variantes Familiares (Dados Mágicos & Rey de la Colina)',
-        text: 'Ajedrez con Dados Mágicos (el azar nivela la partida entre niños y adultos) y Rey de la Colina (conquistar el centro con el Rey otorga victoria instantánea).'
+        subtitle: '5. ¿Cómo jugar Online con un Amigo o Familiar 🌐?',
+        text: '👉 Paso a paso: Ve a "⚔️ Jugar" y pulsa "🌐 Partida Online con Amigos (P2P)". Crea una sala y comparte el enlace o pide a tu amigo que escanee el código QR desde su celular o computador.'
       },
       {
-        subtitle: '6. 🏆 Fase 5: Liga Familiar, Exportación y Reloj',
-        text: 'Tabla de clasificación y podio del hogar 🥇🥈🥉, tarjetas coleccionables listas para enviar a WhatsApp y reloj de ajedrez opcional con partidas rápidas y blitz.'
+        subtitle: '6. ¿Cómo ver la Liga Familiar del Hogar 👑?',
+        text: '👉 Paso a paso: Ve a la pestaña "🏆 Torneos" y pulsa en la parte superior el botón "👑 Liga Familiar (Ranking)" para ver el podio 🥇🥈🥉 y la clasificación entre todos los perfiles de la casa.'
       }
     ]
   },
@@ -106,16 +106,16 @@ export const MANUAL_SECTIONS = [
     color: '#ec4899',
     content: [
       {
-        subtitle: '1. Misiones Creadas por Papá y Mamá',
+        subtitle: '1. ¿Cómo acceder a los Retos de Familia?',
+        text: '👉 Desde la Pantalla de Inicio, pulsa el botón dorado "🎁 Retos de Familia" en la tarjeta de tu perfil. También puedes abrirlo desde los accesos rápidos de la cabecera.'
+      },
+      {
+        subtitle: '2. Misiones Creadas por Papá y Mamá',
         text: 'Los padres o profesores pueden crear misiones personalizadas para los niños (ejemplo: "Hacer 3 lecciones antes de ver TV", "Derrotar a Sparky", "Resolver 5 tácticas diarias").'
       },
       {
-        subtitle: '2. Cofres y Recompensas Reales o Virtuales',
+        subtitle: '3. Cofres y Recompensas Reales o Virtuales',
         text: 'Al completar los objetivos, los niños pueden reclamar gemas 💎 virtuales o recompensas pactadas en casa (tiempo de parque, postre favorito, salida familiar).'
-      },
-      {
-        subtitle: '3. Panel de Control Parental',
-        text: 'Permite a los adultos activar o desactivar retos, verificar el progreso del estudiante y reiniciar misiones diarias o semanales en 1 clic.'
       }
     ]
   },
@@ -128,8 +128,8 @@ export const MANUAL_SECTIONS = [
     color: '#3b82f6',
     content: [
       {
-        subtitle: '1. Las 5 Etapas Curriculares',
-        text: 'El plan de estudios abarca desde la Etapa 1 (El despertar del tablero y movimiento de piezas) hasta la Etapa 5 (Maestría de Torneo y Cálculo FIDE).'
+        subtitle: '1. ¿Cómo acceder a las lecciones?',
+        text: '👉 Ve a la pestaña "📚 Aprender" en el menú de navegación. Verás las 5 Etapas del plan de estudios ordenadas progresivamente con sus 110 lecciones interactivas.'
       },
       {
         subtitle: '2. Animación en Vivo del Rival',
@@ -151,15 +151,15 @@ export const MANUAL_SECTIONS = [
   },
   {
     id: 'reacciones',
-    title: '🎭 Reacciones y Emociones en Tiempo Real (Fase 1)',
-    shortTitle: '🎭 6. Reacciones en Vivo (Fase 1)',
+    title: '🎭 Reacciones y Emociones en Tiempo Real',
+    shortTitle: '🎭 6. Reacciones y Emociones',
     icon: Smile,
-    badge: 'Fase 1',
+    badge: 'Interacción',
     color: '#38bdf8',
     content: [
       {
-        subtitle: '1. Barra de Emoticonos y Caras Animadas',
-        text: 'Durante la partida, en la barra inferior dispones de un botón de emojis para expresar alegría 😄, concentración 🤔, sorpresa 😲, aplausos 👏 o fuego 🔥.'
+        subtitle: '1. ¿Cómo enviar reacciones durante una partida?',
+        text: '👉 Mientras juegas cualquier partida, en la barra inferior del tablero pulsa el botón de caras para abrir la paleta de emoticonos (😄, 🤔, 😲, 👏, 🔥).'
       },
       {
         subtitle: '2. Inteligencia Emocional de los Robots',
@@ -173,67 +173,67 @@ export const MANUAL_SECTIONS = [
   },
   {
     id: 'avatares_3d',
-    title: '🎨 Avatares 3D y Avatar Studio (Fase 2)',
-    shortTitle: '🎨 7. Avatares 3D Studio (Fase 2)',
+    title: '🎨 Avatar Studio 3D y Personalización',
+    shortTitle: '🎨 7. Avatar Studio 3D',
     icon: User,
-    badge: 'Fase 2',
+    badge: 'Personaje',
     color: '#a855f7',
     content: [
       {
-        subtitle: '1. Ilustraciones HD de Cuerpo Completo en Pedestal',
-        text: 'Los avatares ya no son simples círculos: ahora cuentan con ilustraciones de cuerpo entero sobre un pedestal de madera noble con física de flotación interactiva.'
+        subtitle: '1. ¿Cómo acceder al Avatar Studio?',
+        text: '👉 Ve a la pestaña "👤 Yo" en el menú principal o haz clic directamente sobre el avatar 3D en la pantalla de Inicio.'
       },
       {
-        subtitle: '2. Personalización Total en el Avatar Studio',
-        text: 'Modifica el tono de piel, peinados modernos (con flequillo, rizado, liso, corto), ojos expresivos, ropa (sudaderas, trajes formales, camisetas) y accesorios (coronas, auriculares, capas, gafas).'
+        subtitle: '2. Ilustraciones HD de Cuerpo Completo en Pedestal',
+        text: 'Crea personajes únicos sobre un pedestal de madera noble con física de flotación interactiva.'
       },
       {
-        subtitle: '3. Estados de Ánimo Reactivos',
-        text: 'Tu avatar cambia de expresión según tu desempeño en la partida: concentrado al pensar, alegre en victorias y motivado para volver a intentarlo tras una derrota.'
+        subtitle: '3. Personalización Total y Tienda',
+        text: 'Modifica el tono de piel, peinados modernos, ojos expresivos, ropa (sudaderas, trajes formales, camisetas) y accesorios reales (coronas, auriculares, capas, gafas) desbloqueables con gemas 💎.'
       }
     ]
   },
   {
     id: 'aperturas',
-    title: '📖 Entrenador de Aperturas Guiadas (Fase 3)',
-    shortTitle: '📖 8. Aperturas Guiadas (Fase 3)',
+    title: '📖 Entrenador de Aperturas Guiadas',
+    shortTitle: '📖 8. Aperturas Guiadas',
     icon: Compass,
-    badge: 'Fase 3',
+    badge: 'Estrategia',
     color: '#8b5cf6',
     content: [
       {
-        subtitle: '1. Biblioteca de 12 Grandes Aperturas',
+        subtitle: '1. ¿Cómo acceder al Entrenador de Aperturas?',
+        text: '👉 Ve a la pestaña "📚 Aprender" y selecciona la sección "📖 Entrenador de Aperturas". Podrás elegir entre 12 grandes aperturas maestras.'
+      },
+      {
+        subtitle: '2. Biblioteca de 12 Grandes Aperturas',
         text: 'Aprende la Apertura Italiana, Ruy López (Española), Defensa Siciliana, Francesa, Caro-Kann, Gambito de Dama, Sistema Londres, India de Rey y más.'
       },
       {
-        subtitle: '2. Explicaciones Jugada a Jugada',
-        text: 'El maestro te explica por qué se juega cada movimiento, los planes estratégicos para controlar el centro y cómo castigar los errores típicos del rival.'
-      },
-      {
-        subtitle: '3. Flechas Pedagógicas y Árbol de Variantes',
-        text: 'Visualiza las líneas principales y alternativas con flechas de colores en el tablero interactivo.'
+        subtitle: '3. Explicaciones Jugada a Jugada y Flechas',
+        text: 'El maestro te explica por qué se juega cada movimiento, los planes estratégicos para controlar el centro y cómo castigar los errores típicos del rival con flechas tácticas.'
       }
     ]
   },
   {
     id: 'variantes',
-    title: '🎲 Variantes Familiares y Modos Mágicos (Fase 4)',
-    shortTitle: '🎲 9. Dados y Colina (Fase 4)',
+    title: '🎲 Variantes Familiares (Dados Mágicos & Rey de la Colina)',
+    shortTitle: '🎲 9. Dados y Colina Mágica',
     icon: Dices,
-    badge: 'Fase 4',
+    badge: 'Variantes',
     color: '#f43f5e',
     content: [
       {
         subtitle: '1. 🎲 Ajedrez con Dados Mágicos (Dice Chess)',
-        text: 'En cada turno el tirador de dados determina qué pieza debes mover (Peón, Caballo, Alfil, Torre, Dama o Rey/Comodín). El tablero filtra únicamente las piezas válidas. ¡Iguala partidas entre niños y grandes con diversión y azar táctico!'
+        text: '👉 Cómo acceder: Ve a "⚔️ Jugar" y selecciona "🎲 Jugar Dados Mágicos". En cada turno se lanza un dado que determina si debes mover Peón, Caballo, Alfil, Torre, Dama o Rey/Comodín. El tablero filtra únicamente las piezas válidas.'
       },
       {
         subtitle: '2. ⛰️👑 Rey de la Colina (King of the Hill)',
-        text: 'Las 4 casillas centrales (d4, d5, e4, e5) forman la cima de la colina dorada. ¡El primer jugador o robot que logre colocar a su Rey en cualquiera de estas casillas gana la partida al instante!'
+        text: '👉 Cómo acceder: Ve a "⚔️ Jugar" y pulsa "⛰️👑 Rey de la Colina". Las 4 casillas centrales (d4, d5, e4, e5) forman la cima de la montaña. ¡El primer Rey que pise el centro gana la partida inmediatamente!'
       },
       {
         subtitle: '3. ⚖️ Negociación de Hándicap / Ventajas',
-        text: 'Permite dar ventajas pedagógicas al jugador novato: peón o pieza de ventaja inicial, pistas ilimitadas o posibilidad de deshacer movimientos para nivelar el juego en familia.'
+        text: '👉 Cómo acceder: En la ventana de configuración antes de jugar, pulsa "⚖️ Configurar Ventajas" para activar pistas infinitas, peón de ventaja inicial o desmarcar el reloj.'
       }
     ]
   },
@@ -247,37 +247,37 @@ export const MANUAL_SECTIONS = [
     content: [
       {
         subtitle: '1. ⏱️ Reloj de Ajedrez Dual',
-        text: 'Configura partidas Sin Tiempo (Infinito), Rápida 10 min, Blitz 5m+3s, Blitz 3m+2s o Bala 1 min con ticks sonoros en los últimos 10 segundos y derrota por tiempo.'
+        text: '👉 Cómo acceder: Al iniciar una partida en "⚔️ Jugar", elige el tiempo en el desplegable de reloj: Sin Tiempo (Infinito), Rápida (10 min), Blitz (5 min + 3s), Blitz Rápido (3 min + 2s) o Bala (1 min).'
       },
       {
         subtitle: '2. 🤖 Partidas contra 15 Robots con Tutor en Vivo',
-        text: 'Enfrenta a bots graduados desde 400 hasta 2200 Elo con pistas, alertas de peligro y análisis posicional en tiempo real.'
+        text: '👉 Cómo acceder: Ve a la pestaña "🤖 Robots" para elegir rivales desde 400 hasta 2200 Elo con pistas, alertas de peligro y análisis posicional.'
       },
       {
         subtitle: '3. 🌐 Multijugador Online P2P y Modo Pasa y Juega',
-        text: 'Crea una sala privada, escanea el código QR o comparte el enlace para jugar en 2 celulares o computadores en tiempo real sin servidores intermediarios.'
+        text: '👉 Cómo acceder: Ve a "⚔️ Jugar" y pulsa "🌐 Partida Online con Amigos (P2P)" para crear una sala y compartir el enlace o QR.'
       }
     ]
   },
   {
     id: 'liga_exportacion',
-    title: '🏆 Liga Familiar, Diplomas y WhatsApp (Fase 5)',
+    title: '🏆 Liga Familiar, Diplomas y WhatsApp',
     shortTitle: '🏆 11. Liga, Diplomas y WhatsApp',
     icon: Trophy,
-    badge: 'Fase 5',
+    badge: 'Competencia',
     color: '#eab308',
     content: [
       {
         subtitle: '1. 👑 Liga Familiar (Tabla de Clasificación del Hogar)',
-        text: 'Podio 🥇 🥈 🥉 y ranking general ordenable de todos los perfiles de la familia según Puntos de Liga, Elo, Estrellas ⭐, Victorias 🏆 y Lecciones completadas.'
+        text: '👉 Cómo acceder: Ve a la pestaña "🏆 Torneos" y selecciona la pestaña "👑 Liga Familiar (Ranking)". Muestra el podio 🥇🥈🥉 y la clasificación general de todos los perfiles de la casa.'
       },
       {
         subtitle: '2. 📲 Tarjeta Coleccionable de Victoria (WhatsApp)',
-        text: 'Al finalizar cualquier partida, genera un cromo de lujo con los avatares del duelo, precisión de jugadas y resultado, listo para compartir en WhatsApp o guardar como imagen PNG.'
+        text: '👉 Cómo acceder: Al finalizar cualquier partida, en la ventana de resultados pulsa el botón dorado "📲 Tarjeta de Victoria / Compartir WhatsApp" para abrir WhatsApp o descargar el cromo en imagen PNG.'
       },
       {
         subtitle: '3. 📜 Diplomas y Certificados Oficiales',
-        text: 'Diplomas oficiales descargables e imprimibles con sello dorado y firma del maestro Don Aurelio al culminar las etapas del plan de estudios.'
+        text: '👉 Cómo acceder: Pulsa el botón de diploma (icono de medalla 🎖️) en la barra superior para ver e imprimir tus certificados oficiales con sello y firma.'
       }
     ]
   }
@@ -362,7 +362,7 @@ export const ManualModal = ({
                 MANUAL MAESTRO & GUÍA DEL USUARIO 📖
               </h2>
               <span style={{ fontSize: '0.76rem', color: '#94a3b8' }}>
-                Reglas, modalidades familiares, economía de estrellas/gemas y las 5 fases de Ajedrez Junvill
+                Reglas, modalidades familiares, economía de estrellas/gemas y cómo acceder a cada función
               </span>
             </div>
           </div>
@@ -414,7 +414,7 @@ export const ManualModal = ({
 
         {/* CUERPO DEL MANUAL: SIDEBAR DE CAPÍTULOS + PANEL DE CONTENIDO */}
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-          {/* Sidebar de Secciones con Ancho Cómodo y Sin Cortes */}
+          {/* Sidebar de Secciones */}
           <div style={{
             width: '310px',
             minWidth: '290px',
@@ -487,7 +487,7 @@ export const ManualModal = ({
               </div>
             </div>
 
-            {/* Bloques de Explicación con Alto Contraste */}
+            {/* Bloques de Explicación con Alto Contraste y Guías Paso a Paso */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               {activeSection.content.map((item, idx) => (
                 <div
