@@ -105,10 +105,10 @@
       "background": "parchment_wood"
     },
     "title": "Tutor Familiar",
-    "elo": 466,
+    "elo": 676,
     "puzzleRating": 400,
-    "stars": 105,
-    "gems": 16,
+    "stars": 225,
+    "gems": 42,
     "totalPoints": 15,
     "theme": "modern_dark",
     "boardTheme": "board_emerald",
@@ -141,12 +141,20 @@
         "completed": true
       }
     },
-    "botVictories": {},
+    "botVictories": {
+      "qwerty": 1,
+      "cosmo": 1,
+      "monkey": 1,
+      "mateo_kid": 1,
+      "shark": 1,
+      "sofia_teen": 1,
+      "spark": 1
+    },
     "stats": {
-      "gamesPlayed": 6,
-      "wins": 0,
-      "losses": 4,
-      "draws": 2,
+      "gamesPlayed": 23,
+      "wins": 14,
+      "losses": 5,
+      "draws": 4,
       "puzzlesSolved": 0,
       "hintsUsed": 0,
       "accuracyAvg": 0
@@ -182,11 +190,11 @@
       "background": "blue_sky"
     },
     "title": "Novato Promesa",
-    "elo": 452,
-    "puzzleRating": 400,
-    "stars": 60,
-    "gems": 16,
-    "totalPoints": 0,
+    "elo": 602,
+    "puzzleRating": 496,
+    "stars": 199,
+    "gems": 35,
+    "totalPoints": 20,
     "theme": "modern_dark",
     "boardTheme": "board_emerald",
     "pieceTheme": "staunton",
@@ -204,24 +212,42 @@
       "board_wood",
       "shirt_blue"
     ],
-    "lessonProgress": {},
+    "lessonProgress": {
+      "l01_piezas": {
+        "stars": 5,
+        "completed": true
+      },
+      "l02_capturas": {
+        "stars": 5,
+        "completed": true
+      },
+      "l03_desprotegidas": {
+        "stars": 5,
+        "completed": true
+      },
+      "l04_valor_piezas": {
+        "stars": 5,
+        "completed": true
+      }
+    },
     "botVictories": {
-      "qwerty": 2
+      "qwerty": 2,
+      "cosmo": 1
     },
     "stats": {
-      "gamesPlayed": 5,
-      "wins": 4,
+      "gamesPlayed": 7,
+      "wins": 6,
       "losses": 1,
       "draws": 0,
-      "puzzlesSolved": 0,
+      "puzzlesSolved": 8,
       "hintsUsed": 0,
       "accuracyAvg": 0
     },
     "radarSkills": {
-      "tactica": 15,
+      "tactica": 53,
       "estrategia": 15,
       "posicional": 15,
-      "calculo": 15,
+      "calculo": 23,
       "aperturas": 15,
       "finales": 15
     },
@@ -248,10 +274,10 @@
       "background": "night_stars"
     },
     "title": "Novato Promesa",
-    "elo": 820,
+    "elo": 842,
     "puzzleRating": 400,
-    "stars": 360,
-    "gems": 48,
+    "stars": 375,
+    "gems": 51,
     "totalPoints": 60,
     "theme": "modern_dark",
     "boardTheme": "board_emerald",
@@ -322,12 +348,12 @@
     },
     "botVictories": {
       "qwerty": 1,
-      "cosmo": 1
+      "cosmo": 2
     },
     "stats": {
-      "gamesPlayed": 7,
-      "wins": 4,
-      "losses": 1,
+      "gamesPlayed": 10,
+      "wins": 6,
+      "losses": 2,
       "draws": 2,
       "puzzlesSolved": 0,
       "hintsUsed": 0,

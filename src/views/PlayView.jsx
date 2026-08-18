@@ -19,17 +19,19 @@ import { getHandicapFen, getHandicapSummary, DEFAULT_HANDICAP_CONFIG } from '../
 import { getStartingFenForVariant, getVariantById, checkVariantWinCondition } from '../engine/variantsEngine';
 import { createChessGame, isKinglessFen } from '../engine/kinglessEngine';
 import { VariantRulesModal } from '../components/Variants/VariantRulesModal';
+import { usePWAInstall } from '../hooks/usePWAInstall';
 import { audioManager } from '../engine/audio';
 import { voiceEngine } from '../engine/voiceEngine';
 import { useUser } from '../context/UserContext';
 import confetti from 'canvas-confetti';
-import { Swords, Lightbulb, HelpCircle, RotateCcw, Play, RefreshCw, Settings, ShieldAlert, Sparkles, Trophy, CheckCircle, UserCheck, FileSearch, Globe, Volume2, VolumeX, Shuffle, Users, Bot, Maximize, Minimize, Pause, BookOpen, Puzzle, User, Home, ArrowLeft, Scale, X, Bug, Save, Trash2 } from 'lucide-react';
+import { Swords, Lightbulb, HelpCircle, RotateCcw, Play, RefreshCw, Settings, ShieldAlert, Sparkles, Trophy, CheckCircle, UserCheck, FileSearch, Globe, Volume2, VolumeX, Shuffle, Users, Bot, Maximize, Minimize, Pause, BookOpen, Puzzle, User, Home, ArrowLeft, Scale, X, Bug, Save, Trash2, Download } from 'lucide-react';
 
 export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMenu, onOpenBugReport }) => {
   const { currentUser, updateCurrentUser, recordGameResult, recordBotWin } = useUser();
   const [isPauseMenuOpen, setIsPauseMenuOpen] = useState(false);
   const [isVariantRulesOpen, setIsVariantRulesOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const { isInstalled, triggerInstall } = usePWAInstall();
 
   useEffect(() => {
     const handleFsChange = () => {
@@ -1538,6 +1540,20 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
                 <Swords size={16} />
                 <span>🎮 Cambiar Modalidad (Robots / 2 Jugadores / P2P)</span>
               </button>
+
+              {!isInstalled && (
+                <button
+                  className="btn-secondary"
+                  onClick={() => {
+                    setIsPauseMenuOpen(false);
+                    triggerInstall();
+                  }}
+                  style={{ width: '100%', justifyContent: 'center', padding: '10px', fontSize: '0.86rem', color: '#facc15', borderColor: '#ca8a04', background: 'rgba(234, 179, 8, 0.12)' }}
+                >
+                  <Download size={16} color="#facc15" />
+                  <span>📲 Instalar Aplicación (Modo Offline)</span>
+                </button>
+              )}
 
               {/* Opción 1: Salir Temporalmente (Guardar para Continuar Después) */}
               <button
