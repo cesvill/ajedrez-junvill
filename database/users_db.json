@@ -1,381 +1,394 @@
 [
   {
-    "id": "user_1",
-    "name": "Estudiante Junvill",
-    "role": "student",
-    "avatar": "custom_dynamic",
-    "avatarConfig": {
-      "skin": "#fed7aa",
-      "hairStyle": "messy",
-      "hairColor": "#451a03",
-      "eyeStyle": "happy",
-      "shirtStyle": "hoodie",
-      "shirtColor": "#2563eb",
-      "accessory": "headphones",
-      "background": "blue_sky"
-    },
-    "title": "Aprendiz Promesa",
-    "elo": 680,
-    "puzzleRating": 600,
-    "stars": 105,
-    "gems": 27,
-    "totalPoints": 25,
-    "theme": "modern_dark",
-    "boardTheme": "board_emerald",
-    "pieceTheme": "staunton",
-    "systemSettings": {
-      "soundEnabled": true,
-      "soundVolume": 85,
-      "autoQueen": true,
-      "showCoordinates": true,
-      "highlightMoves": true,
-      "highlightLastMove": true,
-      "moveMethod": "drag_click"
-    },
-    "unlockedItems": [
-      "board_emerald",
-      "board_wood",
-      "shirt_blue",
-      "shirt_red"
-    ],
-    "lessonProgress": {
-      "l01_piezas": {
-        "stars": 5,
-        "completed": true
+    "id": "group_junvill",
+    "name": "Familia Junvill",
+    "password": "JunV1ll123",
+    "adminName": "César Villamil",
+    "emblem": "👑",
+    "themeColor": "#ca8a04",
+    "isDefault": true,
+    "isProtected": true,
+    "createdAt": "2026-08-18",
+    "users": [
+      {
+        "id": "user_1",
+        "name": "Estudiante Junvill",
+        "role": "student",
+        "avatar": "custom_dynamic",
+        "avatarConfig": {
+          "skin": "#fed7aa",
+          "hairStyle": "messy",
+          "hairColor": "#451a03",
+          "eyeStyle": "happy",
+          "shirtStyle": "hoodie",
+          "shirtColor": "#2563eb",
+          "accessory": "headphones",
+          "background": "blue_sky"
+        },
+        "title": "Aprendiz Promesa",
+        "elo": 680,
+        "puzzleRating": 600,
+        "stars": 105,
+        "gems": 27,
+        "totalPoints": 25,
+        "theme": "modern_dark",
+        "boardTheme": "board_emerald",
+        "pieceTheme": "staunton",
+        "systemSettings": {
+          "soundEnabled": true,
+          "soundVolume": 85,
+          "autoQueen": true,
+          "showCoordinates": true,
+          "highlightMoves": true,
+          "highlightLastMove": true,
+          "moveMethod": "drag_click"
+        },
+        "unlockedItems": [
+          "board_emerald",
+          "board_wood",
+          "shirt_blue",
+          "shirt_red"
+        ],
+        "lessonProgress": {
+          "l01_piezas": {
+            "stars": 5,
+            "completed": true
+          },
+          "l02_capturas": {
+            "stars": 5,
+            "completed": true
+          },
+          "l03_desprotegidas": {
+            "stars": 5,
+            "completed": true
+          },
+          "l04_valor_piezas": {
+            "stars": 5,
+            "completed": true
+          },
+          "l07_escapar_jaque": {
+            "stars": 5,
+            "completed": true
+          }
+        },
+        "botVictories": {
+          "qwerty": 3,
+          "cosmo": 1,
+          "monkey": 2
+        },
+        "stats": {
+          "gamesPlayed": 8,
+          "wins": 5,
+          "losses": 2,
+          "draws": 1,
+          "puzzlesSolved": 32,
+          "hintsUsed": 12,
+          "accuracyAvg": 86
+        },
+        "radarSkills": {
+          "tactica": 60,
+          "estrategia": 40,
+          "posicional": 35,
+          "calculo": 45,
+          "aperturas": 40,
+          "finales": 30
+        },
+        "coachSettings": {
+          "assistanceLevel": "full",
+          "botDifficulty": 1,
+          "coachAvatar": "coach_aurelio",
+          "soundEnabled": true
+        },
+        "password": "JunV1ll123"
       },
-      "l02_capturas": {
-        "stars": 5,
-        "completed": true
+      {
+        "id": "user_1786849943311",
+        "name": "César",
+        "role": "parent",
+        "avatar": "custom_dynamic",
+        "avatarConfig": {
+          "skin": "#fed7aa",
+          "hairStyle": "messy",
+          "hairColor": "#27170a",
+          "eyeStyle": "wink",
+          "shirtStyle": "tshirt",
+          "shirtColor": "#d97706",
+          "accessory": "headphones",
+          "background": "parchment_wood"
+        },
+        "title": "Tutor Familiar",
+        "elo": 676,
+        "puzzleRating": 400,
+        "stars": 225,
+        "gems": 42,
+        "totalPoints": 15,
+        "theme": "modern_dark",
+        "boardTheme": "board_emerald",
+        "pieceTheme": "staunton",
+        "systemSettings": {
+          "soundEnabled": true,
+          "soundVolume": 80,
+          "autoQueen": true,
+          "showCoordinates": true,
+          "highlightMoves": true,
+          "highlightLastMove": true,
+          "moveMethod": "drag_click"
+        },
+        "unlockedItems": [
+          "board_emerald",
+          "board_wood",
+          "shirt_blue"
+        ],
+        "lessonProgress": {
+          "l02_capturas": {
+            "stars": 5,
+            "completed": true
+          },
+          "l04_valor_piezas": {
+            "stars": 5,
+            "completed": true
+          },
+          "l05_coronacion": {
+            "stars": 5,
+            "completed": true
+          }
+        },
+        "botVictories": {
+          "qwerty": 1,
+          "cosmo": 1,
+          "monkey": 1,
+          "mateo_kid": 1,
+          "shark": 1,
+          "sofia_teen": 1,
+          "spark": 1
+        },
+        "stats": {
+          "gamesPlayed": 23,
+          "wins": 14,
+          "losses": 5,
+          "draws": 4,
+          "puzzlesSolved": 0,
+          "hintsUsed": 0,
+          "accuracyAvg": 0
+        },
+        "radarSkills": {
+          "tactica": 35,
+          "estrategia": 25,
+          "posicional": 15,
+          "calculo": 15,
+          "aperturas": 15,
+          "finales": 15
+        },
+        "coachSettings": {
+          "assistanceLevel": "full",
+          "botDifficulty": 1,
+          "coachAvatar": "coach_aurelio",
+          "soundEnabled": true
+        },
+        "password": "JunV1ll123"
       },
-      "l03_desprotegidas": {
-        "stars": 5,
-        "completed": true
+      {
+        "id": "user_1786887520687",
+        "name": "Martín",
+        "role": "student",
+        "avatar": "teen_gamer",
+        "avatarConfig": {
+          "skin": "#fed7aa",
+          "hairStyle": "short",
+          "hairColor": "#27170a",
+          "eyeStyle": "happy",
+          "shirtStyle": "tshirt",
+          "shirtColor": "#3b82f6",
+          "accessory": "none",
+          "background": "blue_sky"
+        },
+        "title": "Novato Promesa",
+        "elo": 602,
+        "puzzleRating": 496,
+        "stars": 199,
+        "gems": 35,
+        "totalPoints": 20,
+        "theme": "modern_dark",
+        "boardTheme": "board_emerald",
+        "pieceTheme": "staunton",
+        "systemSettings": {
+          "soundEnabled": true,
+          "soundVolume": 80,
+          "autoQueen": true,
+          "showCoordinates": true,
+          "highlightMoves": true,
+          "highlightLastMove": true,
+          "moveMethod": "drag_click"
+        },
+        "unlockedItems": [
+          "board_emerald",
+          "board_wood",
+          "shirt_blue"
+        ],
+        "lessonProgress": {
+          "l01_piezas": {
+            "stars": 5,
+            "completed": true
+          },
+          "l02_capturas": {
+            "stars": 5,
+            "completed": true
+          },
+          "l03_desprotegidas": {
+            "stars": 5,
+            "completed": true
+          },
+          "l04_valor_piezas": {
+            "stars": 5,
+            "completed": true
+          }
+        },
+        "botVictories": {
+          "qwerty": 2,
+          "cosmo": 1
+        },
+        "stats": {
+          "gamesPlayed": 7,
+          "wins": 6,
+          "losses": 1,
+          "draws": 0,
+          "puzzlesSolved": 8,
+          "hintsUsed": 0,
+          "accuracyAvg": 0
+        },
+        "radarSkills": {
+          "tactica": 53,
+          "estrategia": 15,
+          "posicional": 15,
+          "calculo": 23,
+          "aperturas": 15,
+          "finales": 15
+        },
+        "coachSettings": {
+          "assistanceLevel": "full",
+          "botDifficulty": 1,
+          "coachAvatar": "coach_aurelio",
+          "soundEnabled": true
+        },
+        "password": "JunV1ll123"
       },
-      "l04_valor_piezas": {
-        "stars": 5,
-        "completed": true
-      },
-      "l07_escapar_jaque": {
-        "stars": 5,
-        "completed": true
+      {
+        "id": "user_1786887999811",
+        "name": "Leticia",
+        "role": "student",
+        "avatar": "custom_dynamic",
+        "avatarConfig": {
+          "skin": "#fed7aa",
+          "hairStyle": "bun",
+          "hairColor": "#fbbf24",
+          "eyeStyle": "wink",
+          "shirtStyle": "hoodie",
+          "shirtColor": "#0284c7",
+          "accessory": "headphones",
+          "background": "night_stars"
+        },
+        "title": "Novato Promesa",
+        "elo": 842,
+        "puzzleRating": 400,
+        "stars": 375,
+        "gems": 51,
+        "totalPoints": 60,
+        "theme": "modern_dark",
+        "boardTheme": "board_emerald",
+        "pieceTheme": "staunton",
+        "systemSettings": {
+          "soundEnabled": true,
+          "soundVolume": 80,
+          "autoQueen": true,
+          "showCoordinates": true,
+          "highlightMoves": true,
+          "highlightLastMove": true,
+          "moveMethod": "drag_click"
+        },
+        "unlockedItems": [
+          "board_emerald",
+          "board_wood",
+          "shirt_blue"
+        ],
+        "lessonProgress": {
+          "l01_piezas": {
+            "stars": 5,
+            "completed": true
+          },
+          "l02_capturas": {
+            "stars": 5,
+            "completed": true
+          },
+          "l03_desprotegidas": {
+            "stars": 5,
+            "completed": true
+          },
+          "l04_valor_piezas": {
+            "stars": 5,
+            "completed": true
+          },
+          "l05_coronacion": {
+            "stars": 5,
+            "completed": true
+          },
+          "l06_jaque": {
+            "stars": 5,
+            "completed": true
+          },
+          "l07_escapar_jaque": {
+            "stars": 5,
+            "completed": true
+          },
+          "l08_mate_1": {
+            "stars": 5,
+            "completed": true
+          },
+          "l09_rey_ahogado": {
+            "stars": 5,
+            "completed": true
+          },
+          "l10_enroque": {
+            "stars": 5,
+            "completed": true
+          },
+          "l12_ataque_doble_peon": {
+            "stars": 5,
+            "completed": true
+          },
+          "l11_al_paso": {
+            "stars": 5,
+            "completed": true
+          }
+        },
+        "botVictories": {
+          "qwerty": 1,
+          "cosmo": 2
+        },
+        "stats": {
+          "gamesPlayed": 10,
+          "wins": 6,
+          "losses": 2,
+          "draws": 2,
+          "puzzlesSolved": 0,
+          "hintsUsed": 0,
+          "accuracyAvg": 0
+        },
+        "radarSkills": {
+          "tactica": 100,
+          "estrategia": 25,
+          "posicional": 25,
+          "calculo": 15,
+          "aperturas": 15,
+          "finales": 15
+        },
+        "coachSettings": {
+          "assistanceLevel": "full",
+          "botDifficulty": 1,
+          "coachAvatar": "coach_aurelio",
+          "soundEnabled": true
+        },
+        "password": "JunV1ll123"
       }
-    },
-    "botVictories": {
-      "qwerty": 3,
-      "cosmo": 1,
-      "monkey": 2
-    },
-    "stats": {
-      "gamesPlayed": 8,
-      "wins": 5,
-      "losses": 2,
-      "draws": 1,
-      "puzzlesSolved": 32,
-      "hintsUsed": 12,
-      "accuracyAvg": 86
-    },
-    "radarSkills": {
-      "tactica": 60,
-      "estrategia": 40,
-      "posicional": 35,
-      "calculo": 45,
-      "aperturas": 40,
-      "finales": 30
-    },
-    "coachSettings": {
-      "assistanceLevel": "full",
-      "botDifficulty": 1,
-      "coachAvatar": "coach_aurelio",
-      "soundEnabled": true
-    },
-    "password": "JunV1ll123"
-  },
-  {
-    "id": "user_1786849943311",
-    "name": "César",
-    "role": "parent",
-    "avatar": "custom_dynamic",
-    "avatarConfig": {
-      "skin": "#fed7aa",
-      "hairStyle": "messy",
-      "hairColor": "#27170a",
-      "eyeStyle": "wink",
-      "shirtStyle": "tshirt",
-      "shirtColor": "#d97706",
-      "accessory": "headphones",
-      "background": "parchment_wood"
-    },
-    "title": "Tutor Familiar",
-    "elo": 676,
-    "puzzleRating": 400,
-    "stars": 225,
-    "gems": 42,
-    "totalPoints": 15,
-    "theme": "modern_dark",
-    "boardTheme": "board_emerald",
-    "pieceTheme": "staunton",
-    "systemSettings": {
-      "soundEnabled": true,
-      "soundVolume": 80,
-      "autoQueen": true,
-      "showCoordinates": true,
-      "highlightMoves": true,
-      "highlightLastMove": true,
-      "moveMethod": "drag_click"
-    },
-    "unlockedItems": [
-      "board_emerald",
-      "board_wood",
-      "shirt_blue"
-    ],
-    "lessonProgress": {
-      "l02_capturas": {
-        "stars": 5,
-        "completed": true
-      },
-      "l04_valor_piezas": {
-        "stars": 5,
-        "completed": true
-      },
-      "l05_coronacion": {
-        "stars": 5,
-        "completed": true
-      }
-    },
-    "botVictories": {
-      "qwerty": 1,
-      "cosmo": 1,
-      "monkey": 1,
-      "mateo_kid": 1,
-      "shark": 1,
-      "sofia_teen": 1,
-      "spark": 1
-    },
-    "stats": {
-      "gamesPlayed": 23,
-      "wins": 14,
-      "losses": 5,
-      "draws": 4,
-      "puzzlesSolved": 0,
-      "hintsUsed": 0,
-      "accuracyAvg": 0
-    },
-    "radarSkills": {
-      "tactica": 35,
-      "estrategia": 25,
-      "posicional": 15,
-      "calculo": 15,
-      "aperturas": 15,
-      "finales": 15
-    },
-    "coachSettings": {
-      "assistanceLevel": "full",
-      "botDifficulty": 1,
-      "coachAvatar": "coach_aurelio",
-      "soundEnabled": true
-    },
-    "password": "JunV1ll123"
-  },
-  {
-    "id": "user_1786887520687",
-    "name": "Martín",
-    "role": "student",
-    "avatar": "teen_gamer",
-    "avatarConfig": {
-      "skin": "#fed7aa",
-      "hairStyle": "short",
-      "hairColor": "#27170a",
-      "eyeStyle": "happy",
-      "shirtStyle": "tshirt",
-      "shirtColor": "#3b82f6",
-      "accessory": "none",
-      "background": "blue_sky"
-    },
-    "title": "Novato Promesa",
-    "elo": 602,
-    "puzzleRating": 496,
-    "stars": 199,
-    "gems": 35,
-    "totalPoints": 20,
-    "theme": "modern_dark",
-    "boardTheme": "board_emerald",
-    "pieceTheme": "staunton",
-    "systemSettings": {
-      "soundEnabled": true,
-      "soundVolume": 80,
-      "autoQueen": true,
-      "showCoordinates": true,
-      "highlightMoves": true,
-      "highlightLastMove": true,
-      "moveMethod": "drag_click"
-    },
-    "unlockedItems": [
-      "board_emerald",
-      "board_wood",
-      "shirt_blue"
-    ],
-    "lessonProgress": {
-      "l01_piezas": {
-        "stars": 5,
-        "completed": true
-      },
-      "l02_capturas": {
-        "stars": 5,
-        "completed": true
-      },
-      "l03_desprotegidas": {
-        "stars": 5,
-        "completed": true
-      },
-      "l04_valor_piezas": {
-        "stars": 5,
-        "completed": true
-      }
-    },
-    "botVictories": {
-      "qwerty": 2,
-      "cosmo": 1
-    },
-    "stats": {
-      "gamesPlayed": 7,
-      "wins": 6,
-      "losses": 1,
-      "draws": 0,
-      "puzzlesSolved": 8,
-      "hintsUsed": 0,
-      "accuracyAvg": 0
-    },
-    "radarSkills": {
-      "tactica": 53,
-      "estrategia": 15,
-      "posicional": 15,
-      "calculo": 23,
-      "aperturas": 15,
-      "finales": 15
-    },
-    "coachSettings": {
-      "assistanceLevel": "full",
-      "botDifficulty": 1,
-      "coachAvatar": "coach_aurelio",
-      "soundEnabled": true
-    },
-    "password": "JunV1ll123"
-  },
-  {
-    "id": "user_1786887999811",
-    "name": "Leticia",
-    "role": "student",
-    "avatar": "custom_dynamic",
-    "avatarConfig": {
-      "skin": "#fed7aa",
-      "hairStyle": "bun",
-      "hairColor": "#fbbf24",
-      "eyeStyle": "wink",
-      "shirtStyle": "hoodie",
-      "shirtColor": "#0284c7",
-      "accessory": "headphones",
-      "background": "night_stars"
-    },
-    "title": "Novato Promesa",
-    "elo": 842,
-    "puzzleRating": 400,
-    "stars": 375,
-    "gems": 51,
-    "totalPoints": 60,
-    "theme": "modern_dark",
-    "boardTheme": "board_emerald",
-    "pieceTheme": "staunton",
-    "systemSettings": {
-      "soundEnabled": true,
-      "soundVolume": 80,
-      "autoQueen": true,
-      "showCoordinates": true,
-      "highlightMoves": true,
-      "highlightLastMove": true,
-      "moveMethod": "drag_click"
-    },
-    "unlockedItems": [
-      "board_emerald",
-      "board_wood",
-      "shirt_blue"
-    ],
-    "lessonProgress": {
-      "l01_piezas": {
-        "stars": 5,
-        "completed": true
-      },
-      "l02_capturas": {
-        "stars": 5,
-        "completed": true
-      },
-      "l03_desprotegidas": {
-        "stars": 5,
-        "completed": true
-      },
-      "l04_valor_piezas": {
-        "stars": 5,
-        "completed": true
-      },
-      "l05_coronacion": {
-        "stars": 5,
-        "completed": true
-      },
-      "l06_jaque": {
-        "stars": 5,
-        "completed": true
-      },
-      "l07_escapar_jaque": {
-        "stars": 5,
-        "completed": true
-      },
-      "l08_mate_1": {
-        "stars": 5,
-        "completed": true
-      },
-      "l09_rey_ahogado": {
-        "stars": 5,
-        "completed": true
-      },
-      "l10_enroque": {
-        "stars": 5,
-        "completed": true
-      },
-      "l12_ataque_doble_peon": {
-        "stars": 5,
-        "completed": true
-      },
-      "l11_al_paso": {
-        "stars": 5,
-        "completed": true
-      }
-    },
-    "botVictories": {
-      "qwerty": 1,
-      "cosmo": 2
-    },
-    "stats": {
-      "gamesPlayed": 10,
-      "wins": 6,
-      "losses": 2,
-      "draws": 2,
-      "puzzlesSolved": 0,
-      "hintsUsed": 0,
-      "accuracyAvg": 0
-    },
-    "radarSkills": {
-      "tactica": 100,
-      "estrategia": 25,
-      "posicional": 25,
-      "calculo": 15,
-      "aperturas": 15,
-      "finales": 15
-    },
-    "coachSettings": {
-      "assistanceLevel": "full",
-      "botDifficulty": 1,
-      "coachAvatar": "coach_aurelio",
-      "soundEnabled": true
-    },
-    "password": "JunV1ll123"
+    ]
   }
 ]

@@ -20,25 +20,25 @@ import { P2PPlayModal } from './views/P2PPlayModal';
 import { FamilyChallengesModal } from './views/FamilyChallengesModal';
 import { BugReportModal } from './components/BugReport/BugReportModal';
 import { BugReportFloatingButton } from './components/BugReport/BugReportFloatingButton';
-import { WelcomeProfileModal } from './components/ProfileModal/WelcomeProfileModal';
+import { FamilyGatekeeperModal } from './components/FamilyGroups/FamilyGatekeeperModal';
 import { ManualModal } from './components/Manual/ManualModal';
 import { parseUrlState, syncUrl } from './engine/urlRouter';
 import { getLessonById } from './curriculum/lessonsData';
 import { getBotById } from './assets/botRoster';
 
 export const App = () => {
-  const { currentUser } = useUser();
+  const { currentUser, activeGroup, isGroupUnlocked } = useUser();
   const [activeTab, setActiveTab] = useState('inicio'); // 'inicio' | 'aprender' | 'problemas' | 'robots' | 'jugar' | 'torneos' | 'yo'
   const [activeLesson, setActiveLesson] = useState(null);
   const [activeBotMatch, setActiveBotMatch] = useState(null);
 
-  // Modal de Primer Acceso / Escaneo QR
-  const [isWelcomeProfileOpen, setIsWelcomeProfileOpen] = useState(() => {
+  // Modal de Portal de Acceso / Gatekeeper de Grupos Familiares
+  const [isGatekeeperOpen, setIsGatekeeperOpen] = useState(() => {
     try {
       const hasChosen = localStorage.getItem('ajedrez_junvill_has_selected_profile');
       return !hasChosen;
     } catch (e) {
-      return false;
+      return true;
     }
   });
 
@@ -87,9 +87,10 @@ export const App = () => {
 
     if (modal) {
       if (modal === 'perfil') setIsProfileModalOpen(true);
+      if (modal === 'grupos' || modal === 'familia') setIsGatekeeperOpen(true);
       if (modal === 'configuracion' || modal === 'servidor') setIsSettingsOpen(true);
       if (modal === 'reto_diario') setIsDailyOpen(true);
-      if (modal === 'retos' || modal === 'familia') setIsFamilyChallengesOpen(true);
+      if (modal === 'retos') setIsFamilyChallengesOpen(true);
       if (modal === 'certificados') setIsCertificatesOpen(true);
       if (modal === 'pgn') setIsPgnOpen(true);
       if (modal === 'avatar') setIsAvatarBuilderOpen(true);
@@ -140,101 +141,97 @@ export const App = () => {
     urlRoomId
   ]);
 
-  const handleTabChange = (newTab) => {
-    if (newTab !== 'jugar') {
-      setActiveBotMatch(null);
-    }
-    if (newTab !== 'aprender') {
-      setActiveLesson(null);
-    }
-    setActiveTab(newTab);
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    if (tabId !== 'aprender') setActiveLesson(null);
+    if (tabId !== 'jugar') setActiveBotMatch(null);
   };
 
-  const handleOpenBugReport = (customContext = {}) => {
-    setBugReportContext({
-      view: activeTab,
-      lesson: activeLesson,
-      botMatch: activeBotMatch,
-      ...customContext
-    });
-    setIsBugReportOpen(true);
+  const handleStartLesson = (lesson) => {
+    setActiveLesson(lesson);
   };
 
-  useEffect(() => {
-    document.body.setAttribute('data-theme', currentUser?.theme || 'modern_dark');
-  }, [currentUser?.theme]);
-
-  const handleStartBotGame = (bot) => {
+  const handleStartBotMatch = (bot) => {
     setActiveBotMatch(bot);
     setActiveTab('jugar');
   };
 
-  const isPlayingActiveGame = activeTab === 'jugar';
+  const handleOpenBugReport = (context = {}) => {
+    setBugReportContext({
+      activeTab,
+      activeLessonId: activeLesson?.id || null,
+      activeBotId: activeBotMatch?.id || null,
+      activeGroupId: activeGroup?.id || null,
+      activeUserId: currentUser?.id || null,
+      ...context
+    });
+    setIsBugReportOpen(true);
+  };
 
   return (
-    <div id="app-root" data-theme={currentUser?.theme || 'modern_dark'}>
-      {/* Barra superior Header siempre visible */}
+    <div className="app-layout">
+      {/* Cabecera Principal */}
       <Header
         activeTab={activeTab}
         onTabChange={handleTabChange}
         onOpenProfile={() => setIsProfileModalOpen(true)}
-        onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenGatekeeper={() => setIsGatekeeperOpen(true)}
         onOpenDaily={() => setIsDailyOpen(true)}
         onOpenCertificates={() => setIsCertificatesOpen(true)}
         onOpenPgn={() => setIsPgnOpen(true)}
+        onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenBugReport={() => handleOpenBugReport()}
         onOpenManual={() => setIsManualOpen(true)}
       />
 
+      {/* Contenedor de Vistas */}
       <main className="main-content">
         {activeTab === 'inicio' && (
           <HomeView
-            onNavigate={(targetTab) => setActiveTab(targetTab)}
+            onNavigate={handleTabChange}
             onOpenProfile={() => setIsProfileModalOpen(true)}
-            onOpenDaily={() => setIsDailyOpen(true)}
-            onOpenCertificates={() => setIsCertificatesOpen(true)}
-            onOpenP2P={() => setIsP2POpen(true)}
+            onOpenDailyChallenge={() => setIsDailyOpen(true)}
             onOpenFamilyChallenges={() => setIsFamilyChallengesOpen(true)}
-            onStartLesson={(lesson) => {
-              setActiveLesson(lesson);
-              setActiveTab('aprender');
-            }}
-            onStartBotGame={(bot) => handleStartBotGame(bot)}
+            onOpenCertificates={() => setIsCertificatesOpen(true)}
+            onOpenSettings={() => setIsSettingsOpen(true)}
+            onOpenManual={() => setIsManualOpen(true)}
+            onOpenAvatarBuilder={() => setIsAvatarBuilderOpen(true)}
+            onOpenBugReport={handleOpenBugReport}
           />
         )}
 
-        {activeTab === 'jugar' && (
-          <PlayView
-            key={`play_view_${currentUser?.id || 'default'}`}
-            activeBot={activeBotMatch}
-            onOpenP2P={() => setIsP2POpen(true)}
-            onOpenRobots={() => setActiveTab('robots')}
+        {activeTab === 'aprender' && (
+          <LessonsView
+            onStartLesson={handleStartLesson}
             onOpenBugReport={handleOpenBugReport}
-            onExitToMenu={(targetTab = 'inicio') => {
-              setActiveBotMatch(null);
-              setActiveTab(targetTab);
-            }}
+          />
+        )}
+
+        {activeTab === 'problemas' && (
+          <PuzzlesView
+            onOpenBugReport={handleOpenBugReport}
           />
         )}
 
         {activeTab === 'robots' && (
           <RobotsView
-            onStartBotGame={handleStartBotGame}
+            onStartBotMatch={handleStartBotMatch}
+            onOpenBugReport={handleOpenBugReport}
           />
         )}
 
-        {activeTab === 'problemas' && (
-          <PuzzlesView />
-        )}
-
-        {activeTab === 'aprender' && (
-          <LessonsView
-            onSelectLesson={(lesson) => setActiveLesson(lesson)}
+        {activeTab === 'jugar' && (
+          <PlayView
+            initialBotMatch={activeBotMatch}
+            onExitMatch={() => setActiveBotMatch(null)}
+            onOpenBugReport={handleOpenBugReport}
           />
         )}
 
         {activeTab === 'torneos' && (
-          <TournamentsView />
+          <TournamentsView
+            onOpenBugReport={handleOpenBugReport}
+          />
         )}
 
         {activeTab === 'yo' && (
@@ -269,15 +266,14 @@ export const App = () => {
         contextData={bugReportContext}
       />
 
-      {/* Modal de Bienvenida y Selección de Perfil para Primer Acceso o Escaneo QR */}
-      <WelcomeProfileModal
-        isOpen={isWelcomeProfileOpen}
-        onClose={() => setIsWelcomeProfileOpen(false)}
+      {/* Portal de Acceso Protegido y Grupos Familiares (Gatekeeper) */}
+      <FamilyGatekeeperModal
+        isOpen={isGatekeeperOpen || (!activeGroup && !currentUser)}
+        onClose={() => setIsGatekeeperOpen(false)}
         onOpenAvatarBuilder={() => {
-          setIsWelcomeProfileOpen(false);
+          setIsGatekeeperOpen(false);
           setIsAvatarBuilderOpen(true);
         }}
-        roomToJoin={urlRoomId}
       />
 
       {/* Modales Globales */}

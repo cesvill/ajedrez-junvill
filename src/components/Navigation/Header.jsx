@@ -5,13 +5,14 @@ import { usePWAInstall } from '../../hooks/usePWAInstall';
 import { PWAInstallModal } from '../PWA/PWAInstallModal';
 import { 
   Home, Swords, Bot, Puzzle, BookOpen, User, Trophy, 
-  Settings, Maximize, Minimize, Bug, FileText, Award, Flame, Download, Smartphone
+  Settings, Maximize, Minimize, Bug, FileText, Award, Flame, Download, Smartphone, Users, DoorOpen
 } from 'lucide-react';
 
 export const Header = ({ 
   activeTab, 
   onTabChange, 
   onOpenProfile, 
+  onOpenGatekeeper,
   onOpenDaily, 
   onOpenCertificates, 
   onOpenPgn, 
@@ -19,7 +20,7 @@ export const Header = ({
   onOpenBugReport, 
   onOpenManual 
 }) => {
-  const { currentUser } = useUser();
+  const { currentUser, activeGroup, users } = useUser();
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
   const toolsMenuRef = useRef(null);
@@ -100,6 +101,32 @@ export const Header = ({
 
           {/* 3. BARRA RÁPIDA DE USUARIO, HERRAMIENTAS Y MANUAL */}
           <div className="user-quick-bar" ref={toolsMenuRef} style={{ position: 'relative' }}>
+            {/* Badge de Grupo Familiar Activo */}
+            {activeGroup && (
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={onOpenGatekeeper}
+                style={{
+                  padding: '4px 10px',
+                  fontSize: '0.76rem',
+                  fontWeight: '800',
+                  borderRadius: 'var(--radius-full)',
+                  border: `1.5px solid ${activeGroup.themeColor || 'var(--color-gold)'}`,
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  color: '#f8fafc',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer'
+                }}
+                title={`Grupo Familiar: ${activeGroup.name} (Clic para cambiar de grupo)`}
+              >
+                <span style={{ fontSize: '1rem' }}>{activeGroup.emblem || '👑'}</span>
+                <span className="hide-mobile-compact">{activeGroup.name}</span>
+              </button>
+            )}
+
             {/* Botón Prominente de Instalación PWA si no está instalada */}
             {!isInstalled && (
               <button
@@ -182,8 +209,22 @@ export const Header = ({
                   borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
                   marginBottom: '2px'
                 }}>
-                  Herramientas & Guía
+                  Herramientas & Grupo
                 </div>
+
+                {/* 0. Cambiar de Grupo Familiar */}
+                <button
+                  type="button"
+                  className="header-dropdown-item item-gold"
+                  onClick={() => { setIsToolsMenuOpen(false); onOpenGatekeeper(); }}
+                  style={{ background: 'rgba(234, 179, 8, 0.10)', border: '1px solid rgba(234, 179, 8, 0.25)' }}
+                >
+                  <Users size={16} color="#facc15" />
+                  <div className="item-text">
+                    <span className="item-title" style={{ color: '#facc15' }}>👨‍👩‍👧‍👦 Portal Familiar</span>
+                    <span className="item-sub">{activeGroup ? `${activeGroup.name} (${users.length} miembros)` : 'Cambiar de grupo'}</span>
+                  </div>
+                </button>
 
                 {/* Opción PWA en el Menú */}
                 {!isInstalled && (
