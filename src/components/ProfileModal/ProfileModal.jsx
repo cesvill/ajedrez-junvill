@@ -29,7 +29,7 @@ export const ProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder }) => {
 
   const [newUserName, setNewUserName] = useState('');
   const [newUserRole, setNewUserRole] = useState('student');
-  const [newUserPassword, setNewUserPassword] = useState('1234');
+  const [newUserPassword, setNewUserPassword] = useState(DEFAULT_GENERIC_PASSWORD);
   const [selectedAvatar, setSelectedAvatar] = useState('teen_gamer');
 
   // Estado para verificar clave al cambiar de usuario
@@ -53,7 +53,7 @@ export const ProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder }) => {
       const pwd = newUserPassword.trim() || DEFAULT_GENERIC_PASSWORD;
       createUser(newUserName.trim(), selectedAvatar, newUserRole, null, pwd);
       setNewUserName('');
-      setNewUserPassword('1234');
+      setNewUserPassword(DEFAULT_GENERIC_PASSWORD);
       setIsCreating(false);
       showToast(`¡Perfil "${newUserName.trim()}" creado y guardado en la Base de Datos!`);
     }
@@ -184,7 +184,7 @@ export const ProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder }) => {
               <div style={{ position: 'relative' }}>
                 <input
                   type={showSwitchPassword ? 'text' : 'password'}
-                  placeholder="Contraseña (por defecto: 1234)"
+                  placeholder="Contraseña (por defecto: JunV1ll123)"
                   value={switchPassword}
                   onChange={(e) => {
                     setSwitchPassword(e.target.value);
@@ -493,7 +493,7 @@ export const ProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder }) => {
                 <label style={{ fontSize: '0.78rem', fontWeight: '700', display: 'block', marginBottom: '4px' }}>Contraseña:</label>
                 <input
                   type="text"
-                  placeholder="1234"
+                  placeholder="JunV1ll123"
                   value={newUserPassword}
                   onChange={(e) => setNewUserPassword(e.target.value)}
                   style={{

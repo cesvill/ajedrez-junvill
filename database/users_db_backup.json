@@ -87,8 +87,7 @@
       "botDifficulty": 1,
       "coachAvatar": "coach_aurelio",
       "soundEnabled": true
-    },
-    "password": "1234"
+    }
   },
   {
     "id": "user_1786849943311",
@@ -173,8 +172,7 @@
       "botDifficulty": 1,
       "coachAvatar": "coach_aurelio",
       "soundEnabled": true
-    },
-    "password": "1234"
+    }
   },
   {
     "id": "user_1786887520687",
@@ -258,8 +256,7 @@
       "botDifficulty": 1,
       "coachAvatar": "coach_aurelio",
       "soundEnabled": true
-    },
-    "password": "1234"
+    }
   },
   {
     "id": "user_1786887999811",
@@ -375,7 +372,6 @@
       "botDifficulty": 1,
       "coachAvatar": "coach_aurelio",
       "soundEnabled": true
-    },
-    "password": "1234"
+    }
   }
 ]

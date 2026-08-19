@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 
 const UserContext = createContext();
 
-export const DEFAULT_GENERIC_PASSWORD = '1234';
+export const DEFAULT_GENERIC_PASSWORD = 'JunV1ll123';
 
 const STORAGE_KEY = 'ajedrez_junvill_users_v4';
 const ACTIVE_USER_KEY = 'ajedrez_junvill_active_user_id_v4';

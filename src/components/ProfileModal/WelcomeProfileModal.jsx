@@ -9,7 +9,7 @@ export const WelcomeProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder, room
   const [isCreatingNew, setIsCreatingNew] = useState(users.length === 0);
   const [newUserName, setNewUserName] = useState('');
   const [newUserRole, setNewUserRole] = useState('student');
-  const [newUserPassword, setNewUserPassword] = useState('1234');
+  const [newUserPassword, setNewUserPassword] = useState(DEFAULT_GENERIC_PASSWORD);
   const [selectedAvatar, setSelectedAvatar] = useState('teen_gamer');
 
   // Estado para autenticación de usuario existente seleccionado
@@ -145,7 +145,7 @@ export const WelcomeProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder, room
               <div style={{ position: 'relative' }}>
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Ingresa tu contraseña (por defecto: 1234)"
+                  placeholder="Ingresa tu contraseña (por defecto: JunV1ll123)"
                   value={enteredPassword}
                   onChange={(e) => {
                     setEnteredPassword(e.target.value);
@@ -205,7 +205,7 @@ export const WelcomeProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder, room
                 gap: '6px'
               }}>
                 <KeyRound size={14} />
-                <span>💡 <b>Contraseña genérica inicial:</b> <code>1234</code></span>
+                <span>💡 <b>Contraseña genérica inicial:</b> <code>JunV1ll123</code></span>
               </div>
             </div>
 
@@ -348,11 +348,11 @@ export const WelcomeProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder, room
               {/* Contraseña Inicial */}
               <div>
                 <label style={{ fontSize: '0.84rem', fontWeight: '800', color: 'var(--text-parchment-main)', display: 'block', marginBottom: '6px' }}>
-                  Contraseña de Acceso (por defecto: 1234):
+                  Contraseña de Acceso (por defecto: JunV1ll123):
                 </label>
                 <input
                   type="text"
-                  placeholder="1234"
+                  placeholder="JunV1ll123"
                   value={newUserPassword}
                   onChange={(e) => setNewUserPassword(e.target.value)}
                   style={{
