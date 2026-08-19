@@ -1,9 +1,11 @@
 import { Chess } from 'chess.js';
-import { isKinglessFen, getBestKinglessBotMove } from './kinglessEngine';
+import { isKinglessFen, getBestKinglessBotMove } from './kinglessEngine.js';
+import { getBookMove } from './openingBook.js';
 
 /**
  * Motor de IA para el oponente con dificultad graduable (Nivel 1 a 5)
- * Combina Minimax con poda Alfa-Beta, tablas de valor posicional (PST) y heurística de finales (Mating Nets).
+ * Combina Libro de Aperturas por Personalidad, Minimax con poda Alfa-Beta, 
+ * tablas de valor posicional (PST) y heurística de finales (Mating Nets).
  */
 
 const PIECE_VALUES = {
@@ -15,15 +17,15 @@ const PIECE_VALUES = {
   k: 20000
 };
 
-// Tablas de valor posicional (PST) para alentar el control central y desarrollo
+// Tablas de valor posicional (PST) para alentar el control central, avance de peones y desarrollo armónico
 const PAWN_PST = [
   [0,  0,  0,  0,  0,  0,  0,  0],
   [50, 50, 50, 50, 50, 50, 50, 50],
-  [10, 10, 20, 30, 30, 20, 10, 10],
-  [5,  5, 10, 25, 25, 10,  5,  5],
-  [0,  0,  0, 20, 20,  0,  0,  0],
-  [5, -5,-10,  0,  0,-10, -5,  5],
-  [5, 10, 10,-20,-20, 10, 10,  5],
+  [15, 15, 25, 35, 35, 25, 15, 15],
+  [10, 10, 20, 35, 35, 20, 10, 10],
+  [5,   5, 15, 30, 30, 15,  5,  5],
+  [5,  -5,-10, 10, 10,-10, -5,  5],
+  [5,  10, 10,-15,-15, 10, 10,  5],
   [0,  0,  0,  0,  0,  0,  0,  0]
 ];
 
@@ -54,7 +56,6 @@ const BISHOP_PST = [
  */
 export const evaluateBoard = (chess) => {
   if (chess.isCheckmate()) {
-    // Si es jaque mate, el bando que tiene el turno ha perdido
     return chess.turn() === 'w' ? -100000 : 100000;
   }
 
@@ -100,25 +101,19 @@ export const evaluateBoard = (chess) => {
   }
 
   // --- HEURÍSTICA DE FINALES (Mating Nets & King Drive) ---
-  // Cuando un bando tiene clara ventaja de material (o el rival solo tiene el rey),
-  // se incentiva acorralar al rey enemigo hacia los bordes y acercar al propio rey.
   if (whiteKingPos && blackKingPos) {
     const isWhiteWinningEndgame = whiteMaterial > blackMaterial + 200;
     const isBlackWinningEndgame = blackMaterial > whiteMaterial + 200;
 
     if (isWhiteWinningEndgame) {
-      // Empujar rey negro al borde (distancia al centro 3.5, 3.5)
       const blackDistCenter = Math.max(Math.abs(blackKingPos.r - 3.5), Math.abs(blackKingPos.c - 3.5));
-      // Acercar rey blanco al rey negro
       const kingDist = Math.max(Math.abs(whiteKingPos.r - blackKingPos.r), Math.abs(whiteKingPos.c - blackKingPos.c));
       
       totalEvaluation += blackDistCenter * 40;
       totalEvaluation += (7 - kingDist) * 30;
       if (chess.isCheck() && chess.turn() === 'b') totalEvaluation += 50;
     } else if (isBlackWinningEndgame) {
-      // Empujar rey blanco al borde
       const whiteDistCenter = Math.max(Math.abs(whiteKingPos.r - 3.5), Math.abs(whiteKingPos.c - 3.5));
-      // Acercar rey negro al rey blanco
       const kingDist = Math.max(Math.abs(whiteKingPos.r - blackKingPos.r), Math.abs(whiteKingPos.c - blackKingPos.c));
 
       totalEvaluation -= whiteDistCenter * 40;
@@ -163,9 +158,9 @@ const minimax = (chess, depth, alpha, beta, isMaximizing) => {
 };
 
 /**
- * Selecciona la mejor jugada para el bot según su nivel y variante
+ * Selecciona la mejor jugada para el bot según su nivel, variante y personalidad
  */
-export const getBestBotMove = (fen, level = 1, allowedPiece = null, variant = 'standard') => {
+export const getBestBotMove = (fen, level = 1, allowedPiece = null, variant = 'standard', botId = null) => {
   if (isKinglessFen(fen)) {
     return getBestKinglessBotMove(fen, level);
   }
@@ -174,17 +169,28 @@ export const getBestBotMove = (fen, level = 1, allowedPiece = null, variant = 's
   let moves = chess.moves({ verbose: true });
   if (moves.length === 0) return null;
 
+  // 1. CONSULTA DE LIBRO DE APERTURAS (Para variantes estándar sin restricciones de dados)
+  if (variant === 'standard' && !allowedPiece) {
+    const bookMove = getBookMove(fen, botId);
+    if (bookMove) {
+      const matchedMove = moves.find(m => m.from === bookMove.from && m.to === bookMove.to);
+      if (matchedMove) {
+        return matchedMove;
+      }
+    }
+  }
+
   // Filtrado por pieza permitida en Dados Mágicos (si no es comodín 'k')
   if (allowedPiece && allowedPiece !== 'k') {
     const pieceMoves = moves.filter(m => m.piece === allowedPiece);
     if (pieceMoves.length > 0) {
       moves = pieceMoves;
     } else {
-      return null; // Sin jugadas legales para esta tirada
+      return null;
     }
   }
 
-  // REGLA REY DE LA COLINA: Si el bot puede colocar su Rey en d4, d5, e4 o e5, lo hace para ganar al instante
+  // REGLA REY DE LA COLINA
   if (variant === 'king_of_the_hill') {
     const hillSquares = ['d4', 'd5', 'e4', 'e5'];
     const winningHillMove = moves.find(m => m.piece === 'k' && hillSquares.includes(m.to));
@@ -195,7 +201,7 @@ export const getBestBotMove = (fen, level = 1, allowedPiece = null, variant = 's
 
   const isWhite = chess.turn() === 'w';
 
-  // 1. REGLA UNIVERSAL: Si hay un Jaque Mate en 1 jugada, realizarlo SIEMPRE (en todos los niveles)
+  // 2. REGLA UNIVERSAL: Si hay Jaque Mate en 1 jugada, realizarlo SIEMPRE
   for (const move of moves) {
     chess.move(move);
     const givesMate = chess.isCheckmate();
@@ -205,73 +211,72 @@ export const getBestBotMove = (fen, level = 1, allowedPiece = null, variant = 's
     }
   }
 
-  // 2. REGLA UNIVERSAL: Si hay una coronación de peón a Dama, realizarla con altísima prioridad
+  // 3. REGLA UNIVERSAL: Coronación de peón a Dama
   const promotions = moves.filter(m => m.promotion === 'q');
-  if (promotions.length > 0 && Math.random() < 0.9) {
+  if (promotions.length > 0 && Math.random() < 0.92) {
     return promotions[0];
   }
 
-  // Nivel 1: ~400 Elo (Juego principiante pero con sentido en finales)
+  // Nivel 1: ~400 Elo (Juego principiante con variedad y control en finales)
   if (level === 1) {
-    // Si el rival solo tiene el rey o estamos en final, jugar con lógica para acorralar en lugar de pasear la torre
-    let bestMove = null;
-    let bestScore = isWhite ? -Infinity : Infinity;
+    const evaluatedMoves = [];
 
     for (const move of moves) {
       chess.move(move);
-      // Evitar ahogado accidental si estamos ganando
       if (chess.isDraw() && !chess.isCheckmate()) {
         chess.undo();
         continue;
       }
       const score = evaluateBoard(chess);
       chess.undo();
-
-      if (isWhite ? score > bestScore : score < bestScore) {
-        bestScore = score;
-        bestMove = move;
-      }
+      evaluatedMoves.push({ move, score });
     }
 
-    // Un 50% de las veces en nivel 1 elige la jugada más sensata (para cerrar la partida)
-    if (bestMove && Math.random() < 0.6) {
-      return bestMove;
+    evaluatedMoves.sort((a, b) => isWhite ? b.score - a.score : a.score - b.score);
+
+    // En 50% de los casos juega una de las mejores 3 jugadas
+    if (evaluatedMoves.length > 0 && Math.random() < 0.55) {
+      const topPool = evaluatedMoves.slice(0, Math.min(3, evaluatedMoves.length));
+      return topPool[Math.floor(Math.random() * topPool.length)].move;
     }
 
     const captures = moves.filter(m => m.captured);
     if (captures.length > 0 && Math.random() < 0.4) {
       return captures[Math.floor(Math.random() * captures.length)];
     }
-    return bestMove || moves[Math.floor(Math.random() * moves.length)];
+
+    return evaluatedMoves[0]?.move || moves[Math.floor(Math.random() * moves.length)];
   }
 
-  // Nivel 2: ~800 Elo (Evaluación 1-ply con evitación de ahogados)
+  // Nivel 2: ~800 Elo (Evaluación 1-ply con selección equilibrada entre las mejores opciones)
   if (level === 2) {
-    let bestMove = moves[0];
-    let bestScore = isWhite ? -Infinity : Infinity;
+    const evaluatedMoves = [];
 
     for (const move of moves) {
       chess.move(move);
-      // Evitar tablas por ahogado si se tiene ventaja
       if (chess.isDraw() && !chess.isCheckmate()) {
         chess.undo();
         continue;
       }
       const score = evaluateBoard(chess);
       chess.undo();
-
-      if (isWhite ? score > bestScore : score < bestScore) {
-        bestScore = score;
-        bestMove = move;
-      }
+      evaluatedMoves.push({ move, score });
     }
-    return bestMove;
+
+    evaluatedMoves.sort((a, b) => isWhite ? b.score - a.score : a.score - b.score);
+
+    if (evaluatedMoves.length > 0) {
+      const bestScore = evaluatedMoves[0].score;
+      // Seleccionar entre jugadas que estén a menos de 20 centipeones de la mejor
+      const closeCandidates = evaluatedMoves.filter(m => Math.abs(m.score - bestScore) <= 20);
+      return closeCandidates[Math.floor(Math.random() * closeCandidates.length)].move;
+    }
+    return moves[0];
   }
 
-  // Nivel 3: ~1200 Elo (Minimax Profundidad 2)
+  // Nivel 3: ~1200 Elo (Minimax Profundidad 2 con variedad táctica)
   if (level === 3) {
-    let bestMove = moves[0];
-    let bestScore = isWhite ? -Infinity : Infinity;
+    const evaluatedMoves = [];
 
     for (const move of moves) {
       chess.move(move);
@@ -281,19 +286,22 @@ export const getBestBotMove = (fen, level = 1, allowedPiece = null, variant = 's
       }
       const score = minimax(chess, 2, -Infinity, Infinity, !isWhite);
       chess.undo();
-
-      if (isWhite ? score > bestScore : score < bestScore) {
-        bestScore = score;
-        bestMove = move;
-      }
+      evaluatedMoves.push({ move, score });
     }
-    return bestMove;
+
+    evaluatedMoves.sort((a, b) => isWhite ? b.score - a.score : a.score - b.score);
+
+    if (evaluatedMoves.length > 0) {
+      const bestScore = evaluatedMoves[0].score;
+      const closeCandidates = evaluatedMoves.filter(m => Math.abs(m.score - bestScore) <= 15);
+      return closeCandidates[Math.floor(Math.random() * closeCandidates.length)].move;
+    }
+    return moves[0];
   }
 
-  // Nivel 4 y 5: ~1600 y 2000+ Elo (Minimax Profundidad 3 o 4)
+  // Nivel 4 y 5: ~1600 y 2000+ Elo (Minimax Profundidad 3 o 4 con alta precisión)
   const depth = level >= 5 ? 4 : 3;
-  let bestMove = moves[0];
-  let bestScore = isWhite ? -Infinity : Infinity;
+  const evaluatedMoves = [];
 
   for (const move of moves) {
     chess.move(move);
@@ -303,13 +311,17 @@ export const getBestBotMove = (fen, level = 1, allowedPiece = null, variant = 's
     }
     const score = minimax(chess, depth - 1, -Infinity, Infinity, !isWhite);
     chess.undo();
-
-    if (isWhite ? score > bestScore : score < bestScore) {
-      bestScore = score;
-      bestMove = move;
-    }
+    evaluatedMoves.push({ move, score });
   }
 
-  return bestMove;
-};
+  evaluatedMoves.sort((a, b) => isWhite ? b.score - a.score : a.score - b.score);
 
+  if (evaluatedMoves.length > 0) {
+    const bestScore = evaluatedMoves[0].score;
+    // En niveles altos, solo varía entre jugadas virtualmente idénticas en evaluación
+    const closeCandidates = evaluatedMoves.filter(m => Math.abs(m.score - bestScore) <= 8);
+    return closeCandidates[Math.floor(Math.random() * closeCandidates.length)].move;
+  }
+
+  return moves[0];
+};

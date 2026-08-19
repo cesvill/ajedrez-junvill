@@ -521,7 +521,7 @@ export const PlayView = ({
       botAllowedPiece = candidateFaces[Math.floor(Math.random() * candidateFaces.length)];
     }
 
-    const botMove = getBestBotMove(fen, botLevel, botAllowedPiece, gameVariant);
+    const botMove = getBestBotMove(fen, botLevel, botAllowedPiece, gameVariant, botToPlay?.id);
     if (!botMove && gameVariant === 'dice_chess') {
       setIsBotThinking(false);
       setCoachMessage({
