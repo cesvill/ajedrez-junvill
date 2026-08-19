@@ -100,7 +100,7 @@ export const Header = ({
           </nav>
 
           {/* 3. BARRA RÁPIDA DE USUARIO, HERRAMIENTAS Y MANUAL */}
-          <div className="user-quick-bar" ref={toolsMenuRef} style={{ position: 'relative' }}>
+          <div className="user-quick-bar">
             {/* Badge de Grupo Familiar Activo */}
             {activeGroup && (
               <button
@@ -108,8 +108,8 @@ export const Header = ({
                 className="btn-secondary"
                 onClick={onOpenGatekeeper}
                 style={{
-                  padding: '4px 10px',
-                  fontSize: '0.76rem',
+                  padding: '4px 8px',
+                  fontSize: '0.74rem',
                   fontWeight: '800',
                   borderRadius: 'var(--radius-full)',
                   border: `1.5px solid ${activeGroup.themeColor || 'var(--color-gold)'}`,
@@ -117,12 +117,12 @@ export const Header = ({
                   color: '#f8fafc',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
+                  gap: '5px',
                   cursor: 'pointer'
                 }}
                 title={`Grupo Familiar: ${activeGroup.name} (Clic para cambiar de grupo)`}
               >
-                <span style={{ fontSize: '1rem' }}>{activeGroup.emblem || '👑'}</span>
+                <span style={{ fontSize: '0.95rem' }}>{activeGroup.emblem || '👑'}</span>
                 <span className="hide-mobile-compact">{activeGroup.name}</span>
               </button>
             )}
@@ -134,12 +134,12 @@ export const Header = ({
                 onClick={openInstallModal}
                 className="btn-gold"
                 style={{
-                  padding: '5px 11px',
-                  fontSize: '0.76rem',
+                  padding: '4px 9px',
+                  fontSize: '0.74rem',
                   fontWeight: '900',
                   borderRadius: 'var(--radius-full)',
-                  gap: '5px',
-                  boxShadow: '0 2px 10px rgba(234, 179, 8, 0.3)',
+                  gap: '4px',
+                  boxShadow: '0 2px 8px rgba(234, 179, 8, 0.25)',
                   border: '1.5px solid #fef08a'
                 }}
                 title="Instalar como Aplicación en tu celular o PC (100% Offline)"
@@ -161,44 +161,46 @@ export const Header = ({
               <span className="currency-val">{currentUser?.gems || 0}</span>
             </div>
 
-            {/* BOTÓN DESPLEGABLE DE MENÚ DE HERRAMIENTAS & MANUAL */}
-            <button
-              type="button"
-              onClick={() => setIsToolsMenuOpen(!isToolsMenuOpen)}
-              className={`btn-secondary header-tools-toggle-btn ${isToolsMenuOpen ? 'active' : ''}`}
-              title="Abrir menú de herramientas, manual y opciones"
-              style={{
-                padding: '6px 12px',
-                fontSize: '0.82rem',
-                fontWeight: '800',
-                gap: '6px',
-                border: isToolsMenuOpen ? '1.5px solid var(--color-gold)' : '1px solid var(--bg-parchment-border)',
-                background: isToolsMenuOpen ? 'rgba(245, 158, 11, 0.15)' : 'var(--bg-parchment-card)',
-                color: isToolsMenuOpen ? 'var(--color-gold)' : 'var(--text-parchment-main)'
-              }}
-            >
-              <Settings size={15} />
-              <span>Menú ▾</span>
-            </button>
+            {/* CONTENEDOR RELATIVO PARA EL MENÚ POPOVER */}
+            <div style={{ position: 'relative' }} ref={toolsMenuRef}>
+              <button
+                type="button"
+                onClick={() => setIsToolsMenuOpen(!isToolsMenuOpen)}
+                className={`btn-secondary header-tools-toggle-btn ${isToolsMenuOpen ? 'active' : ''}`}
+                title="Abrir menú de herramientas, manual y opciones"
+                style={{
+                  padding: '5px 10px',
+                  fontSize: '0.78rem',
+                  fontWeight: '800',
+                  gap: '5px',
+                  border: isToolsMenuOpen ? '1.5px solid var(--color-gold)' : '1px solid var(--bg-parchment-border)',
+                  background: isToolsMenuOpen ? 'rgba(245, 158, 11, 0.15)' : 'var(--bg-parchment-card)',
+                  color: isToolsMenuOpen ? 'var(--color-gold)' : 'var(--text-parchment-main)'
+                }}
+              >
+                <Settings size={14} />
+                <span>Menú ▾</span>
+              </button>
 
-            {/* MENÚ POPOVER DESPLEGABLE FLOTANTE */}
-            {isToolsMenuOpen && (
-              <div className="header-dropdown-menu" style={{
-                position: 'absolute',
-                top: 'calc(100% + 8px)',
-                right: 0,
-                width: '260px',
-                background: '#0f172a',
-                border: '2px solid var(--bg-parchment-border)',
-                borderRadius: 'var(--radius-md, 12px)',
-                padding: '8px',
-                boxShadow: '0 12px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05)',
-                zIndex: 1000,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '4px',
-                animation: 'fadeIn 0.15s ease-out'
-              }}>
+              {/* MENÚ POPOVER DESPLEGABLE FLOTANTE */}
+              {isToolsMenuOpen && (
+                <div className="header-dropdown-menu" style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 8px)',
+                  right: 0,
+                  width: '250px',
+                  maxWidth: 'calc(100vw - 20px)',
+                  background: '#0f172a',
+                  border: '2px solid var(--bg-parchment-border)',
+                  borderRadius: 'var(--radius-md, 12px)',
+                  padding: '8px',
+                  boxShadow: '0 12px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+                  zIndex: 1000,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '4px',
+                  animation: 'fadeIn 0.15s ease-out'
+                }}>
                 <div style={{
                   fontSize: '0.68rem',
                   fontWeight: '900',
@@ -336,6 +338,7 @@ export const Header = ({
                 </button>
               </div>
             )}
+            </div>
 
             {/* Perfil del Usuario Activo */}
             <button 
