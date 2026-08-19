@@ -11,10 +11,24 @@ import { QRCodeDisplay } from '../components/QRCodeModal/QRCodeDisplay';
 import { HandicapConfigModal } from '../components/HandicapModal/HandicapConfigModal';
 import { getHandicapFen, getHandicapSummary, DEFAULT_HANDICAP_CONFIG } from '../engine/handicapEngine';
 import confetti from 'canvas-confetti';
-import { X, Globe, Copy, Check, QrCode, Play, Users, Clock, ShieldCheck, Swords, RotateCcw, Flag, Award, AlertCircle, Maximize, Minimize, Scale, RefreshCw } from 'lucide-react';
+import { 
+  X, Globe, Copy, Check, QrCode, Play, Users, Clock, ShieldCheck, 
+  Swords, RotateCcw, Flag, Award, AlertCircle, Maximize, Minimize, 
+  Scale, RefreshCw, Eye, Sparkles, Heart, Flame, ThumbsUp, Crown, 
+  MessageSquare, UserPlus 
+} from 'lucide-react';
+
+const CHEER_EMOJIS = [
+  { emoji: '👏', label: '¡Gran jugada!' },
+  { emoji: '🔥', label: '¡En llamas!' },
+  { emoji: '😮', label: '¡Qué jugada!' },
+  { emoji: '🧠', label: '¡Puro cálculo!' },
+  { emoji: '👑', label: '¡Rey!' },
+  { emoji: '🛡️', label: '¡Buena defensa!' }
+];
 
 export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
-  const { currentUser, recordGameResult } = useUser();
+  const { currentUser, activeGroup, users, recordGameResult } = useUser();
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
@@ -37,11 +51,15 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
     }
   };
 
-  const [mode, setMode] = useState('lobby'); // 'lobby' | 'playing' | 'gameover'
-  const [activeTab, setActiveTab] = useState(initialRoomId ? 'join' : 'create'); // 'create' | 'join'
+  // Modos de vista: 'lobby' | 'playing' | 'spectating' | 'gameover'
+  const [mode, setMode] = useState('lobby');
+  // Pestañas del lobby: 'family' | 'code' | 'spectator'
+  const [lobbyTab, setLobbyTab] = useState(initialRoomId ? 'code' : 'family');
+  
+  // Código de sala (sin guiones)
   const [generatedRoomId, setGeneratedRoomId] = useState(() => P2PEngine.generateRoomId());
-  const [roomId, setRoomId] = useState(initialRoomId || '');
-  const [inputRoomId, setInputRoomId] = useState(initialRoomId || '');
+  const [roomId, setRoomId] = useState(initialRoomId ? P2PEngine.cleanRoomId(initialRoomId) : '');
+  const [inputRoomId, setInputRoomId] = useState(initialRoomId ? P2PEngine.cleanRoomId(initialRoomId) : '');
   const [copiedLink, setCopiedLink] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -54,7 +72,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
   const [whiteTime, setWhiteTime] = useState(300);
   const [blackTime, setBlackTime] = useState(300);
 
-  // Configuración de Hándicap y Ventajas Pedagógicas P2P
+  // Configuración de Hándicap
   const [handicapConfig, setHandicapConfig] = useState(DEFAULT_HANDICAP_CONFIG);
   const [isHandicapModalOpen, setIsHandicapModalOpen] = useState(false);
   const [incomingHandicapOffer, setIncomingHandicapOffer] = useState(null);
@@ -63,9 +81,18 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
   const [game, setGame] = useState(() => new Chess());
   const [lastMove, setLastMove] = useState(null);
   const [opponentProfile, setOpponentProfile] = useState({ name: 'Rival P2P', avatar: 'knight', elo: 600 });
+  const [whitePlayerProfile, setWhitePlayerProfile] = useState(null);
+  const [blackPlayerProfile, setBlackPlayerProfile] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
   const [drawOffered, setDrawOffered] = useState(false);
   const [gameResultReason, setGameResultReason] = useState('');
+
+  // Reacciones en vivo y Espectadores
+  const [spectatorCount, setSpectatorCount] = useState(0);
+  const [activeCheerReactions, setActiveCheerReactions] = useState([]);
+
+  // Retos directos familiares
+  const [selectedFamilyOpponent, setSelectedFamilyOpponent] = useState(null);
 
   const p2pRef = useRef(null);
 
@@ -79,6 +106,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
       setIsHostActive(false);
       setIsConnecting(false);
       setErrorMessage('');
+      setMode('lobby');
       return;
     }
 
@@ -89,26 +117,53 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
       setRoomId(roomId);
       setIsHostActive(true);
       setIsConnecting(false);
-      setStatusMessage(`¡Sala ${roomId} creada! Esperando a que tu amigo se una...`);
+      setStatusMessage(`¡Sala ${roomId} creada! Esperando a que tu amigo o familiar se una...`);
     });
 
-    p2p.on('connected', ({ isHost }) => {
+    p2p.on('connected', ({ isHost, isSpectator }) => {
       audioManager.playVictory();
       setErrorMessage('');
-      setStatusMessage('¡Rival conectado! Iniciando partida...');
-      setMode('playing');
+      
+      if (isSpectator) {
+        setStatusMessage('¡Conectado como Espectador en Vivo! Observando partida...');
+        setMode('spectating');
+      } else {
+        setStatusMessage('¡Rival conectado! Iniciando partida...');
+        setMode('playing');
 
-      // Enviar mi perfil al rival
-      p2p.send({
-        type: 'PROFILE_SYNC',
-        profile: {
-          name: currentUser.name,
-          avatar: currentUser.avatar,
-          avatarConfig: currentUser.avatarConfig,
-          elo: currentUser.elo,
-          color: isHost ? (assignedColor === 'white' ? 'black' : 'white') : assignedColor,
-          timeControl
-        }
+        // Sincronizar perfiles
+        p2p.send({
+          type: 'PROFILE_SYNC',
+          profile: {
+            name: currentUser?.name || 'Jugador Junvill',
+            avatar: currentUser?.avatar || 'teen_gamer',
+            avatarConfig: currentUser?.avatarConfig,
+            elo: currentUser?.elo || 600,
+            color: isHost ? (assignedColor === 'white' ? 'black' : 'white') : assignedColor,
+            timeControl
+          }
+        });
+      }
+    });
+
+    p2p.on('spectatorConnected', ({ count, profile }) => {
+      setSpectatorCount(count);
+      audioManager.playHint();
+      const specName = profile?.name || 'Un espectador';
+      setStatusMessage(`👥 ${specName} se ha unido a mirar la partida.`);
+    });
+
+    p2p.on('request_spectator_sync', ({ connection }) => {
+      // Host envía el estado completo al nuevo espectador
+      p2p.sendSpectatorSync(connection, {
+        fen: game.fen(),
+        lastMove,
+        whiteTime,
+        blackTime,
+        timeControl,
+        whitePlayer: assignedColor === 'white' ? currentUser : opponentProfile,
+        blackPlayer: assignedColor === 'black' ? currentUser : opponentProfile,
+        moveHistory: game.history({ verbose: true })
       });
     });
 
@@ -116,9 +171,20 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
       handleIncomingData(data);
     });
 
+    p2p.on('spectatorData', (data) => {
+      if (data.type === 'SPECTATOR_REACTION') {
+        triggerCheerAnimation(data.emoji, data.fromName);
+      }
+    });
+
     p2p.on('disconnected', () => {
-      setStatusMessage('El rival se ha desconectado.');
-      setErrorMessage('El rival ha abandonado la partida.');
+      if (mode === 'spectating') {
+        setStatusMessage('La transmisión de la partida ha finalizado.');
+        setErrorMessage('La partida que estabas viendo terminó o se desconectó.');
+      } else {
+        setStatusMessage('El rival se ha desconectado.');
+        setErrorMessage('El rival ha abandonado la partida.');
+      }
     });
 
     p2p.on('error', (err) => {
@@ -152,6 +218,18 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
           setBlackTime(data.profile.timeControl);
         }
       }
+    } else if (data.type === 'SPECTATOR_SYNC') {
+      // Estado inicial recibido por espectador
+      const { fullGameState } = data;
+      if (fullGameState) {
+        setGame(new Chess(fullGameState.fen));
+        setLastMove(fullGameState.lastMove);
+        setWhiteTime(fullGameState.whiteTime);
+        setBlackTime(fullGameState.blackTime);
+        setTimeControl(fullGameState.timeControl);
+        setWhitePlayerProfile(fullGameState.whitePlayer);
+        setBlackPlayerProfile(fullGameState.blackPlayer);
+      }
     } else if (data.type === 'MOVE') {
       let updatedGame;
       try {
@@ -168,10 +246,16 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
 
         setLastMove(data.move);
         setGame(updatedGame);
+        if (data.clocks) {
+          setWhiteTime(data.clocks.white);
+          setBlackTime(data.clocks.black);
+        }
         checkGameOver(updatedGame);
       } catch (err) {
         console.error("Error aplicando jugada remota P2P:", err);
       }
+    } else if (data.type === 'SPECTATOR_REACTION') {
+      triggerCheerAnimation(data.emoji, data.fromName);
     } else if (data.type === 'SAFE_CHAT') {
       audioManager.playHint();
       setChatMessages(prev => [...prev, {
@@ -220,9 +304,19 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
     }
   };
 
+  // Animación de Reacciones de Espectadores
+  const triggerCheerAnimation = (emoji, fromName) => {
+    audioManager.playMove();
+    const id = Date.now() + Math.random();
+    setActiveCheerReactions(prev => [...prev, { id, emoji, fromName }]);
+    setTimeout(() => {
+      setActiveCheerReactions(prev => prev.filter(r => r.id !== id));
+    }, 2800);
+  };
+
   // Reloj de Partida
   useEffect(() => {
-    if (mode !== 'playing' || timeControl === 0) return;
+    if ((mode !== 'playing' && mode !== 'spectating') || timeControl === 0) return;
 
     const timer = setInterval(() => {
       const turn = game.turn();
@@ -230,7 +324,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
         setWhiteTime(prev => {
           if (prev <= 1) {
             clearInterval(timer);
-            handleTimeOut('w');
+            if (mode === 'playing') handleTimeOut('w');
             return 0;
           }
           return prev - 1;
@@ -239,7 +333,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
         setBlackTime(prev => {
           if (prev <= 1) {
             clearInterval(timer);
-            handleTimeOut('b');
+            if (mode === 'playing') handleTimeOut('b');
             return 0;
           }
           return prev - 1;
@@ -251,188 +345,316 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
   }, [mode, game, timeControl]);
 
   const handleTimeOut = (color) => {
-    const iLost = (color === 'w' && assignedColor === 'white') || (color === 'b' && assignedColor === 'black');
-    if (iLost) {
-      audioManager.playWarning();
-      setGameResultReason('Tiempo agotado. Derrota.');
-      recordGameResult('loss', -8, 60);
+    audioManager.playWarning();
+    const isMe = (color === 'w' && assignedColor === 'white') || (color === 'b' && assignedColor === 'black');
+    if (isMe) {
+      setGameResultReason('Se te agotó el tiempo de reloj. Derrota.');
+      recordGameResult('loss', 0, 50);
     } else {
-      audioManager.playVictory();
-      setGameResultReason('¡El rival agotó su tiempo! Victoria 🏆');
-      recordGameResult('win', 20, 90);
-      confetti({ particleCount: 80, spread: 70 });
+      setGameResultReason('¡Al rival se le agotó el tiempo! Victoria 🏆');
+      recordGameResult('win', 20, 85);
+      confetti({ particleCount: 90, spread: 70 });
     }
     setMode('gameover');
   };
 
-  const checkGameOver = (g) => {
-    if (g.isGameOver()) {
-      if (g.isCheckmate()) {
-        const winnerIsWhite = g.turn() === 'b';
-        const iWon = (winnerIsWhite && assignedColor === 'white') || (!winnerIsWhite && assignedColor === 'black');
-        if (iWon) {
-          audioManager.playVictory();
-          setGameResultReason('¡Jaque Mate! Has ganado la partida 🏆');
-          recordGameResult('win', 20, 90);
-          confetti({ particleCount: 100, spread: 80 });
-        } else {
-          audioManager.playWarning();
-          setGameResultReason('Jaque Mate del rival. Derrota.');
-          recordGameResult('loss', -8, 60);
-        }
-      } else if (g.isDraw()) {
-        setGameResultReason('Partida en Tablas 🤝');
-        recordGameResult('draw', 5, 75);
-      }
+  const checkGameOver = (currentGame) => {
+    if (currentGame.isCheckmate()) {
+      const winner = currentGame.turn() === 'w' ? 'black' : 'white';
+      const isMeWinner = winner === assignedColor;
+      audioManager.playVictory();
+      setGameResultReason(isMeWinner ? '¡Jaque Mate! Has ganado la partida 🏆' : 'Jaque Mate. El rival ha ganado.');
       setMode('gameover');
-    }
-  };
-
-  // Generar nuevo código aleatorio
-  const handleRegenerateCode = () => {
-    const newCode = P2PEngine.generateRoomId();
-    setGeneratedRoomId(newCode);
-    setErrorMessage('');
-    if (isHostActive) {
-      p2pRef.current?.destroy();
-      setIsHostActive(false);
-      setRoomId('');
-    }
-  };
-
-  // Acciones de Anfitrión e Invitado
-  const handleCreateHost = () => {
-    setErrorMessage('');
-    setIsConnecting(true);
-    setWhiteTime(timeControl);
-    setBlackTime(timeControl);
-    p2pRef.current?.initHost(generatedRoomId);
-  };
-
-  const handleJoinSubmit = (codeToJoin = null) => {
-    const rawCode = (codeToJoin || inputRoomId || '').toUpperCase().trim();
-    if (!rawCode) {
-      setErrorMessage('Por favor escribe el código de sala que te compartió tu amigo (ej. JUN-4829)');
-      return;
-    }
-    setErrorMessage('');
-    setIsConnecting(true);
-    setStatusMessage(`Buscando sala ${rawCode}...`);
-    p2pRef.current?.joinRoom(rawCode);
-  };
-
-  const handlePlayerMove = (moveResult, newFen) => {
-    const isWhiteTurn = game.turn() === 'w';
-    const myTurn = (isWhiteTurn && assignedColor === 'white') || (!isWhiteTurn && assignedColor === 'black');
-    if (!myTurn || mode !== 'playing') return;
-
-    let updatedGame;
-    try {
-      if (newFen) {
-        updatedGame = new Chess(newFen);
+      if (isMeWinner) {
+        recordGameResult('win', 20, 95);
+        confetti({ particleCount: 120, spread: 90 });
       } else {
-        updatedGame = new Chess(game.fen());
-        updatedGame.move(moveResult);
+        recordGameResult('loss', 2, 60);
       }
-
-      setLastMove(moveResult);
-      setGame(updatedGame);
-      p2pRef.current?.sendMove(moveResult, updatedGame.fen());
-      checkGameOver(updatedGame);
-    } catch (err) {
-      console.error("Error ejecutando jugada local:", err);
+    } else if (currentGame.isDraw()) {
+      audioManager.playMove();
+      let reason = 'Empate';
+      if (currentGame.isStalemate()) reason = 'Tablas por Rey Ahogado';
+      else if (currentGame.isThreefoldRepetition()) reason = 'Tablas por Triple Repetición';
+      else if (currentGame.isInsufficientMaterial()) reason = 'Tablas por Material Insuficiente';
+      setGameResultReason(reason);
+      setMode('gameover');
+      recordGameResult('draw', 5, 75);
     }
   };
 
-  const handleSendSafeChat = ({ text, isEmote, emoji }) => {
-    p2pRef.current?.sendSafeChat(text, isEmote);
+  // Realizar Jugada (Local)
+  const handlePieceMove = (source, target) => {
+    if (mode !== 'playing') return false;
+
+    const currentTurnColor = game.turn() === 'w' ? 'white' : 'black';
+    if (currentTurnColor !== assignedColor) return false;
+
+    try {
+      const move = game.move({ from: source, to: target, promotion: 'q' });
+      if (move) {
+        if (game.isCheckmate() || game.isCheck()) audioManager.playCheck();
+        else if (move.captured) audioManager.playCapture();
+        else audioManager.playMove();
+
+        setLastMove(move);
+        setGame(new Chess(game.fen()));
+
+        // Transmitir jugada por WebRTC a rival y espectadores
+        p2pRef.current?.sendMove(move, game.fen(), { white: whiteTime, black: blackTime });
+
+        checkGameOver(game);
+        return true;
+      }
+    } catch (e) {
+      return false;
+    }
+    return false;
+  };
+
+  // Enviar mensaje de chat seguro
+  const handleSendSafeChat = (text, isEmote = false) => {
+    if (!p2pRef.current) return;
+    p2pRef.current.sendSafeChat(text, isEmote);
     setChatMessages(prev => [...prev, {
-      senderName: currentUser.name,
+      senderName: currentUser?.name || 'Tú',
       text,
       isEmote,
       isMe: true
     }]);
   };
 
-  const handleCopyLink = () => {
-    const currentCode = roomId || generatedRoomId;
-    const shareUrl = `${window.location.origin}${window.location.pathname}?room=${currentCode}`;
-    navigator.clipboard.writeText(shareUrl);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2500);
+  // Enviar reacción de espectador
+  const handleSendSpectatorCheer = (emoji) => {
+    if (!p2pRef.current) return;
+    p2pRef.current.sendSpectatorReaction(emoji, currentUser?.name || 'Espectador');
+    triggerCheerAnimation(emoji, currentUser?.name || 'Tú');
   };
 
+  // Rendirse
+  const handleResign = () => {
+    if (window.confirm('¿Estás seguro de que deseas rendirte?')) {
+      p2pRef.current?.sendResign();
+      setGameResultReason('Te has rendido. Partida finalizada.');
+      setMode('gameover');
+      recordGameResult('loss', 0, 40);
+    }
+  };
+
+  // Ofrecer Tablas
+  const handleOfferDraw = () => {
+    p2pRef.current?.sendDrawOffer();
+    setStatusMessage('Has ofrecido tablas a tu rival. Esperando respuesta...');
+  };
+
+  const handleAcceptDraw = () => {
+    p2pRef.current?.sendAcceptDraw();
+    setGameResultReason('Tablas acordadas por ambos jugadores 🤝');
+    setMode('gameover');
+    setDrawOffered(false);
+    recordGameResult('draw', 5, 75);
+  };
+
+  const handleRejectDraw = () => {
+    setDrawOffered(false);
+    setStatusMessage('Has rechazado la oferta de tablas.');
+  };
+
+  // Reiniciar / Revancha
   const restartP2PGame = () => {
-    setGame(new Chess());
+    const newFen = getHandicapFen(handicapConfig);
+    const newGame = new Chess(newFen);
+    setGame(newGame);
     setLastMove(null);
     setWhiteTime(timeControl);
     setBlackTime(timeControl);
-    setDrawOffered(false);
     setMode('playing');
+    setGameResultReason('');
+    setStatusMessage('¡Revancha iniciada! ¡Buena suerte!');
+  };
+
+  const handleRequestRematch = () => {
+    p2pRef.current?.sendRematch();
+    restartP2PGame();
+  };
+
+  // Crear Sala Host (Sin Guión)
+  const handleCreateHost = (targetRoom = null) => {
+    setIsConnecting(true);
+    setErrorMessage('');
+    const idToUse = targetRoom || generatedRoomId;
+    const cleanId = P2PEngine.cleanRoomId(idToUse);
+    p2pRef.current?.initHost(cleanId);
+  };
+
+  // Unirse a Sala (Sin Guión)
+  const handleJoinSubmit = (targetRoomToJoin = null) => {
+    const rawCode = targetRoomToJoin || inputRoomId;
+    const cleanCode = P2PEngine.cleanRoomId(rawCode);
+    if (!cleanCode) {
+      setErrorMessage('Por favor escribe un código de sala válido.');
+      return;
+    }
+    setIsConnecting(true);
+    setErrorMessage('');
+    p2pRef.current?.joinRoom(cleanCode, {
+      name: currentUser?.name || 'Estudiante',
+      avatar: currentUser?.avatar || 'teen_gamer',
+      avatarConfig: currentUser?.avatarConfig,
+      elo: currentUser?.elo || 600
+    });
+  };
+
+  // Unirse como Espectador
+  const handleJoinSpectatorSubmit = (targetRoomToJoin = null) => {
+    const rawCode = targetRoomToJoin || inputRoomId;
+    const cleanCode = P2PEngine.cleanRoomId(rawCode);
+    if (!cleanCode) {
+      setErrorMessage('Por favor escribe el código de la partida a espectar.');
+      return;
+    }
+    setIsConnecting(true);
+    setErrorMessage('');
+    p2pRef.current?.joinAsSpectator(cleanCode, {
+      name: currentUser?.name || 'Espectador',
+      avatar: currentUser?.avatar || 'teen_gamer'
+    });
+  };
+
+  // Reto Familiar Directo (1 Clic)
+  const handleStartFamilyChallenge = (targetUser) => {
+    setSelectedFamilyOpponent(targetUser);
+    const newRoom = P2PEngine.generateRoomId();
+    setGeneratedRoomId(newRoom);
+    setRoomId(newRoom);
+    handleCreateHost(newRoom);
+  };
+
+  // Copiar Enlace Directo
+  const handleCopyLink = () => {
+    const activeCode = roomId || generatedRoomId;
+    const cleanCode = P2PEngine.cleanRoomId(activeCode);
+    const shareUrl = `${window.location.origin}/?room=${cleanCode}&view=p2p`;
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2500);
+    });
+  };
+
+  const handleRegenerateCode = () => {
+    const newCode = P2PEngine.generateRoomId();
+    setGeneratedRoomId(newCode);
+    setRoomId(newCode);
   };
 
   if (!isOpen) return null;
 
-  const isMyTurn = (game.turn() === 'w' && assignedColor === 'white') || (game.turn() === 'b' && assignedColor === 'black');
-  const formatTime = (secs) => {
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${m}:${s < 10 ? '0' : ''}${s}`;
-  };
+  // Lista de miembros familiares disponibles (excluyendo al usuario actual)
+  const familyMembers = (users || []).filter(u => u.id !== currentUser?.id);
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" style={{ maxWidth: '960px', width: '96vw', padding: '22px', maxHeight: '94vh' }} onClick={(e) => e.stopPropagation()}>
-        {/* CABECERA */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1.5px solid var(--bg-parchment-border)', paddingBottom: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Globe size={22} color="var(--color-primary)" />
-            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', color: 'var(--text-parchment-main)', margin: 0 }}>
-              Multijugador Online P2P
-            </h2>
+    <div className="modal-overlay" style={{ zIndex: 110, padding: isFullscreen ? 0 : '12px' }}>
+      <div
+        className="modal-card"
+        style={{
+          maxWidth: isFullscreen ? '100vw' : '1080px',
+          width: '100%',
+          height: isFullscreen ? '100vh' : 'auto',
+          maxHeight: isFullscreen ? '100vh' : '94vh',
+          padding: isFullscreen ? '12px' : '20px',
+          background: 'linear-gradient(180deg, #0b0f19 0%, #111827 100%)',
+          border: isFullscreen ? 'none' : '2px solid var(--color-primary, #3b82f6)',
+          borderRadius: isFullscreen ? 0 : 'var(--radius-lg, 16px)',
+          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.85)',
+          display: 'flex',
+          flexDirection: 'column',
+          overflowY: 'auto',
+          position: 'relative'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* CABECERA DEL MODAL */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          paddingBottom: '12px',
+          marginBottom: '16px',
+          flexWrap: 'wrap',
+          gap: '10px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+              width: '38px',
+              height: '38px',
+              borderRadius: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 2px 10px rgba(59, 130, 246, 0.4)'
+            }}>
+              <Globe size={22} color="#ffffff" />
+            </div>
+            <div>
+              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', margin: 0, fontWeight: '900', color: '#f8fafc' }}>
+                Juego en Línea & Salas P2P
+              </h2>
+              <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
+                Conexión directa encriptada • Retos familiares a 1 clic • Códigos simplificados
+              </span>
+            </div>
           </div>
+
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button
-              onClick={toggleFullscreen}
+              type="button"
               className="btn-secondary"
-              style={{ padding: '5px 10px', fontSize: '0.78rem', gap: '4px' }}
-              title={isFullscreen ? "Salir de Pantalla Completa" : "Pantalla Completa (Ocultar Barra URL)"}
+              onClick={toggleFullscreen}
+              style={{ padding: '6px 10px', fontSize: '0.78rem', gap: '5px' }}
+              title={isFullscreen ? 'Salir de pantalla completa' : 'Pantalla completa'}
             >
-              {isFullscreen ? <Minimize size={15} color="#10b981" /> : <Maximize size={15} color="#3b82f6" />}
-              <span className="hide-mobile-compact">{isFullscreen ? "Normal" : "Pantalla Completa"}</span>
+              {isFullscreen ? <Minimize size={14} /> : <Maximize size={14} />}
+              <span className="hide-mobile-compact">{isFullscreen ? 'Ventana' : 'Completa'}</span>
             </button>
-            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-parchment-muted)', padding: '4px' }}>
+
+            <button
+              type="button"
+              onClick={onClose}
+              style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px' }}
+            >
               <X size={22} />
             </button>
           </div>
         </div>
 
-        {/* ALERTA DE ERROR VISIBLE */}
+        {/* ALERTA DE ERROR */}
         {errorMessage && (
           <div style={{
             background: 'rgba(239, 68, 68, 0.15)',
             border: '1.5px solid #ef4444',
             borderRadius: 'var(--radius-md, 8px)',
-            padding: '12px 16px',
-            marginBottom: '16px',
+            padding: '10px 14px',
+            marginBottom: '14px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: '12px',
+            gap: '10px',
             color: '#fca5a5'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <AlertCircle size={22} color="#ef4444" style={{ flexShrink: 0 }} />
-              <div style={{ fontSize: '0.86rem', fontWeight: '700', color: '#fecaca' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <AlertCircle size={18} color="#ef4444" style={{ flexShrink: 0 }} />
+              <div style={{ fontSize: '0.84rem', fontWeight: '700', color: '#fecaca' }}>
                 {errorMessage}
               </div>
             </div>
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={() => setErrorMessage('')}
-              style={{ background: 'none', border: 'none', color: '#fca5a5', cursor: 'pointer', fontWeight: '800', fontSize: '0.8rem', padding: '4px 8px' }}
+              style={{ background: 'none', border: 'none', color: '#fca5a5', cursor: 'pointer', fontWeight: '800', fontSize: '0.78rem' }}
             >
-              Cerrar ✕
+              ✕
             </button>
           </div>
         )}
@@ -443,98 +665,345 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
             background: 'rgba(59, 130, 246, 0.15)',
             border: '1.5px solid #3b82f6',
             borderRadius: 'var(--radius-md, 8px)',
-            padding: '10px 16px',
-            marginBottom: '16px',
+            padding: '9px 14px',
+            marginBottom: '14px',
             display: 'flex',
             alignItems: 'center',
-            gap: '10px',
+            gap: '8px',
             color: '#93c5fd',
-            fontSize: '0.86rem',
+            fontSize: '0.84rem',
             fontWeight: '700'
           }}>
-            <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#3b82f6', animation: 'pulse 1.5s infinite' }}></span>
+            <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#3b82f6', animation: 'pulse 1.5s infinite' }} />
             <span>{statusMessage}</span>
           </div>
         )}
 
-        {/* VISTA 1: LOBBY DE SALA */}
+        {/* ========================================================= */}
+        {/* VISTA 1: LOBBY DE SELECCIÓN DE MODO                       */}
+        {/* ========================================================= */}
         {mode === 'lobby' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
-            {/* PANEL IZQUIERDO: CREAR SALA (HOST) */}
-            <div style={{
-              background: 'rgba(15, 23, 42, 0.6)',
-              border: '2px solid var(--color-primary, #3b82f6)',
-              borderRadius: 'var(--radius-lg, 12px)',
-              padding: '20px',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              gap: '16px',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)'
-            }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#60a5fa', fontWeight: '900', fontSize: '1.15rem', marginBottom: '4px' }}>
-                  <Users size={22} color="#60a5fa" />
-                  <span>Crear Sala de Juego (Anfitrión)</span>
-                </div>
-                <p style={{ fontSize: '0.82rem', color: '#94a3b8', margin: '0 0 14px' }}>
-                  Configura tu partida y comparte el código o enlace directo con tu amigo.
-                </p>
+          <div>
+            {/* SELECTOR DE PESTAÑAS DEL LOBBY */}
+            <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className={`desktop-nav-tab ${lobbyTab === 'family' ? 'active' : ''}`}
+                onClick={() => setLobbyTab('family')}
+                style={{
+                  padding: '7px 14px',
+                  fontSize: '0.84rem',
+                  fontWeight: '800',
+                  gap: '6px',
+                  background: lobbyTab === 'family' ? 'var(--color-gold, #ca8a04)' : 'rgba(255, 255, 255, 0.05)',
+                  color: lobbyTab === 'family' ? '#000000' : '#f8fafc',
+                  border: `1.5px solid ${lobbyTab === 'family' ? 'var(--color-gold)' : 'rgba(255, 255, 255, 0.1)'}`,
+                  borderRadius: 'var(--radius-full)'
+                }}
+              >
+                <span>👑</span>
+                <span>Reto Familiar (1 Clic)</span>
+              </button>
 
-                {/* Código de Sala Pre-Generado */}
+              <button
+                type="button"
+                className={`desktop-nav-tab ${lobbyTab === 'code' ? 'active' : ''}`}
+                onClick={() => setLobbyTab('code')}
+                style={{
+                  padding: '7px 14px',
+                  fontSize: '0.84rem',
+                  fontWeight: '800',
+                  gap: '6px',
+                  background: lobbyTab === 'code' ? 'var(--color-primary, #2563eb)' : 'rgba(255, 255, 255, 0.05)',
+                  color: '#ffffff',
+                  border: `1.5px solid ${lobbyTab === 'code' ? '#3b82f6' : 'rgba(255, 255, 255, 0.1)'}`,
+                  borderRadius: 'var(--radius-full)'
+                }}
+              >
+                <span>🔑</span>
+                <span>Código de Sala (Sin Guión)</span>
+              </button>
+
+              <button
+                type="button"
+                className={`desktop-nav-tab ${lobbyTab === 'spectator' ? 'active' : ''}`}
+                onClick={() => setLobbyTab('spectator')}
+                style={{
+                  padding: '7px 14px',
+                  fontSize: '0.84rem',
+                  fontWeight: '800',
+                  gap: '6px',
+                  background: lobbyTab === 'spectator' ? 'rgba(16, 185, 129, 0.25)' : 'rgba(255, 255, 255, 0.05)',
+                  color: lobbyTab === 'spectator' ? '#34d399' : '#f8fafc',
+                  border: `1.5px solid ${lobbyTab === 'spectator' ? '#10b981' : 'rgba(255, 255, 255, 0.1)'}`,
+                  borderRadius: 'var(--radius-full)'
+                }}
+              >
+                <Eye size={15} />
+                <span>Modo Espectador</span>
+              </button>
+            </div>
+
+            {/* PESTAÑA A: RETO FAMILIAR DIRECTO A 1 CLIC */}
+            {lobbyTab === 'family' && (
+              <div>
                 <div style={{
-                  background: 'rgba(15, 23, 42, 0.85)',
-                  border: '1.5px dashed #3b82f6',
-                  borderRadius: 'var(--radius-md, 8px)',
-                  padding: '12px 14px',
-                  marginBottom: '14px',
-                  textAlign: 'center'
+                  background: 'linear-gradient(135deg, rgba(202, 138, 4, 0.12) 0%, rgba(15, 23, 42, 0.8) 100%)',
+                  border: '1.5px solid var(--color-gold, #ca8a04)',
+                  borderRadius: '12px',
+                  padding: '14px 18px',
+                  marginBottom: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '10px'
                 }}>
-                  <div style={{ fontSize: '0.74rem', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                    Código de Sala Generado:
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '1.8rem' }}>{activeGroup?.emblem || '👑'}</span>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '900', color: '#f8fafc' }}>
+                        Sala de Retos: {activeGroup?.name || 'Familia Junvill'}
+                      </h3>
+                      <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: '#cbd5e1' }}>
+                        Reta a cualquier miembro de tu grupo familiar a una partida con 1 solo clic.
+                      </p>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', margin: '6px 0' }}>
-                    <span style={{ fontSize: '1.85rem', fontWeight: '900', color: '#60a5fa', letterSpacing: '3px', fontFamily: 'monospace' }}>
+
+                  {/* Selector rápido de tiempo para retos */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '0.78rem', fontWeight: '800', color: '#facc15' }}>Tiempo:</span>
+                    {[
+                      { secs: 180, label: '3 min' },
+                      { secs: 300, label: '5 min' },
+                      { secs: 600, label: '10 min' }
+                    ].map(t => (
+                      <button
+                        key={t.secs}
+                        type="button"
+                        onClick={() => setTimeControl(t.secs)}
+                        style={{
+                          background: timeControl === t.secs ? 'var(--color-gold, #ca8a04)' : 'rgba(255, 255, 255, 0.08)',
+                          color: timeControl === t.secs ? '#000000' : '#f8fafc',
+                          border: 'none',
+                          borderRadius: '6px',
+                          padding: '4px 8px',
+                          fontSize: '0.74rem',
+                          fontWeight: '800',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {familyMembers.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '30px', background: '#0a0f1d', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                    <Users size={36} color="#64748b" style={{ margin: '0 auto 8px' }} />
+                    <h4 style={{ margin: '0 0 4px', fontSize: '1rem', color: '#f8fafc' }}>No hay otros jugadores en tu grupo aún</h4>
+                    <p style={{ fontSize: '0.82rem', color: '#94a3b8', margin: '0 0 12px' }}>
+                      Crea un perfil de jugador para tu hermano, papá, mamá o amigo desde el selector de perfil.
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
+                    {familyMembers.map(member => (
+                      <div
+                        key={member.id}
+                        style={{
+                          background: '#0a0f1d',
+                          border: '1.5px solid rgba(255, 255, 255, 0.1)',
+                          borderRadius: '12px',
+                          padding: '14px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '12px',
+                          transition: 'all 0.18s ease'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{ width: '46px', height: '46px', borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--color-gold)' }}>
+                            {member.avatarConfig ? (
+                              <DynamicAvatar config={member.avatarConfig} size={46} />
+                            ) : (
+                              <AvatarIcon avatarId={member.avatar || 'teen_gamer'} size={46} />
+                            )}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: '800', fontSize: '0.92rem', color: '#f8fafc' }}>
+                              {member.name}
+                            </div>
+                            <div style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
+                              {member.title || 'Aprendiz'} • {member.elo || 600} Elo
+                            </div>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          className="btn-gold"
+                          onClick={() => handleStartFamilyChallenge(member)}
+                          disabled={isConnecting}
+                          style={{
+                            padding: '8px 12px',
+                            fontSize: '0.80rem',
+                            fontWeight: '900',
+                            gap: '5px',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          <Swords size={14} />
+                          <span>Retar ({timeControl / 60}m)</span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Si se inició una sala de reto familiar */}
+                {isHostActive && (
+                  <div style={{
+                    marginTop: '16px',
+                    background: 'rgba(37, 99, 235, 0.15)',
+                    border: '2px solid #3b82f6',
+                    borderRadius: '12px',
+                    padding: '16px',
+                    textAlign: 'center'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#60a5fa', fontWeight: '800', fontSize: '0.96rem', marginBottom: '6px' }}>
+                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#22c55e', display: 'inline-block', boxShadow: '0 0 8px #22c55e' }} />
+                      <span>Reto Activo para {selectedFamilyOpponent ? selectedFamilyOpponent.name : 'tu rival'}</span>
+                    </div>
+                    <p style={{ fontSize: '0.82rem', color: '#cbd5e1', margin: '0 0 10px' }}>
+                      Código de Sala Simplificado: <b style={{ color: '#60a5fa', fontSize: '1.2rem', fontFamily: 'monospace' }}>{roomId || generatedRoomId}</b>
+                    </p>
+
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                      <button type="button" className="btn-gold" onClick={handleCopyLink} style={{ padding: '8px 14px', fontSize: '0.82rem' }}>
+                        {copiedLink ? <Check size={15} /> : <Copy size={15} />}
+                        <span>{copiedLink ? '¡Enlace Copiado!' : 'Copiar Enlace Directo'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        onClick={() => {
+                          p2pRef.current?.destroy();
+                          setIsHostActive(false);
+                          setStatusMessage('');
+                        }}
+                        style={{ padding: '8px 14px', fontSize: '0.82rem' }}
+                      >
+                        Cancelar Reto
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* PESTAÑA B: CÓDIGO DE SALA TRADICIONAL (SIN GUIONES) */}
+            {lobbyTab === 'code' && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
+                {/* 1. Crear Sala */}
+                <div style={{
+                  background: 'rgba(15, 23, 42, 0.6)',
+                  border: '2px solid #3b82f6',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#60a5fa', fontWeight: '900', fontSize: '1.05rem' }}>
+                    <Users size={20} />
+                    <span>Crear Sala con Código</span>
+                  </div>
+                  <p style={{ fontSize: '0.80rem', color: '#94a3b8', margin: 0 }}>
+                    Genera un código limpio sin guiones para compartir con quien quieras.
+                  </p>
+
+                  <div style={{
+                    background: '#0a0f1d',
+                    border: '1.5px dashed #3b82f6',
+                    borderRadius: '8px',
+                    padding: '10px',
+                    textAlign: 'center'
+                  }}>
+                    <div style={{ fontSize: '0.72rem', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase' }}>
+                      Código de Sala:
+                    </div>
+                    <div style={{ fontSize: '1.7rem', fontWeight: '900', color: '#60a5fa', letterSpacing: '2px', fontFamily: 'monospace', margin: '4px 0' }}>
                       {roomId || generatedRoomId}
-                    </span>
+                    </div>
                     <button
                       type="button"
-                      onClick={handleRegenerateCode}
-                      className="btn-secondary"
-                      style={{ padding: '4px 8px', fontSize: '0.75rem', gap: '4px' }}
-                      title="Generar otro código aleatorio"
-                      disabled={isHostActive}
+                      className="btn-gold"
+                      onClick={handleCopyLink}
+                      style={{ width: '100%', justifyContent: 'center', padding: '7px 10px', fontSize: '0.80rem' }}
                     >
-                      <RotateCcw size={13} />
-                      <span>Nuevo</span>
+                      {copiedLink ? <Check size={14} /> : <Copy size={14} />}
+                      <span>{copiedLink ? '¡Enlace Copiado!' : 'Copiar Enlace Directo'}</span>
                     </button>
                   </div>
-                  <button
-                    type="button"
-                    className="btn-gold"
-                    onClick={handleCopyLink}
-                    style={{ width: '100%', justifyContent: 'center', padding: '8px 12px', fontSize: '0.82rem', marginTop: '4px' }}
-                  >
-                    {copiedLink ? <Check size={16} /> : <Copy size={16} />}
-                    <span>{copiedLink ? '¡Enlace Directo Copiado!' : 'Copiar Enlace para tu Amigo'}</span>
-                  </button>
-                </div>
 
-                {/* Ajustes de Partida */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '14px' }}>
-                  <div>
-                    <label style={{ fontSize: '0.82rem', fontWeight: '800', color: '#f8fafc', display: 'block', marginBottom: '6px' }}>
-                      Tiempo de Reloj:
-                    </label>
-                    <div style={{ display: 'flex', gap: '6px' }}>
-                      {[
-                        { secs: 180, label: '3 min' },
-                        { secs: 300, label: '5 min' },
-                        { secs: 600, label: '10 min' },
-                        { secs: 0, label: 'Sin Reloj' }
-                      ].map(t => {
-                        const isSelected = timeControl === t.secs;
-                        return (
+                  {/* Configuración de Bando y Reloj */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <div>
+                      <label style={{ fontSize: '0.76rem', fontWeight: '800', color: '#e2e8f0', display: 'block', marginBottom: '4px' }}>
+                        Juegas con:
+                      </label>
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        <button
+                          type="button"
+                          onClick={() => setAssignedColor('white')}
+                          disabled={isHostActive}
+                          style={{
+                            flex: 1,
+                            background: assignedColor === 'white' ? 'var(--color-gold)' : 'rgba(255,255,255,0.06)',
+                            color: assignedColor === 'white' ? '#000' : '#fff',
+                            border: 'none',
+                            borderRadius: '6px',
+                            padding: '6px 4px',
+                            fontSize: '0.78rem',
+                            fontWeight: '800'
+                          }}
+                        >
+                          ⚪ Blancas
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setAssignedColor('black')}
+                          disabled={isHostActive}
+                          style={{
+                            flex: 1,
+                            background: assignedColor === 'black' ? 'var(--color-gold)' : 'rgba(255,255,255,0.06)',
+                            color: assignedColor === 'black' ? '#000' : '#fff',
+                            border: 'none',
+                            borderRadius: '6px',
+                            padding: '6px 4px',
+                            fontSize: '0.78rem',
+                            fontWeight: '800'
+                          }}
+                        >
+                          ⚫ Negras
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '0.76rem', fontWeight: '800', color: '#e2e8f0', display: 'block', marginBottom: '4px' }}>
+                        Tiempo:
+                      </label>
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        {[
+                          { secs: 180, label: '3m' },
+                          { secs: 300, label: '5m' },
+                          { secs: 600, label: '10m' }
+                        ].map(t => (
                           <button
                             key={t.secs}
                             type="button"
@@ -542,172 +1011,144 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
                             disabled={isHostActive}
                             style={{
                               flex: 1,
-                              background: isSelected ? 'var(--color-primary, #2563eb)' : 'rgba(15, 23, 42, 0.7)',
-                              color: '#ffffff',
-                              border: isSelected ? '2px solid #60a5fa' : '1px solid rgba(255, 255, 255, 0.15)',
-                              borderRadius: 'var(--radius-sm, 6px)',
-                              padding: '8px 4px',
-                              fontSize: '0.8rem',
-                              fontWeight: '800',
-                              cursor: isHostActive ? 'not-allowed' : 'pointer',
-                              boxShadow: isSelected ? '0 0 10px rgba(37, 99, 235, 0.4)' : 'none',
-                              transition: 'all 0.2s ease'
+                              background: timeControl === t.secs ? '#3b82f6' : 'rgba(255,255,255,0.06)',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: '6px',
+                              padding: '6px 2px',
+                              fontSize: '0.78rem',
+                              fontWeight: '800'
                             }}
                           >
                             {t.label}
                           </button>
-                        );
-                      })}
+                        ))}
+                      </div>
                     </div>
                   </div>
 
-                  <div>
-                    <label style={{ fontSize: '0.82rem', fontWeight: '800', color: '#f8fafc', display: 'block', marginBottom: '6px' }}>
-                      Juegas con:
-                    </label>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      {[
-                        { id: 'white', label: 'Blancas', icon: '⚪' },
-                        { id: 'black', label: 'Negras', icon: '⚫' }
-                      ].map(c => {
-                        const isSelected = assignedColor === c.id;
-                        return (
-                          <button
-                            key={c.id}
-                            type="button"
-                            onClick={() => setAssignedColor(c.id)}
-                            disabled={isHostActive}
-                            style={{
-                              flex: 1,
-                              background: isSelected 
-                                ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.25) 0%, rgba(217, 119, 6, 0.35) 100%)' 
-                                : 'rgba(15, 23, 42, 0.7)',
-                              color: isSelected ? '#fbbf24' : '#ffffff',
-                              border: `2px solid ${isSelected ? '#f59e0b' : 'rgba(255, 255, 255, 0.18)'}`,
-                              borderRadius: 'var(--radius-md, 8px)',
-                              padding: '10px 14px',
-                              fontSize: '0.9rem',
-                              fontWeight: '800',
-                              cursor: isHostActive ? 'not-allowed' : 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '8px',
-                              boxShadow: isSelected ? '0 0 14px rgba(245, 158, 11, 0.35)' : 'none',
-                              transition: 'all 0.2s ease'
-                            }}
-                          >
-                            <span style={{ fontSize: '1.1rem' }}>{c.icon}</span>
-                            <span style={{ color: isSelected ? '#fbbf24' : '#ffffff', fontWeight: '800' }}>{c.label}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Botón Iniciar Sala o Estado Activo */}
-                {!isHostActive ? (
-                  <button
-                    type="button"
-                    className="btn-primary"
-                    onClick={handleCreateHost}
-                    disabled={isConnecting}
-                    style={{ width: '100%', justifyContent: 'center', padding: '14px', fontSize: '1rem', fontWeight: '900', gap: '8px' }}
-                  >
-                    <Play size={20} />
-                    <span>{isConnecting ? 'Iniciando Sala...' : '🚀 Iniciar Sala y Esperar Rival'}</span>
-                  </button>
-                ) : (
-                  <div style={{
-                    background: 'rgba(37, 99, 235, 0.15)',
-                    border: '2px solid #3b82f6',
-                    borderRadius: 'var(--radius-md, 8px)',
-                    padding: '14px',
-                    textAlign: 'center'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#60a5fa', fontWeight: '800', fontSize: '0.92rem', marginBottom: '6px' }}>
-                      <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 8px #22c55e' }}></span>
-                      <span>Sala Activa • Esperando a tu Amigo</span>
-                    </div>
-                    <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '0 0 10px' }}>
-                      Tu amigo puede escanear el QR o ingresar el código <b>{roomId || generatedRoomId}</b>:
-                    </p>
-
-                    {/* QR Code de Invitación a la Sala */}
-                    <div style={{ display: 'flex', justifyContent: 'center', margin: '10px 0' }}>
-                      <QRCodeDisplay
-                        value={`${window.location.origin}/?room=${roomId || generatedRoomId}&view=p2p`}
-                        size={150}
-                        title="Escanear para Jugar"
-                        subtitle="Apunta la cámara para unirte a esta partida directamente"
-                      />
-                    </div>
-
+                  {!isHostActive ? (
                     <button
                       type="button"
-                      className="btn-secondary"
-                      onClick={() => {
-                        p2pRef.current?.destroy();
-                        setIsHostActive(false);
-                        setStatusMessage('');
-                      }}
-                      style={{ padding: '6px 14px', fontSize: '0.78rem', margin: '10px auto 0' }}
+                      className="btn-primary"
+                      onClick={() => handleCreateHost()}
+                      disabled={isConnecting}
+                      style={{ width: '100%', justifyContent: 'center', padding: '11px', fontSize: '0.92rem', fontWeight: '900' }}
                     >
-                      Cancelar Sala
+                      <Play size={17} />
+                      <span>{isConnecting ? 'Iniciando Sala...' : '🚀 Iniciar Sala y Esperar Rival'}</span>
                     </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* PANEL DERECHO: UNIRSE A SALA (GUEST) */}
-            <div style={{
-              background: 'rgba(15, 23, 42, 0.6)',
-              border: '2px solid rgba(245, 158, 11, 0.4)',
-              borderRadius: 'var(--radius-lg, 12px)',
-              padding: '20px',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              gap: '16px',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)'
-            }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#fbbf24', fontWeight: '900', fontSize: '1.15rem', marginBottom: '4px' }}>
-                  <Swords size={22} color="#fbbf24" />
-                  <span>Unirse a una Sala Existente (Invitado)</span>
+                  ) : (
+                    <div style={{ textAlign: 'center' }}>
+                      <QRCodeDisplay
+                        value={`${window.location.origin}/?room=${roomId || generatedRoomId}&view=p2p`}
+                        size={120}
+                        title="Escanear para Jugar"
+                      />
+                    </div>
+                  )}
                 </div>
-                <p style={{ fontSize: '0.82rem', color: '#94a3b8', margin: '0 0 14px' }}>
-                  Escribe el código de sala que te compartió tu amigo para unirte a su partida.
-                </p>
+
+                {/* 2. Unirse a Sala */}
+                <div style={{
+                  background: 'rgba(15, 23, 42, 0.6)',
+                  border: '2px solid rgba(255, 255, 255, 0.15)',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  gap: '12px'
+                }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#f8fafc', fontWeight: '900', fontSize: '1.05rem', marginBottom: '4px' }}>
+                      <Globe size={20} color="#10b981" />
+                      <span>Unirse a una Sala Existente</span>
+                    </div>
+                    <p style={{ fontSize: '0.80rem', color: '#94a3b8', margin: '0 0 12px' }}>
+                      Ingresa el código que te compartieron (ej: <b>JUN7K2</b>).
+                    </p>
+
+                    <div>
+                      <label style={{ fontSize: '0.78rem', fontWeight: '800', color: '#cbd5e1', display: 'block', marginBottom: '4px' }}>
+                        Código de la Sala:
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Ej. JUN882, A7K2..."
+                        value={inputRoomId}
+                        onChange={(e) => setInputRoomId(P2PEngine.cleanRoomId(e.target.value))}
+                        style={{
+                          width: '100%',
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          border: '1.5px solid var(--color-primary, #3b82f6)',
+                          background: '#0a0f1d',
+                          color: '#f8fafc',
+                          fontSize: '1.1rem',
+                          fontWeight: '900',
+                          letterSpacing: '2px',
+                          textAlign: 'center',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="btn-gold"
+                    onClick={() => handleJoinSubmit()}
+                    disabled={isConnecting || !inputRoomId.trim()}
+                    style={{ width: '100%', justifyContent: 'center', padding: '12px', fontSize: '0.92rem', fontWeight: '900' }}
+                  >
+                    <Play size={17} />
+                    <span>{isConnecting ? 'Conectando...' : '⚔️ Unirme a la Partida'}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* PESTAÑA C: MODO ESPECTADOR EN VIVO */}
+            {lobbyTab === 'spectator' && (
+              <div style={{
+                background: 'rgba(15, 23, 42, 0.6)',
+                border: '2px solid #10b981',
+                borderRadius: '12px',
+                padding: '20px',
+                maxWidth: '560px',
+                margin: '0 auto'
+              }}>
+                <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+                  <div style={{ fontSize: '2.5rem', marginBottom: '4px' }}>👁️</div>
+                  <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', color: '#f8fafc', margin: '0 0 4px', fontWeight: '900' }}>
+                    Modo Espectador en Vivo
+                  </h3>
+                  <p style={{ fontSize: '0.82rem', color: '#94a3b8', margin: 0 }}>
+                    Observa la partida en tiempo real sin intervenir y envía reacciones para apoyar a los jugadores.
+                  </p>
+                </div>
 
                 <div style={{ marginBottom: '16px' }}>
-                  <label style={{ fontSize: '0.82rem', fontWeight: '800', color: '#f8fafc', display: 'block', marginBottom: '6px' }}>
-                    Código de Sala de tu Amigo:
+                  <label style={{ fontSize: '0.80rem', fontWeight: '800', color: '#34d399', display: 'block', marginBottom: '6px' }}>
+                    Código de la Partida a Espectar:
                   </label>
                   <input
                     type="text"
-                    placeholder="Ej. JUN-4829"
+                    placeholder="Ej. JUN882"
                     value={inputRoomId}
-                    onChange={(e) => setInputRoomId(e.target.value.toUpperCase())}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && inputRoomId.trim()) {
-                        handleJoinSubmit();
-                      }
-                    }}
+                    onChange={(e) => setInputRoomId(P2PEngine.cleanRoomId(e.target.value))}
                     style={{
                       width: '100%',
-                      padding: '14px',
-                      borderRadius: 'var(--radius-md, 8px)',
-                      background: 'rgba(15, 23, 42, 0.85)',
-                      border: '2px solid rgba(245, 158, 11, 0.4)',
-                      fontSize: '1.35rem',
+                      padding: '12px 14px',
+                      borderRadius: '8px',
+                      border: '1.5px solid #10b981',
+                      background: '#0a0f1d',
+                      color: '#f8fafc',
+                      fontSize: '1.15rem',
                       fontWeight: '900',
-                      letterSpacing: '3px',
+                      letterSpacing: '2px',
                       textAlign: 'center',
-                      color: '#fbbf24',
-                      outline: 'none',
                       boxSizing: 'border-box'
                     }}
                   />
@@ -716,298 +1157,370 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
                 <button
                   type="button"
                   className="btn-gold"
-                  onClick={() => handleJoinSubmit()}
+                  onClick={() => handleJoinSpectatorSubmit()}
                   disabled={isConnecting || !inputRoomId.trim()}
-                  style={{ width: '100%', justifyContent: 'center', padding: '14px', fontSize: '1rem', fontWeight: '900', gap: '8px' }}
+                  style={{
+                    width: '100%',
+                    justifyContent: 'center',
+                    padding: '12px',
+                    fontSize: '0.94rem',
+                    fontWeight: '900',
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    color: '#ffffff',
+                    border: 'none'
+                  }}
                 >
-                  <Play size={20} />
-                  <span>{isConnecting ? 'Buscando Sala...' : '⚔️ Conectar y Jugar 🚀'}</span>
+                  <Eye size={18} />
+                  <span>{isConnecting ? 'Conectando como Espectador...' : '👁️ Entrar a Mirar la Partida'}</span>
                 </button>
-
-                <p style={{ fontSize: '0.78rem', color: '#94a3b8', textAlign: 'center', margin: '10px 0 0' }}>
-                  ℹ️ Recuerda que tu amigo debe haber hecho clic en <b>"Iniciar Sala"</b> antes de que te unas.
-                </p>
               </div>
-
-              {/* Sello de Seguridad */}
-              <div style={{ background: 'rgba(22, 163, 74, 0.1)', border: '1px solid rgba(22, 163, 74, 0.3)', padding: '10px 12px', borderRadius: 'var(--radius-sm, 6px)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', color: '#86efac', fontWeight: '700' }}>
-                <ShieldCheck size={18} color="#86efac" />
-                <span>Conexión P2P encriptada E2EE (DTLS) y Chat 100% Protegido.</span>
-              </div>
-            </div>
+            )}
           </div>
         )}
 
-        {/* VISTA 2: PARTIDA P2P EN CURSO O FINALIZADA */}
-        {(mode === 'playing' || mode === 'gameover') && (
-          <div className="game-responsive-container">
-            {/* COLUMNA IZQUIERDA: TABLERO + RELOJES */}
-            <div className="game-board-column">
-              {/* Oponente (Arriba) */}
-              <div className="game-opponent-card">
-                <div className="game-card-left">
-                  <div style={{ width: '34px', height: '34px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
-                    {opponentProfile.avatarConfig ? <DynamicAvatar config={opponentProfile.avatarConfig} size={34} /> : <AvatarIcon avatarId={opponentProfile.avatar} size={34} />}
-                  </div>
-                  <div className="game-card-info">
-                    <div className="game-card-title">
-                      {opponentProfile.name} {assignedColor === 'white' ? '(Negras)' : '(Blancas)'}
-                    </div>
-                    <div className="game-card-subtitle">
-                      Rival Online • {opponentProfile.elo || 600} Elo
-                    </div>
-                  </div>
-                </div>
-
-                <div className="game-card-right">
-                  {timeControl > 0 && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: assignedColor === 'white' ? (game.turn() === 'b' ? '#ef4444' : 'var(--bg-parchment)') : (game.turn() === 'w' ? '#ef4444' : 'var(--bg-parchment)'), color: assignedColor === 'white' ? (game.turn() === 'b' ? 'white' : 'var(--text-parchment-main)') : (game.turn() === 'w' ? 'white' : 'var(--text-parchment-main)'), padding: '4px 8px', borderRadius: 'var(--radius-sm, 6px)', fontWeight: '900', fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }}>
-                      <Clock size={14} />
-                      <span>{formatTime(assignedColor === 'white' ? blackTime : whiteTime)}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Banner de Estado de Turno */}
-              <div style={{
-                background: isMyTurn ? 'rgba(34, 197, 94, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-                color: isMyTurn ? 'var(--color-success)' : 'var(--color-gold-dark)',
-                padding: '4px 10px',
-                borderRadius: 'var(--radius-sm, 6px)',
-                textAlign: 'center',
-                fontWeight: '800',
-                fontSize: '0.80rem',
-                border: `1px solid ${isMyTurn ? 'var(--color-success)' : 'var(--color-gold)'}`
-              }}>
-                {mode === 'gameover' ? gameResultReason : (isMyTurn ? '🟢 Es tu turno para mover' : '⏳ Esperando la jugada del rival...')}
-              </div>
-
-              {/* Tablero */}
-              <ChessBoard
-                fen={game.fen()}
-                orientation={assignedColor}
-                interactive={isMyTurn && mode === 'playing'}
-                onMove={handlePlayerMove}
-                lastMove={lastMove}
-              />
-
-              {/* Jugador (Abajo) */}
-              <div className="game-player-card">
-                <div className="game-card-left">
-                  <div style={{ width: '34px', height: '34px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}>
-                    {currentUser.avatarConfig ? <DynamicAvatar config={currentUser.avatarConfig} size={34} /> : <AvatarIcon avatarId={currentUser.avatar} size={34} />}
-                  </div>
-                  <div className="game-card-info">
-                    <div className="game-card-title">
-                      {currentUser.name} (Tú • {assignedColor === 'white' ? 'Blancas' : 'Negras'})
-                    </div>
-                    <div className="game-card-subtitle">
-                      {currentUser.title} • {currentUser.elo} Elo
-                    </div>
-                  </div>
-                </div>
-
-                <div className="game-card-right">
-                  {timeControl > 0 && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: isMyTurn ? '#22c55e' : 'var(--bg-parchment)', color: isMyTurn ? 'white' : 'var(--text-parchment-main)', padding: '4px 8px', borderRadius: 'var(--radius-sm, 6px)', fontWeight: '900', fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }}>
-                      <Clock size={14} />
-                      <span>{formatTime(assignedColor === 'white' ? whiteTime : blackTime)}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Banner de Propuesta de Ventaja / Hándicap Recibida */}
-              {incomingHandicapOffer && (
+        {/* ========================================================= */}
+        {/* VISTA 2: PARTIDA EN JUEGO O MODO ESPECTADOR              */}
+        {/* ========================================================= */}
+        {(mode === 'playing' || mode === 'spectating' || mode === 'gameover') && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px', alignItems: 'start' }}>
+            {/* LADO IZQUIERDO: TABLERO DE AJEDREZ */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', position: 'relative' }}>
+              {/* Notificación de Modo Espectador */}
+              {mode === 'spectating' && (
                 <div style={{
-                  background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.25) 0%, rgba(217, 119, 6, 0.35) 100%)',
-                  border: '2px solid #f59e0b',
-                  borderRadius: 'var(--radius-md, 8px)',
-                  padding: '10px 12px',
                   display: 'flex',
-                  flexDirection: 'column',
-                  gap: '8px'
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  border: '1px solid #10b981',
+                  borderRadius: '8px',
+                  padding: '6px 12px',
+                  fontSize: '0.78rem',
+                  color: '#34d399',
+                  fontWeight: '800'
                 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.82rem', fontWeight: '900', color: '#fbbf24' }}>
-                      🤝 Propuesta de Ventaja de {incomingHandicapOffer.senderName || opponentProfile.name} (Ronda {incomingHandicapOffer.round || 1}/3)
-                    </span>
-                    <span style={{ fontSize: '0.74rem', color: '#e2e8f0' }}>
-                      {getHandicapSummary(incomingHandicapOffer.config)}
-                    </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444', animation: 'pulse 1s infinite' }} />
+                    <span>🔴 EN VIVO • Modo Espectador</span>
                   </div>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <button
-                      onClick={() => {
-                        p2pRef.current?.send({ type: 'HANDICAP_ACCEPT', config: incomingHandicapOffer.config });
-                        setHandicapConfig(incomingHandicapOffer.config);
-                        const newFen = getHandicapFen(incomingHandicapOffer.config);
-                        setGame(new Chess(newFen));
-                        setLastMove(null);
-                        setIncomingHandicapOffer(null);
-                        audioManager.playVictory();
-                      }}
-                      className="btn-gold"
-                      style={{ flex: 1, padding: '6px 10px', fontSize: '0.78rem', justifyContent: 'center' }}
-                    >
-                      <Check size={14} />
-                      <span>✅ Aceptar Ventaja</span>
-                    </button>
+                  <span>Sala: {roomId}</span>
+                </div>
+              )}
 
-                    {(incomingHandicapOffer.round || 1) < 3 && (
+              {/* Barra superior de rival o jugador negras */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                background: 'rgba(15, 23, 42, 0.8)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '8px',
+                padding: '6px 12px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden' }}>
+                    <AvatarIcon avatarId={mode === 'spectating' ? (blackPlayerProfile?.avatar || 'knight') : (opponentProfile?.avatar || 'knight')} size={32} />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: '800', fontSize: '0.86rem', color: '#f8fafc' }}>
+                      {mode === 'spectating' ? (blackPlayerProfile?.name || 'Jugador Negras') : (opponentProfile?.name || 'Rival')}
+                    </div>
+                    <div style={{ fontSize: '0.70rem', color: '#94a3b8' }}>
+                      {mode === 'spectating' ? `${blackPlayerProfile?.elo || 600} Elo` : `${opponentProfile?.elo || 600} Elo`}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Reloj Negras */}
+                {timeControl > 0 && (
+                  <div style={{
+                    background: game.turn() === 'b' ? '#3b82f6' : '#0a0f1d',
+                    color: '#ffffff',
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    fontFamily: 'monospace',
+                    fontWeight: '900',
+                    fontSize: '1rem',
+                    border: '1px solid rgba(255, 255, 255, 0.15)'
+                  }}>
+                    {Math.floor(blackTime / 60)}:{(blackTime % 60).toString().padStart(2, '0')}
+                  </div>
+                )}
+              </div>
+
+              {/* Tablero de Ajedrez */}
+              <div style={{ position: 'relative', width: '100%', maxWidth: '440px', margin: '0 auto' }}>
+                <ChessBoard
+                  game={game}
+                  onMove={handlePieceMove}
+                  orientation={mode === 'spectating' ? 'white' : assignedColor}
+                  lastMove={lastMove}
+                  interactive={mode === 'playing'}
+                />
+
+                {/* Burbujas flotantes de reacciones de espectadores */}
+                {activeCheerReactions.map(r => (
+                  <div
+                    key={r.id}
+                    style={{
+                      position: 'absolute',
+                      top: '40%',
+                      left: '45%',
+                      transform: 'translate(-50%, -50%)',
+                      fontSize: '3rem',
+                      animation: 'bounce 0.6s ease-out infinite alternate',
+                      zIndex: 30,
+                      pointerEvents: 'none',
+                      textShadow: '0 0 20px rgba(0,0,0,0.8)'
+                    }}
+                  >
+                    {r.emoji}
+                  </div>
+                ))}
+              </div>
+
+              {/* Barra inferior de jugador local o jugador blancas */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                background: 'rgba(15, 23, 42, 0.8)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '8px',
+                padding: '6px 12px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden' }}>
+                    <AvatarIcon avatarId={mode === 'spectating' ? (whitePlayerProfile?.avatar || 'teen_gamer') : (currentUser?.avatar || 'teen_gamer')} size={32} />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: '800', fontSize: '0.86rem', color: '#f8fafc' }}>
+                      {mode === 'spectating' ? (whitePlayerProfile?.name || 'Jugador Blancas') : (currentUser?.name || 'Tú')}
+                    </div>
+                    <div style={{ fontSize: '0.70rem', color: '#94a3b8' }}>
+                      {mode === 'spectating' ? `${whitePlayerProfile?.elo || 600} Elo` : `${currentUser?.elo || 600} Elo`}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Reloj Blancas */}
+                {timeControl > 0 && (
+                  <div style={{
+                    background: game.turn() === 'w' ? '#3b82f6' : '#0a0f1d',
+                    color: '#ffffff',
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    fontFamily: 'monospace',
+                    fontWeight: '900',
+                    fontSize: '1rem',
+                    border: '1px solid rgba(255, 255, 255, 0.15)'
+                  }}>
+                    {Math.floor(whiteTime / 60)}:{(whiteTime % 60).toString().padStart(2, '0')}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* LADO DERECHO: PANEL DE ACCIONES, REACCIONES Y CHAT */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {/* Contador de Espectadores y Sala */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '8px',
+                padding: '8px 12px',
+                fontSize: '0.78rem'
+              }}>
+                <span>Sala: <b style={{ color: '#60a5fa', fontFamily: 'monospace' }}>{roomId}</b></span>
+                <span style={{ color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Users size={14} />
+                  <span>{spectatorCount} {spectatorCount === 1 ? 'espectador' : 'espectadores'}</span>
+                </span>
+              </div>
+
+              {/* BARRA DE REACCIONES DE ESPECTADOR (Si está espectando) */}
+              {mode === 'spectating' && (
+                <div style={{
+                  background: 'rgba(15, 23, 42, 0.8)',
+                  border: '1px solid #10b981',
+                  borderRadius: '10px',
+                  padding: '10px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '0.74rem', fontWeight: '800', color: '#34d399', marginBottom: '6px' }}>
+                    ¡Envía reacciones para animar la partida!
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                    {CHEER_EMOJIS.map(item => (
                       <button
-                        onClick={() => {
-                          setIsHandicapModalOpen(true);
+                        key={item.emoji}
+                        type="button"
+                        onClick={() => handleSendSpectatorCheer(item.emoji)}
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.08)',
+                          border: '1px solid rgba(255, 255, 255, 0.15)',
+                          borderRadius: '8px',
+                          fontSize: '1.4rem',
+                          padding: '6px 8px',
+                          cursor: 'pointer',
+                          transition: 'transform 0.1s'
                         }}
-                        className="btn-primary"
-                        style={{ flex: 1, padding: '6px 10px', fontSize: '0.78rem', justifyContent: 'center' }}
+                        title={item.label}
                       >
-                        <RefreshCw size={14} />
-                        <span>🔄 Contra-oferta</span>
+                        {item.emoji}
                       </button>
-                    )}
-
-                    <button
-                      onClick={() => {
-                        p2pRef.current?.send({ type: 'HANDICAP_REJECT' });
-                        setIncomingHandicapOffer(null);
-                        audioManager.playMove();
-                      }}
-                      className="btn-secondary"
-                      style={{ padding: '6px 12px', fontSize: '0.78rem', color: '#ef4444' }}
-                    >
-                      <span>❌ Jugar Normal</span>
-                    </button>
+                    ))}
                   </div>
                 </div>
               )}
 
-              {/* Botones de Rendición, Tablas y Ventajas */}
+              {/* Botones de Control de Partida (Si es jugador) */}
               {mode === 'playing' && (
-                <div style={{ display: 'flex', gap: '8px', marginTop: '2px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   <button
+                    type="button"
                     className="btn-secondary"
-                    onClick={() => setIsHandicapModalOpen(true)}
-                    style={{ flex: '1 1 100%', justifyContent: 'center', padding: '6px 10px', fontSize: '0.78rem', borderColor: '#f59e0b', color: '#f59e0b' }}
+                    onClick={handleOfferDraw}
+                    style={{ flex: 1, padding: '8px', fontSize: '0.78rem', justifyContent: 'center' }}
                   >
-                    <Scale size={14} />
-                    <span>🤝 Proponer Ventajas / Hándicap</span>
+                    <span>🤝 Ofrecer Tablas</span>
                   </button>
 
                   <button
+                    type="button"
                     className="btn-secondary"
-                    onClick={() => {
-                      if (confirm('¿Ofrecer tablas al rival?')) {
-                        p2pRef.current?.sendDrawOffer();
-                        alert('Propuesta de tablas enviada al rival.');
-                      }
-                    }}
-                    style={{ flex: 1, justifyContent: 'center', padding: '6px 10px', fontSize: '0.78rem' }}
+                    onClick={handleResign}
+                    style={{ flex: 1, padding: '8px', fontSize: '0.78rem', justifyContent: 'center', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.4)' }}
                   >
-                    🤝 Ofrecer Tablas
-                  </button>
-
-                  <button
-                    className="btn-secondary"
-                    onClick={() => {
-                      if (confirm('¿Estás seguro de que deseas rendirte?')) {
-                        p2pRef.current?.sendResign();
-                        setGameResultReason('Te has rendido.');
-                        setMode('gameover');
-                        recordGameResult('loss', -8, 60);
-                      }
-                    }}
-                    style={{ flex: 1, justifyContent: 'center', color: '#ef4444', padding: '6px 10px', fontSize: '0.78rem' }}
-                  >
-                    <Flag size={14} />
+                    <Flag size={14} color="#ef4444" />
                     <span>Rendirse</span>
                   </button>
                 </div>
               )}
 
-              {/* Oferta de tablas recibida */}
+              {/* Oferta de Tablas Entrante */}
               {drawOffered && (
-                <div style={{ background: 'var(--color-gold-light)', border: '1.5px solid var(--color-gold)', borderRadius: 'var(--radius-md)', padding: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.82rem', fontWeight: '800', color: 'var(--color-gold-dark)' }}>
-                    🤝 El rival te ofrece tablas. ¿Aceptas?
-                  </span>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <button
-                      className="btn-gold"
-                      onClick={() => {
-                        p2pRef.current?.sendAcceptDraw();
-                        setGameResultReason('Partida acordada en tablas 🤝');
-                        setMode('gameover');
-                        recordGameResult('draw', 5, 75);
-                      }}
-                      style={{ padding: '4px 10px', fontSize: '0.76rem' }}
-                    >
-                      Aceptar
+                <div style={{
+                  background: 'rgba(245, 158, 11, 0.15)',
+                  border: '1px solid #f59e0b',
+                  borderRadius: '8px',
+                  padding: '10px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '0.84rem', fontWeight: '800', color: '#facc15', marginBottom: '8px' }}>
+                    ¡Tu rival te ha ofrecido tablas! 🤝
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                    <button type="button" className="btn-gold" onClick={handleAcceptDraw} style={{ padding: '6px 12px', fontSize: '0.80rem' }}>
+                      Aceptar Tablas
                     </button>
-                    <button
-                      className="btn-secondary"
-                      onClick={() => setDrawOffered(false)}
-                      style={{ padding: '4px 10px', fontSize: '0.76rem' }}
-                    >
+                    <button type="button" className="btn-secondary" onClick={handleRejectDraw} style={{ padding: '6px 12px', fontSize: '0.80rem' }}>
                       Rechazar
                     </button>
                   </div>
                 </div>
               )}
-            </div>
 
-            {/* COLUMNA DERECHA: CHAT INFANTIL SEGURO 100% */}
-            <div className="game-sidebar-column">
-              <SafeChat
-                onSendMessage={handleSendSafeChat}
-                messages={chatMessages}
-              />
+              {/* Safe Chat */}
+              <div style={{ flex: 1, minHeight: '160px', maxHeight: '240px', display: 'flex', flexDirection: 'column' }}>
+                <SafeChat
+                  messages={chatMessages}
+                  onSendMessage={(t) => handleSendSafeChat(t, false)}
+                  onSendEmote={(e) => handleSendSafeChat(e, true)}
+                  opponentName={opponentProfile?.name || 'Rival'}
+                />
+              </div>
 
-              {mode === 'gameover' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px' }}>
-                  <button
-                    className="btn-gold"
-                    onClick={() => {
-                      p2pRef.current?.sendRematch();
-                      restartP2PGame();
-                    }}
-                    style={{ justifyContent: 'center', padding: '10px', fontSize: '0.85rem' }}
-                  >
-                    <RotateCcw size={16} />
-                    <span>Solicitar Revancha 🔄</span>
-                  </button>
-
-                  <button className="btn-secondary" onClick={onClose} style={{ justifyContent: 'center', padding: '8px', fontSize: '0.82rem' }}>
-                    Salir de la Sala P2P
-                  </button>
-                </div>
-              )}
+              {/* Botón Salir al Lobby */}
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => {
+                  p2pRef.current?.destroy();
+                  setMode('lobby');
+                  setStatusMessage('');
+                }}
+                style={{ padding: '9px', fontSize: '0.82rem', justifyContent: 'center' }}
+              >
+                <span>⬅️ Salir al Menú de Salas</span>
+              </button>
             </div>
           </div>
         )}
 
-        {/* Modal de Negociación de Ventajas y Hándicap P2P */}
-        <HandicapConfigModal
-          isOpen={isHandicapModalOpen}
-          onClose={() => setIsHandicapModalOpen(false)}
-          initialConfig={handicapConfig}
-          onApplyConfig={(newCfg) => setHandicapConfig(newCfg)}
-          gameMode="p2p"
-          isOnlineP2P={true}
-          opponentName={opponentProfile.name}
-          playerName={currentUser.name}
-          onSendP2POffer={(offeredConfig, round) => {
-            p2pRef.current?.send({
-              type: 'HANDICAP_OFFER',
-              config: offeredConfig,
-              round: (incomingHandicapOffer?.round || 0) + 1,
-              senderName: currentUser.name
-            });
-            alert(`Propuesta de ventajas enviada a ${opponentProfile.name}.`);
-          }}
-        />
+        {/* ========================================================= */}
+        {/* VISTA 3: RESULTADO FINAL (GAMEOVER)                       */}
+        {/* ========================================================= */}
+        {mode === 'gameover' && (
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'rgba(11, 15, 25, 0.94)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+            zIndex: 100
+          }}>
+            <div style={{
+              background: '#0f172a',
+              border: '2px solid var(--color-gold)',
+              borderRadius: '16px',
+              padding: '24px',
+              maxWidth: '440px',
+              width: '100%',
+              textAlign: 'center',
+              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.9)'
+            }}>
+              <Award size={48} color="var(--color-gold)" style={{ margin: '0 auto 8px' }} />
+              <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.4rem', color: '#f8fafc', margin: '0 0 6px', fontWeight: '900' }}>
+                Partida Finalizada
+              </h3>
+              <p style={{ fontSize: '0.95rem', color: '#fde047', fontWeight: '700', margin: '0 0 16px' }}>
+                {gameResultReason}
+              </p>
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  type="button"
+                  className="btn-gold"
+                  onClick={handleRequestRematch}
+                  style={{ flex: 1, padding: '11px', justifyContent: 'center', fontSize: '0.88rem', fontWeight: '900' }}
+                >
+                  <RotateCcw size={16} />
+                  <span>Revancha ⚔️</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => {
+                    p2pRef.current?.destroy();
+                    setMode('lobby');
+                  }}
+                  style={{ flex: 1, padding: '11px', justifyContent: 'center', fontSize: '0.88rem' }}
+                >
+                  <span>Volver al Lobby</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Modal de Hándicap P2P */}
+      <HandicapConfigModal
+        isOpen={isHandicapModalOpen}
+        onClose={() => setIsHandicapModalOpen(false)}
+        onSave={(cfg) => {
+          setHandicapConfig(cfg);
+          setIsHandicapModalOpen(false);
+        }}
+        initialConfig={handicapConfig}
+      />
     </div>
   );
 };

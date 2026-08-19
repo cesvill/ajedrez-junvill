@@ -2,39 +2,53 @@ import Peer from 'peerjs';
 
 /**
  * Motor de Conexión P2P WebRTC de Ajedrez Junvill
- * Permite partidas multijugador directas de navegador a navegador con encriptación E2EE (DTLS).
+ * Permite partidas multijugador directas de navegador a navegador con encriptación E2EE (DTLS),
+ * retos directos familiares a 1 clic, códigos simplificados sin guión y modo espectador en vivo.
  */
 
 export class P2PEngine {
   constructor() {
     this.peer = null;
     this.conn = null;
+    this.spectatorConns = [];
     this.roomId = null;
     this.isHost = false;
+    this.isSpectator = false;
     this.listeners = {
       open: [],
       connected: [],
+      spectatorConnected: [],
       data: [],
+      spectatorData: [],
       disconnected: [],
       error: []
     };
   }
 
-  // Genera un ID de sala amigable tipo JUN-XXXX
+  // Normaliza cualquier código de sala eliminando guiones y espacios (ej: 'JUN-7K2' -> 'JUN7K2')
+  static cleanRoomId(rawId) {
+    return (rawId || '')
+      .replace(/[-\s]/g, '')
+      .toUpperCase()
+      .trim();
+  }
+
+  // Genera un ID de sala amigable sin guiones tipo JUNXXXX (ej: JUN8K2, JUN77A)
   static generateRoomId() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let code = '';
     for (let i = 0; i < 4; i++) {
       code += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-    return `JUN-${code}`;
+    return `JUN${code}`;
   }
 
   // Iniciar como Anfitrión (Host)
   initHost(customRoomId = null) {
     this.destroy();
     this.isHost = true;
-    this.roomId = (customRoomId || P2PEngine.generateRoomId()).toUpperCase().trim();
+    this.isSpectator = false;
+    this.roomId = P2PEngine.cleanRoomId(customRoomId || P2PEngine.generateRoomId());
     const peerId = `ajedrez-junvill-${this.roomId.toLowerCase()}`;
 
     this.peer = new Peer(peerId, {
@@ -53,8 +67,13 @@ export class P2PEngine {
     });
 
     this.peer.on('connection', (connection) => {
-      this.conn = connection;
-      this.setupConnection();
+      const isSpec = connection.metadata && connection.metadata.role === 'spectator';
+      if (isSpec) {
+        this.setupSpectatorHostConnection(connection);
+      } else {
+        this.conn = connection;
+        this.setupConnection();
+      }
     });
 
     this.peer.on('error', (err) => {
@@ -68,11 +87,12 @@ export class P2PEngine {
     return this.roomId;
   }
 
-  // Conectarse a una sala existente como Invitado (Guest)
-  joinRoom(targetRoomId) {
+  // Conectarse a una sala existente como Jugador Invitado (Guest)
+  joinRoom(targetRoomId, playerProfile = null) {
     this.destroy();
     this.isHost = false;
-    this.roomId = targetRoomId.toUpperCase().trim();
+    this.isSpectator = false;
+    this.roomId = P2PEngine.cleanRoomId(targetRoomId);
     const peerId = `ajedrez-junvill-${this.roomId.toLowerCase()}`;
 
     this.peer = new Peer({
@@ -97,7 +117,10 @@ export class P2PEngine {
 
     this.peer.on('open', () => {
       try {
-        const connection = this.peer.connect(peerId, { reliable: true });
+        const connection = this.peer.connect(peerId, { 
+          reliable: true,
+          metadata: { role: 'player', profile: playerProfile }
+        });
         this.conn = connection;
         this.setupConnection(() => clearTimeout(connectionTimeout));
       } catch (err) {
@@ -116,6 +139,58 @@ export class P2PEngine {
     });
   }
 
+  // Conectarse como Espectador en Vivo (Spectator)
+  joinAsSpectator(targetRoomId, spectatorProfile = null) {
+    this.destroy();
+    this.isHost = false;
+    this.isSpectator = true;
+    this.roomId = P2PEngine.cleanRoomId(targetRoomId);
+    const peerId = `ajedrez-junvill-${this.roomId.toLowerCase()}`;
+
+    this.peer = new Peer({
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:global.stun.twilio.com:3478' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' }
+        ]
+      }
+    });
+
+    let connectionTimeout = setTimeout(() => {
+      if (!this.conn || !this.conn.open) {
+        this.trigger('error', {
+          type: 'timeout',
+          message: `Tiempo de espera agotado. La partida "${this.roomId}" no está disponible o el anfitrión se desconectó.`
+        });
+      }
+    }, 10000);
+
+    this.peer.on('open', () => {
+      try {
+        const connection = this.peer.connect(peerId, {
+          reliable: true,
+          metadata: { role: 'spectator', profile: spectatorProfile }
+        });
+        this.conn = connection;
+        this.setupSpectatorClientConnection(() => clearTimeout(connectionTimeout));
+      } catch (err) {
+        clearTimeout(connectionTimeout);
+        this.trigger('error', { originalError: err, message: 'Error al conectar como espectador.' });
+      }
+    });
+
+    this.peer.on('error', (err) => {
+      clearTimeout(connectionTimeout);
+      let friendlyMessage = 'No se pudo conectar a la sala como espectador.';
+      if (err.type === 'peer-unavailable') {
+        friendlyMessage = `La sala "${this.roomId}" no está activa para espectar.`;
+      }
+      this.trigger('error', { originalError: err, message: friendlyMessage });
+    });
+  }
+
   setupConnection(onSuccessCallback = null) {
     if (!this.conn) return;
 
@@ -126,6 +201,10 @@ export class P2PEngine {
 
     this.conn.on('data', (data) => {
       this.trigger('data', data);
+      // Re-transmitir jugadas a espectadores si somos el Host
+      if (this.isHost && this.spectatorConns.length > 0) {
+        this.broadcastToSpectators(data);
+      }
     });
 
     this.conn.on('close', () => {
@@ -137,15 +216,74 @@ export class P2PEngine {
     });
   }
 
+  setupSpectatorHostConnection(spectatorConnection) {
+    this.spectatorConns.push(spectatorConnection);
+
+    spectatorConnection.on('open', () => {
+      this.trigger('spectatorConnected', {
+        spectatorId: spectatorConnection.peer,
+        count: this.spectatorConns.length,
+        profile: spectatorConnection.metadata?.profile
+      });
+      // Solicitar al componente del juego que envíe el estado inicial
+      this.trigger('request_spectator_sync', { connection: spectatorConnection });
+    });
+
+    spectatorConnection.on('data', (data) => {
+      // Reacciones de espectadores
+      this.trigger('spectatorData', data);
+      // Re-enviar reacción al jugador rival
+      if (this.conn && this.conn.open) {
+        this.conn.send(data);
+      }
+    });
+
+    spectatorConnection.on('close', () => {
+      this.spectatorConns = this.spectatorConns.filter(c => c !== spectatorConnection);
+    });
+  }
+
+  setupSpectatorClientConnection(onSuccessCallback = null) {
+    if (!this.conn) return;
+
+    this.conn.on('open', () => {
+      if (onSuccessCallback) onSuccessCallback();
+      this.trigger('connected', { isSpectator: true, roomId: this.roomId });
+    });
+
+    this.conn.on('data', (data) => {
+      this.trigger('data', data);
+    });
+
+    this.conn.on('close', () => {
+      this.trigger('disconnected');
+    });
+
+    this.conn.on('error', (err) => {
+      this.trigger('error', { originalError: err, message: 'Error en la transmisión en vivo de la partida.' });
+    });
+  }
+
+  broadcastToSpectators(data) {
+    this.spectatorConns.forEach(sc => {
+      if (sc && sc.open) {
+        sc.send(data);
+      }
+    });
+  }
+
   send(data) {
     if (this.conn && this.conn.open) {
       this.conn.send(data);
     }
+    if (this.isHost && this.spectatorConns.length > 0) {
+      this.broadcastToSpectators(data);
+    }
   }
 
-  // Métodos de envío específicos
-  sendMove(move, fen) {
-    this.send({ type: 'MOVE', move, fen, timestamp: Date.now() });
+  // Métodos de envío de eventos de partida
+  sendMove(move, fen, clocks = null) {
+    this.send({ type: 'MOVE', move, fen, clocks, timestamp: Date.now() });
   }
 
   sendSafeChat(message, isEmote = false) {
@@ -154,6 +292,16 @@ export class P2PEngine {
 
   sendSync(gameState) {
     this.send({ type: 'SYNC', gameState, timestamp: Date.now() });
+  }
+
+  sendSpectatorSync(targetConnection, fullGameState) {
+    if (targetConnection && targetConnection.open) {
+      targetConnection.send({ type: 'SPECTATOR_SYNC', fullGameState, timestamp: Date.now() });
+    }
+  }
+
+  sendSpectatorReaction(emoji, fromName = 'Espectador') {
+    this.send({ type: 'SPECTATOR_REACTION', emoji, fromName, timestamp: Date.now() });
   }
 
   sendResign() {
@@ -187,9 +335,15 @@ export class P2PEngine {
   destroy() {
     if (this.conn) {
       this.conn.close();
+      this.conn = null;
     }
+    this.spectatorConns.forEach(sc => {
+      if (sc) sc.close();
+    });
+    this.spectatorConns = [];
     if (this.peer) {
       this.peer.destroy();
+      this.peer = null;
     }
   }
 }

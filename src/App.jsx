@@ -182,6 +182,7 @@ export const App = () => {
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenBugReport={() => handleOpenBugReport()}
         onOpenManual={() => setIsManualOpen(true)}
+        onOpenP2P={() => setIsP2POpen(true)}
       />
 
       {/* Contenedor de Vistas */}
@@ -197,6 +198,7 @@ export const App = () => {
             onOpenManual={() => setIsManualOpen(true)}
             onOpenAvatarBuilder={() => setIsAvatarBuilderOpen(true)}
             onOpenBugReport={handleOpenBugReport}
+            onOpenP2P={() => setIsP2POpen(true)}
           />
         )}
 
@@ -224,6 +226,9 @@ export const App = () => {
           <PlayView
             initialBotMatch={activeBotMatch}
             onExitMatch={() => setActiveBotMatch(null)}
+            onOpenP2P={() => setIsP2POpen(true)}
+            onOpenRobots={() => handleTabChange('robots')}
+            onExitToMenu={() => handleTabChange('inicio')}
             onOpenBugReport={handleOpenBugReport}
           />
         )}

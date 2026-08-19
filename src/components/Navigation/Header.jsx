@@ -5,7 +5,7 @@ import { usePWAInstall } from '../../hooks/usePWAInstall';
 import { PWAInstallModal } from '../PWA/PWAInstallModal';
 import { 
   Home, Swords, Bot, Puzzle, BookOpen, User, Trophy, 
-  Settings, Maximize, Minimize, Bug, FileText, Award, Flame, Download, Smartphone, Users, DoorOpen
+  Settings, Maximize, Minimize, Bug, FileText, Award, Flame, Download, Smartphone, Users, DoorOpen, Globe
 } from 'lucide-react';
 
 export const Header = ({ 
@@ -18,7 +18,8 @@ export const Header = ({
   onOpenPgn, 
   onOpenSettings, 
   onOpenBugReport, 
-  onOpenManual 
+  onOpenManual,
+  onOpenP2P 
 }) => {
   const { currentUser, activeGroup, users } = useUser();
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -280,6 +281,19 @@ export const Header = ({
                   <div className="item-text">
                     <span className="item-title">Diplomas Oficiales</span>
                     <span className="item-sub">Certificados descargables</span>
+                  </div>
+                </button>
+
+                {/* 3.1. Juego en Línea & Retos P2P */}
+                <button
+                  type="button"
+                  className="header-dropdown-item"
+                  onClick={() => { setIsToolsMenuOpen(false); if (onOpenP2P) onOpenP2P(); }}
+                >
+                  <Globe size={16} color="#3b82f6" />
+                  <div className="item-text">
+                    <span className="item-title" style={{ color: '#60a5fa' }}>⚔️ Retos & Juego en Línea</span>
+                    <span className="item-sub">Salas familiares y P2P</span>
                   </div>
                 </button>
 
