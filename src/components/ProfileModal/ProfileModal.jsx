@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { useUser } from '../../context/UserContext';
+import { useUser, DEFAULT_GENERIC_PASSWORD } from '../../context/UserContext';
 import { AvatarIcon, AVATAR_LIST } from '../../assets/avatars';
 import { DynamicAvatar } from '../AvatarCreator/DynamicAvatar';
 import { FullBodyAvatar } from '../AvatarCreator/FullBodyAvatar';
-import { X, UserPlus, Check, Award, Trash2, Sparkles, User, Shield, GraduationCap, Users, RotateCcw, Edit2, Database, Download, Upload, CheckCircle2 } from 'lucide-react';
+import { X, UserPlus, Check, Award, Trash2, Sparkles, User, Shield, GraduationCap, Users, RotateCcw, Edit2, Database, Download, Upload, CheckCircle2, Lock, Eye, EyeOff, KeyRound, AlertCircle } from 'lucide-react';
 
 export const ProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder }) => {
   const { 
@@ -14,6 +14,8 @@ export const ProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder }) => {
     editUser, 
     deleteUser, 
     resetUserProgress, 
+    verifyPassword,
+    changeUserPassword,
     isDbSynced,
     exportSaveData,
     importSaveData
@@ -23,10 +25,18 @@ export const ProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder }) => {
   const [editingUserId, setEditingUserId] = useState(null);
   const [editName, setEditName] = useState('');
   const [editRole, setEditRole] = useState('student');
+  const [editPassword, setEditPassword] = useState('');
 
   const [newUserName, setNewUserName] = useState('');
   const [newUserRole, setNewUserRole] = useState('student');
+  const [newUserPassword, setNewUserPassword] = useState('1234');
   const [selectedAvatar, setSelectedAvatar] = useState('teen_gamer');
+
+  // Estado para verificar clave al cambiar de usuario
+  const [switchTargetUser, setSwitchTargetUser] = useState(null);
+  const [switchPassword, setSwitchPassword] = useState('');
+  const [showSwitchPassword, setShowSwitchPassword] = useState(false);
+  const [switchError, setSwitchError] = useState('');
 
   const [notification, setNotification] = useState('');
 
@@ -40,8 +50,10 @@ export const ProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder }) => {
   const handleCreateSubmit = (e) => {
     e.preventDefault();
     if (newUserName.trim()) {
-      createUser(newUserName.trim(), selectedAvatar, newUserRole);
+      const pwd = newUserPassword.trim() || DEFAULT_GENERIC_PASSWORD;
+      createUser(newUserName.trim(), selectedAvatar, newUserRole, null, pwd);
       setNewUserName('');
+      setNewUserPassword('1234');
       setIsCreating(false);
       showToast(`¡Perfil "${newUserName.trim()}" creado y guardado en la Base de Datos!`);
     }
@@ -51,13 +63,37 @@ export const ProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder }) => {
     setEditingUserId(user.id);
     setEditName(user.name);
     setEditRole(user.role || 'student');
+    setEditPassword(user.password || DEFAULT_GENERIC_PASSWORD);
   };
 
   const handleSaveEdit = (userId) => {
     if (editName.trim()) {
-      editUser(userId, { name: editName.trim(), role: editRole });
+      const pwd = editPassword.trim() || DEFAULT_GENERIC_PASSWORD;
+      editUser(userId, { name: editName.trim(), role: editRole, password: pwd });
       setEditingUserId(null);
-      showToast('Perfil actualizado con éxito');
+      showToast('Perfil y contraseña actualizados con éxito');
+    }
+  };
+
+  const handleRequestSwitchUser = (user) => {
+    if (user.id === currentUser?.id) return;
+    setSwitchTargetUser(user);
+    setSwitchPassword('');
+    setSwitchError('');
+    setShowSwitchPassword(false);
+  };
+
+  const handleConfirmSwitchUser = (e) => {
+    e.preventDefault();
+    if (!switchTargetUser) return;
+
+    if (verifyPassword(switchTargetUser.id, switchPassword)) {
+      setActiveUserId(switchTargetUser.id);
+      localStorage.setItem('ajedrez_junvill_has_selected_profile', 'true');
+      setSwitchTargetUser(null);
+      showToast(`¡Cambiado a perfil "${switchTargetUser.name}"!`);
+    } else {
+      setSwitchError('Contraseña incorrecta.');
     }
   };
 
@@ -116,7 +152,7 @@ export const ProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder }) => {
               </h2>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', color: '#10b981', fontWeight: '800', marginTop: '2px' }}>
                 <CheckCircle2 size={13} />
-                <span>Base de Datos Persistente Activa (database/users_db.json + LocalStorage)</span>
+                <span>Base de Datos Persistente con Contraseñas Seguras</span>
               </div>
             </div>
           </div>
@@ -129,6 +165,77 @@ export const ProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder }) => {
         {notification && (
           <div style={{ background: 'rgba(34, 197, 94, 0.2)', border: '1px solid #22c55e', color: '#15803d', padding: '8px 14px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: '800', marginBottom: '14px', textAlign: 'center' }}>
             {notification}
+          </div>
+        )}
+
+        {/* MODAL / SUB-PROMPT DE CONTRASEÑA PARA CAMBIO DE PERFIL */}
+        {switchTargetUser && (
+          <div style={{
+            background: 'rgba(234, 179, 8, 0.08)',
+            border: '2px solid var(--color-gold)',
+            borderRadius: '12px',
+            padding: '16px',
+            marginBottom: '18px'
+          }}>
+            <h4 style={{ margin: '0 0 6px', fontSize: '0.96rem', fontWeight: '900', color: 'var(--color-gold)' }}>
+              🔒 Ingresar contraseña para activar a "{switchTargetUser.name}":
+            </h4>
+            <form onSubmit={handleConfirmSwitchUser} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showSwitchPassword ? 'text' : 'password'}
+                  placeholder="Contraseña (por defecto: 1234)"
+                  value={switchPassword}
+                  onChange={(e) => {
+                    setSwitchPassword(e.target.value);
+                    if (switchError) setSwitchError('');
+                  }}
+                  autoFocus
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '9px 38px 9px 12px',
+                    borderRadius: '8px',
+                    border: switchError ? '1.5px solid #ef4444' : '1.5px solid var(--color-gold)',
+                    background: '#0a0f1d',
+                    color: '#f8fafc',
+                    fontSize: '0.90rem',
+                    boxSizing: 'border-box'
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowSwitchPassword(!showSwitchPassword)}
+                  style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                >
+                  {showSwitchPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+
+              {switchError && (
+                <div style={{ color: '#ef4444', fontSize: '0.78rem', fontWeight: '800' }}>
+                  {switchError}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setSwitchTargetUser(null)}
+                  style={{ padding: '6px 12px', fontSize: '0.80rem' }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="btn-gold"
+                  style={{ padding: '6px 14px', fontSize: '0.80rem', fontWeight: '800' }}
+                >
+                  Confirmar y Activar
+                </button>
+              </div>
+            </form>
           </div>
         )}
 
@@ -221,7 +328,7 @@ export const ProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder }) => {
                   {/* Vista Normal vs Edición */}
                   {!isEditing ? (
                     <div
-                      onClick={() => setActiveUserId(u.id)}
+                      onClick={() => handleRequestSwitchUser(u)}
                       style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', flex: 1 }}
                     >
                       <div style={{ width: '38px', height: '38px', borderRadius: '50%', overflow: 'hidden', border: '1.5px solid var(--color-gold)', flexShrink: 0 }}>
@@ -237,27 +344,37 @@ export const ProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder }) => {
                       </div>
                     </div>
                   ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, flexWrap: 'wrap' }}>
                       <input
                         type="text"
+                        placeholder="Nombre"
                         value={editName}
                         onChange={(e) => setEditName(e.target.value)}
-                        style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--color-gold)', fontSize: '0.85rem', flex: 2 }}
+                        style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--color-gold)', fontSize: '0.85rem', flex: 2, minWidth: '110px' }}
                       />
                       <select
                         value={editRole}
                         onChange={(e) => setEditRole(e.target.value)}
-                        style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid var(--bg-parchment-border)', fontSize: '0.80rem', flex: 1 }}
+                        style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid var(--bg-parchment-border)', fontSize: '0.80rem', flex: 1, minWidth: '95px' }}
                       >
                         <option value="student">Estudiante</option>
                         <option value="coach">Profesor</option>
                         <option value="parent">Padre/Tutor</option>
                       </select>
+                      <input
+                        type="text"
+                        placeholder="Contraseña"
+                        value={editPassword}
+                        onChange={(e) => setEditPassword(e.target.value)}
+                        style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--color-gold)', fontSize: '0.85rem', flex: 1, minWidth: '90px' }}
+                        title="Cambiar contraseña del usuario"
+                      />
                       <button
                         type="button"
                         className="btn-primary"
                         onClick={() => handleSaveEdit(u.id)}
                         style={{ padding: '6px 10px', fontSize: '0.78rem' }}
+                        title="Guardar cambios"
                       >
                         <Check size={14} />
                       </button>
@@ -266,6 +383,7 @@ export const ProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder }) => {
                         className="btn-secondary"
                         onClick={() => setEditingUserId(null)}
                         style={{ padding: '6px 10px', fontSize: '0.78rem' }}
+                        title="Cancelar edición"
                       >
                         <X size={14} />
                       </button>
@@ -277,7 +395,7 @@ export const ProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder }) => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       {!isActive && (
                         <button
-                          onClick={() => setActiveUserId(u.id)}
+                          onClick={() => handleRequestSwitchUser(u)}
                           className="btn-secondary"
                           style={{ padding: '4px 10px', fontSize: '0.76rem', fontWeight: '800' }}
                         >
@@ -285,11 +403,11 @@ export const ProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder }) => {
                         </button>
                       )}
 
-                      {/* Editar Nombre/Rol */}
+                      {/* Editar Nombre/Rol/Password */}
                       <button
                         onClick={() => handleStartEdit(u)}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-parchment-muted)', padding: '4px' }}
-                        title="Editar nombre o rol"
+                        title="Editar nombre, rol o contraseña"
                       >
                         <Edit2 size={16} />
                       </button>
@@ -328,7 +446,7 @@ export const ProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder }) => {
               Crear Nuevo Perfil de Jugador
             </h4>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', marginBottom: '12px' }}>
               <div>
                 <label style={{ fontSize: '0.78rem', fontWeight: '700', display: 'block', marginBottom: '4px' }}>Nombre:</label>
                 <input
@@ -369,6 +487,25 @@ export const ProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder }) => {
                   <option value="coach">Profesor / Entrenador</option>
                   <option value="parent">Padre / Tutor</option>
                 </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.78rem', fontWeight: '700', display: 'block', marginBottom: '4px' }}>Contraseña:</label>
+                <input
+                  type="text"
+                  placeholder="1234"
+                  value={newUserPassword}
+                  onChange={(e) => setNewUserPassword(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'var(--bg-parchment-card)',
+                    border: '1px solid var(--bg-parchment-border)',
+                    color: 'var(--text-parchment-main)',
+                    fontSize: '0.88rem'
+                  }}
+                />
               </div>
             </div>
 

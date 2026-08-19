@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 
 const UserContext = createContext();
 
+export const DEFAULT_GENERIC_PASSWORD = '1234';
+
 const STORAGE_KEY = 'ajedrez_junvill_users_v4';
 const ACTIVE_USER_KEY = 'ajedrez_junvill_active_user_id_v4';
 
@@ -9,6 +11,7 @@ const DEFAULT_USERS = [
   {
     id: 'user_1',
     name: 'Estudiante Junvill',
+    password: DEFAULT_GENERIC_PASSWORD,
     role: 'student', // 'student' | 'coach' | 'parent'
     avatar: 'custom_dynamic',
     avatarConfig: {
@@ -87,6 +90,7 @@ export const UserProvider = ({ children }) => {
         const parsed = JSON.parse(saved);
         return parsed.map(u => {
           if (!u.role) u.role = 'student';
+          if (!u.password) u.password = DEFAULT_GENERIC_PASSWORD;
           if (!u.systemSettings) {
             u.systemSettings = {
               soundEnabled: true,
@@ -207,10 +211,11 @@ export const UserProvider = ({ children }) => {
 
   const currentUser = users.find(u => u.id === activeUserId) || users[0] || DEFAULT_USERS[0];
 
-  const createUser = (name, avatar = 'custom_dynamic', role = 'student', customConfig = null) => {
+  const createUser = (name, avatar = 'custom_dynamic', role = 'student', customConfig = null, password = DEFAULT_GENERIC_PASSWORD) => {
     const newUser = {
       id: `user_${Date.now()}`,
       name: name.trim() || 'Nuevo Jugador',
+      password: (password || DEFAULT_GENERIC_PASSWORD).trim() || DEFAULT_GENERIC_PASSWORD,
       role,
       avatar,
       avatarConfig: customConfig || {
@@ -279,6 +284,19 @@ export const UserProvider = ({ children }) => {
       }).catch(() => {});
     } catch (e) {}
     return newUser;
+  };
+
+  const verifyPassword = (userId, enteredPassword) => {
+    const user = users.find(u => u.id === userId);
+    if (!user) return false;
+    const expected = user.password || DEFAULT_GENERIC_PASSWORD;
+    return (enteredPassword || '').trim() === expected.trim();
+  };
+
+  const changeUserPassword = (userId, newPassword) => {
+    const trimmed = (newPassword || '').trim() || DEFAULT_GENERIC_PASSWORD;
+    editUser(userId, { password: trimmed });
+    return true;
   };
 
   const updateCurrentUser = (updates) => {
@@ -619,6 +637,9 @@ export const UserProvider = ({ children }) => {
       updateCurrentUser,
       deleteUser,
       resetUserProgress,
+      verifyPassword,
+      changeUserPassword,
+      DEFAULT_GENERIC_PASSWORD,
       isDbSynced,
       addRewards,
       recordLessonScore,
