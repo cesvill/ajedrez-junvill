@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useUser, MAX_FAMILY_GROUPS, MAX_PLAYERS_PER_GROUP, MAX_CONCURRENT_USERS } from '../../context/UserContext';
+import { useUser, DEFAULT_GENERIC_PASSWORD, MAX_FAMILY_GROUPS, MAX_PLAYERS_PER_GROUP, MAX_CONCURRENT_USERS } from '../../context/UserContext';
 import { CreateFamilyGroupModal } from './CreateFamilyGroupModal';
 import { AvatarIcon, AVATAR_LIST } from '../../assets/avatars';
 import { DynamicAvatar } from '../AvatarCreator/DynamicAvatar';
@@ -123,8 +123,10 @@ export const FamilyGatekeeperModal = ({ isOpen, onClose, onOpenAvatarBuilder }) 
   const handleCreatePlayerSubmit = (e) => {
     e.preventDefault();
     if (newPlayerName.trim()) {
-      const newUser = createUser(newPlayerName.trim(), selectedAvatar, newPlayerRole);
+      const targetId = activeGroup?.id || activeGroupId || 'group_junvill';
+      const newUser = createUser(newPlayerName.trim(), selectedAvatar, newPlayerRole, null, DEFAULT_GENERIC_PASSWORD, targetId);
       if (newUser) {
+        setNewPlayerName('');
         localStorage.setItem('ajedrez_junvill_has_selected_profile', 'true');
         onClose();
       }
