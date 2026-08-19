@@ -199,6 +199,8 @@ export const App = () => {
             onOpenAvatarBuilder={() => setIsAvatarBuilderOpen(true)}
             onOpenBugReport={handleOpenBugReport}
             onOpenP2P={() => setIsP2POpen(true)}
+            onStartLesson={handleStartLesson}
+            onStartBotGame={handleStartBotMatch}
           />
         )}
 
@@ -218,6 +220,7 @@ export const App = () => {
         {activeTab === 'robots' && (
           <RobotsView
             onStartBotMatch={handleStartBotMatch}
+            onStartBotGame={handleStartBotMatch}
             onOpenBugReport={handleOpenBugReport}
           />
         )}

@@ -26,7 +26,15 @@ import { useUser } from '../context/UserContext';
 import confetti from 'canvas-confetti';
 import { Swords, Lightbulb, HelpCircle, RotateCcw, Play, RefreshCw, Settings, ShieldAlert, Sparkles, Trophy, CheckCircle, UserCheck, FileSearch, Globe, Volume2, VolumeX, Shuffle, Users, Bot, Maximize, Minimize, Pause, BookOpen, Puzzle, User, Home, ArrowLeft, Scale, X, Bug, Save, Trash2, Download } from 'lucide-react';
 
-export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMenu, onOpenBugReport }) => {
+export const PlayView = ({ 
+  activeBot = null, 
+  initialBotMatch = null, 
+  onOpenP2P, 
+  onOpenRobots, 
+  onExitToMenu, 
+  onExitMatch,
+  onOpenBugReport 
+}) => {
   const { currentUser, updateCurrentUser, recordGameResult, recordBotWin } = useUser();
   const [isPauseMenuOpen, setIsPauseMenuOpen] = useState(false);
   const [isVariantRulesOpen, setIsVariantRulesOpen] = useState(false);
@@ -74,16 +82,17 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
 
   const savedGameRef = useRef(loadSavedGame());
   const initialSaved = savedGameRef.current;
+  const targetBotProp = activeBot || initialBotMatch;
 
   // Si hay una partida guardada válida y no se eligió expresamente un bot distinto, restaurarla
-  const isResumingSaved = Boolean(initialSaved && (!activeBot || activeBot.id === initialSaved.botId));
+  const isResumingSaved = Boolean(initialSaved && (!targetBotProp || targetBotProp.id === initialSaved.botId));
 
   const initialBot = (isResumingSaved && initialSaved.botId)
     ? (BOT_ROSTER.find(b => b.id === initialSaved.botId) || BOT_ROSTER[0])
-    : (activeBot || BOT_ROSTER[0]);
+    : (targetBotProp || BOT_ROSTER[0]);
 
   const [currentBot, setCurrentBot] = useState(initialBot);
-  const botToPlay = isResumingSaved ? initialBot : (activeBot || currentBot || BOT_ROSTER[0]);
+  const botToPlay = targetBotProp || currentBot || BOT_ROSTER[0];
   const activeCoachId = currentUser?.coachSettings?.coachAvatar || 'coach_aurelio';
   const activeCoach = getCoachById(activeCoachId) || COACHES_LIST[0] || { id: 'coach_aurelio', name: 'Maestro Aurelio', title: 'Tutor Principal' };
 
@@ -249,6 +258,29 @@ export const PlayView = ({ activeBot = null, onOpenP2P, onOpenRobots, onExitToMe
     setOpponentReaction(reaction);
     setTimeout(() => setOpponentReaction(null), 2400);
   };
+
+  // Sincronizar nuevo bot seleccionado desde RobotsView o HomeView
+  useEffect(() => {
+    const selectedBot = activeBot || initialBotMatch;
+    if (selectedBot) {
+      setCurrentBot(selectedBot);
+      setBotLevel(selectedBot.difficultyLevel || 1);
+      setGame(createChessGame());
+      setFenHistory(['rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1']);
+      setMoveHistory([]);
+      setLastMove(null);
+      setIsGameOver(false);
+      setIsGameOverModalOpen(false);
+      setIsModeModalOpen(false);
+      setIsVictoryCardOpen(false);
+      setIsBotThinking(false);
+      setCoachMessage({
+        title: `Partida contra ${selectedBot.name}`,
+        text: `"${selectedBot.greeting || '¡A jugar ajedrez!'}"`,
+        severity: 'neutral'
+      });
+    }
+  }, [activeBot?.id, initialBotMatch?.id]);
 
   // Auto-guardado de la partida en progreso en localStorage
   useEffect(() => {

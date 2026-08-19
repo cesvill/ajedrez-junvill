@@ -3,7 +3,7 @@ import { BOT_ROSTER, BOT_CATEGORIES, BotAvatarRenderer } from '../assets/botRost
 import { useUser } from '../context/UserContext';
 import { Swords, Trophy, Sparkles, Volume2, Star, Zap } from 'lucide-react';
 
-export const RobotsView = ({ onStartBotGame }) => {
+export const RobotsView = ({ onStartBotMatch, onStartBotGame, onOpenBugReport }) => {
   const { currentUser } = useUser();
   const [selectedBotId, setSelectedBotId] = useState('qwerty');
   const [activeCategory, setActiveCategory] = useState('robots');
@@ -11,6 +11,14 @@ export const RobotsView = ({ onStartBotGame }) => {
   const selectedBot = BOT_ROSTER.find(b => b.id === selectedBotId) || BOT_ROSTER[0];
   const filteredBots = BOT_ROSTER.filter(b => b.category === activeCategory);
   const victoriesCount = currentUser?.botVictories?.[selectedBot.id] || 0;
+
+  const handleBotChallenge = (botToChallenge) => {
+    const target = botToChallenge || selectedBot;
+    const fn = onStartBotMatch || onStartBotGame;
+    if (fn) {
+      fn(target);
+    }
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -62,7 +70,7 @@ export const RobotsView = ({ onStartBotGame }) => {
         {/* Botón de Reto */}
         <div>
           <button
-            onClick={() => onStartBotGame(selectedBot)}
+            onClick={() => handleBotChallenge(selectedBot)}
             style={{
               background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
               color: 'white',
