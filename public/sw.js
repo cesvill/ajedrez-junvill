@@ -3,7 +3,7 @@
  * Proporciona funcionamiento 100% autónomo sin conexión a internet y actualización en segundo plano.
  */
 
-const CACHE_NAME = 'ajedrez-junvill-v1.1.0';
+const CACHE_NAME = 'ajedrez-junvill-v1.2.0';
 
 const PRECACHE_URLS = [
   '/',
