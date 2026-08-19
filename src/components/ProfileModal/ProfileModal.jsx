@@ -184,7 +184,7 @@ export const ProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder }) => {
               <div style={{ position: 'relative' }}>
                 <input
                   type={showSwitchPassword ? 'text' : 'password'}
-                  placeholder="Contraseña (por defecto: JunV1ll123)"
+                  placeholder="Contraseña"
                   value={switchPassword}
                   onChange={(e) => {
                     setSwitchPassword(e.target.value);
@@ -493,7 +493,7 @@ export const ProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder }) => {
                 <label style={{ fontSize: '0.78rem', fontWeight: '700', display: 'block', marginBottom: '4px' }}>Contraseña:</label>
                 <input
                   type="text"
-                  placeholder="JunV1ll123"
+                  placeholder="Contraseña del jugador"
                   value={newUserPassword}
                   onChange={(e) => setNewUserPassword(e.target.value)}
                   style={{

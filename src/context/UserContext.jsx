@@ -93,6 +93,7 @@ const DEFAULT_FAMILY_GROUPS = [
     name: 'Familia Junvill',
     password: DEFAULT_GENERIC_PASSWORD,
     adminName: 'César Villamil',
+    adminEmail: 'junvill13@gmail.com',
     emblem: '👑',
     themeColor: '#ca8a04',
     isDefault: true,
@@ -114,6 +115,7 @@ export const UserProvider = ({ children }) => {
         if (Array.isArray(parsed) && parsed.length > 0) {
           return parsed.map(g => {
             if (!g.password) g.password = DEFAULT_GENERIC_PASSWORD;
+            if (g.id === 'group_junvill' && !g.adminEmail) g.adminEmail = 'junvill13@gmail.com';
             if (!Array.isArray(g.users)) g.users = [];
             return g;
           });
@@ -132,6 +134,7 @@ export const UserProvider = ({ children }) => {
                 name: 'Familia Junvill',
                 password: DEFAULT_GENERIC_PASSWORD,
                 adminName: 'César Villamil',
+                adminEmail: 'junvill13@gmail.com',
                 emblem: '👑',
                 themeColor: '#ca8a04',
                 isDefault: true,
@@ -212,7 +215,7 @@ export const UserProvider = ({ children }) => {
   // GESTIÓN DE GRUPOS FAMILIARES
   // ==========================================
 
-  const createFamilyGroup = (name, password, adminName = 'Tutor Familiar', emblem = '🛡️', themeColor = '#ca8a04') => {
+  const createFamilyGroup = (name, password, adminName = 'Tutor Familiar', adminEmail = '', emblem = '🛡️', themeColor = '#ca8a04') => {
     if (groups.length >= MAX_FAMILY_GROUPS) {
       return { 
         success: false, 
@@ -232,6 +235,7 @@ export const UserProvider = ({ children }) => {
       name: trimmedName,
       password: trimmedPassword,
       adminName: (adminName || '').trim() || 'Tutor Familiar',
+      adminEmail: (adminEmail || '').trim().toLowerCase(),
       emblem: emblem || '🛡️',
       themeColor: themeColor || '#ca8a04',
       isDefault: false,
@@ -244,6 +248,42 @@ export const UserProvider = ({ children }) => {
     setUnlockedGroupIds(prev => [...new Set([...prev, newGroup.id])]);
     setActiveGroupId(newGroup.id);
     return { success: true, group: newGroup };
+  };
+
+  const recoverGroupPassword = (groupId, enteredAdminEmail, newPassword) => {
+    const targetGroup = groups.find(g => g.id === groupId);
+    if (!targetGroup) return { success: false, error: 'Grupo familiar no encontrado.' };
+
+    const registeredEmail = (targetGroup.adminEmail || '').trim().toLowerCase();
+    const entered = (enteredAdminEmail || '').trim().toLowerCase();
+
+    if (!entered) {
+      return { success: false, error: 'Por favor ingresa el correo de recuperación.' };
+    }
+
+    if (targetGroup.id === 'group_junvill') {
+      if (entered !== 'junvill13@gmail.com') {
+        return { success: false, error: 'El correo ingresado no coincide con el correo de recuperación de la Familia Junvill.' };
+      }
+    } else if (registeredEmail && registeredEmail !== entered) {
+      return { success: false, error: 'El correo ingresado no coincide con el correo de recuperación registrado para este grupo.' };
+    } else if (!registeredEmail) {
+      return { success: false, error: 'Este grupo no tiene configurado un correo de recuperación.' };
+    }
+
+    if (!newPassword || newPassword.trim().length < 4) {
+      return { success: false, error: 'La nueva contraseña debe tener al menos 4 caracteres.' };
+    }
+
+    const trimmedNewPwd = newPassword.trim();
+    setGroups(prev => prev.map(g => {
+      if (g.id === groupId) {
+        return { ...g, password: trimmedNewPwd };
+      }
+      return g;
+    }));
+
+    return { success: true, message: '¡Contraseña restablecida exitosamente!' };
   };
 
   const unlockFamilyGroup = (groupId, enteredPassword) => {
@@ -612,6 +652,7 @@ export const UserProvider = ({ children }) => {
       isGroupUnlocked,
       createFamilyGroup,
       unlockFamilyGroup,
+      recoverGroupPassword,
       leaveFamilyGroup,
       deleteFamilyGroup,
       serverMetrics,

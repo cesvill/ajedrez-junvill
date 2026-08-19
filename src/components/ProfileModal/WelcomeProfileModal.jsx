@@ -145,7 +145,7 @@ export const WelcomeProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder, room
               <div style={{ position: 'relative' }}>
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Ingresa tu contraseña (por defecto: JunV1ll123)"
+                  placeholder="Ingresa tu contraseña"
                   value={enteredPassword}
                   onChange={(e) => {
                     setEnteredPassword(e.target.value);
@@ -191,22 +191,6 @@ export const WelcomeProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder, room
                   <span>{authError}</span>
                 </div>
               )}
-
-              <div style={{
-                background: 'rgba(234, 179, 8, 0.08)',
-                border: '1px solid rgba(234, 179, 8, 0.2)',
-                borderRadius: '8px',
-                padding: '8px 12px',
-                marginTop: '10px',
-                fontSize: '0.75rem',
-                color: '#fde047',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}>
-                <KeyRound size={14} />
-                <span>💡 <b>Contraseña genérica inicial:</b> <code>JunV1ll123</code></span>
-              </div>
             </div>
 
             <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
@@ -348,11 +332,11 @@ export const WelcomeProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder, room
               {/* Contraseña Inicial */}
               <div>
                 <label style={{ fontSize: '0.84rem', fontWeight: '800', color: 'var(--text-parchment-main)', display: 'block', marginBottom: '6px' }}>
-                  Contraseña de Acceso (por defecto: JunV1ll123):
+                  Contraseña de Acceso:
                 </label>
                 <input
                   type="text"
-                  placeholder="JunV1ll123"
+                  placeholder="Contraseña del jugador"
                   value={newUserPassword}
                   onChange={(e) => setNewUserPassword(e.target.value)}
                   style={{

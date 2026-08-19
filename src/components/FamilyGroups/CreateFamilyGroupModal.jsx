@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useUser, MAX_FAMILY_GROUPS } from '../../context/UserContext';
-import { X, Users, Lock, Eye, EyeOff, Shield, Sparkles, Check, AlertCircle } from 'lucide-react';
+import { X, Users, Lock, Eye, EyeOff, Shield, Sparkles, Check, AlertCircle, Mail } from 'lucide-react';
 
 const EMBLEMS = ['👑', '🦁', '🦅', '🛡️', '🚀', '⚡', '🌟', '🏆', '🐺', '🐉', '🏰', '🦄'];
 const THEME_COLORS = [
@@ -16,6 +16,7 @@ export const CreateFamilyGroupModal = ({ isOpen, onClose, onSuccess }) => {
   const { groups, createFamilyGroup } = useUser();
   const [groupName, setGroupName] = useState('');
   const [adminName, setAdminName] = useState('');
+  const [adminEmail, setAdminEmail] = useState('');
   const [groupPassword, setGroupPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [selectedEmblem, setSelectedEmblem] = useState('🛡️');
@@ -38,6 +39,11 @@ export const CreateFamilyGroupModal = ({ isOpen, onClose, onSuccess }) => {
       return;
     }
 
+    if (!adminEmail.trim() || !adminEmail.includes('@')) {
+      setErrorMsg('Por favor ingresa un correo electrónico de recuperación válido.');
+      return;
+    }
+
     if (!groupPassword.trim() || groupPassword.trim().length < 4) {
       setErrorMsg('La contraseña del grupo debe tener al menos 4 caracteres.');
       return;
@@ -47,6 +53,7 @@ export const CreateFamilyGroupModal = ({ isOpen, onClose, onSuccess }) => {
       groupName.trim(),
       groupPassword.trim(),
       adminName.trim() || 'Tutor Familiar',
+      adminEmail.trim(),
       selectedEmblem,
       selectedColor
     );
@@ -54,6 +61,7 @@ export const CreateFamilyGroupModal = ({ isOpen, onClose, onSuccess }) => {
     if (res.success) {
       setGroupName('');
       setAdminName('');
+      setAdminEmail('');
       setGroupPassword('');
       setErrorMsg('');
       if (onSuccess) onSuccess(res.group);
@@ -108,7 +116,7 @@ export const CreateFamilyGroupModal = ({ isOpen, onClose, onSuccess }) => {
             </p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {errorMsg && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid #ef4444', color: '#fca5a5', padding: '8px 12px', borderRadius: '8px', fontSize: '0.82rem', fontWeight: '700' }}>
                 <AlertCircle size={16} />
@@ -133,46 +141,75 @@ export const CreateFamilyGroupModal = ({ isOpen, onClose, onSuccess }) => {
                 required
                 style={{
                   width: '100%',
-                  padding: '10px 14px',
+                  padding: '9px 14px',
                   borderRadius: '10px',
                   border: '1.5px solid rgba(255,255,255,0.15)',
                   background: '#0a0f1d',
                   color: '#f8fafc',
-                  fontSize: '0.94rem',
+                  fontSize: '0.92rem',
                   fontWeight: '700',
                   boxSizing: 'border-box'
                 }}
               />
             </div>
 
-            {/* Nombre del Administrador */}
-            <div>
-              <label style={{ fontSize: '0.82rem', fontWeight: '800', display: 'block', marginBottom: '4px', color: '#e2e8f0' }}>
-                Nombre del Tutor / Administrador:
-              </label>
-              <input
-                type="text"
-                placeholder="Ej. Papá, Mamá, Profesor Andrés..."
-                value={adminName}
-                onChange={(e) => setAdminName(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '10px 14px',
-                  borderRadius: '10px',
-                  border: '1.5px solid rgba(255,255,255,0.15)',
-                  background: '#0a0f1d',
-                  color: '#f8fafc',
-                  fontSize: '0.94rem',
-                  boxSizing: 'border-box'
-                }}
-              />
+            {/* Tutor y Correo de Recuperación */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
+              <div>
+                <label style={{ fontSize: '0.82rem', fontWeight: '800', display: 'block', marginBottom: '4px', color: '#e2e8f0' }}>
+                  Nombre del Tutor / Admin:
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ej. Papá, Mamá, Profesor..."
+                  value={adminName}
+                  onChange={(e) => setAdminName(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '9px 14px',
+                    borderRadius: '10px',
+                    border: '1.5px solid rgba(255,255,255,0.15)',
+                    background: '#0a0f1d',
+                    color: '#f8fafc',
+                    fontSize: '0.92rem',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.82rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px', color: '#38bdf8' }}>
+                  <Mail size={13} />
+                  <span>Correo de Recuperación:</span>
+                </label>
+                <input
+                  type="email"
+                  placeholder="ejemplo@gmail.com"
+                  value={adminEmail}
+                  onChange={(e) => {
+                    setAdminEmail(e.target.value);
+                    if (errorMsg) setErrorMsg('');
+                  }}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '9px 14px',
+                    borderRadius: '10px',
+                    border: '1.5px solid rgba(255,255,255,0.15)',
+                    background: '#0a0f1d',
+                    color: '#f8fafc',
+                    fontSize: '0.92rem',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
             </div>
 
             {/* Contraseña Secreta del Grupo */}
             <div>
               <label style={{ fontSize: '0.82rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', color: '#facc15' }}>
                 <Lock size={14} />
-                <span>Contraseña Secreta del Grupo (para ingresar):</span>
+                <span>Contraseña Secreta del Grupo:</span>
               </label>
               <div style={{ position: 'relative' }}>
                 <input
@@ -186,12 +223,12 @@ export const CreateFamilyGroupModal = ({ isOpen, onClose, onSuccess }) => {
                   required
                   style={{
                     width: '100%',
-                    padding: '10px 40px 10px 14px',
+                    padding: '9px 40px 9px 14px',
                     borderRadius: '10px',
                     border: '1.5px solid var(--color-gold, #ca8a04)',
                     background: '#0a0f1d',
                     color: '#f8fafc',
-                    fontSize: '0.94rem',
+                    fontSize: '0.92rem',
                     boxSizing: 'border-box'
                   }}
                 />
@@ -207,8 +244,8 @@ export const CreateFamilyGroupModal = ({ isOpen, onClose, onSuccess }) => {
 
             {/* Selector de Emblema */}
             <div>
-              <label style={{ fontSize: '0.82rem', fontWeight: '800', display: 'block', marginBottom: '6px', color: '#e2e8f0' }}>
-                Elige el Escudo de tu Familia:
+              <label style={{ fontSize: '0.82rem', fontWeight: '800', display: 'block', marginBottom: '4px', color: '#e2e8f0' }}>
+                Escudo de tu Familia:
               </label>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '6px' }}>
                 {EMBLEMS.map(emb => {
@@ -222,8 +259,8 @@ export const CreateFamilyGroupModal = ({ isOpen, onClose, onSuccess }) => {
                         background: isSel ? 'rgba(245, 158, 11, 0.25)' : '#0a0f1d',
                         border: `2px solid ${isSel ? selectedColor : 'rgba(255,255,255,0.08)'}`,
                         borderRadius: '8px',
-                        padding: '6px',
-                        fontSize: '1.4rem',
+                        padding: '5px',
+                        fontSize: '1.3rem',
                         cursor: 'pointer',
                         transform: isSel ? 'scale(1.08)' : 'scale(1)',
                         transition: 'all 0.15s ease'
@@ -238,7 +275,7 @@ export const CreateFamilyGroupModal = ({ isOpen, onClose, onSuccess }) => {
 
             {/* Selector de Color */}
             <div>
-              <label style={{ fontSize: '0.82rem', fontWeight: '800', display: 'block', marginBottom: '6px', color: '#e2e8f0' }}>
+              <label style={{ fontSize: '0.82rem', fontWeight: '800', display: 'block', marginBottom: '4px', color: '#e2e8f0' }}>
                 Color del Estandarte:
               </label>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -253,8 +290,8 @@ export const CreateFamilyGroupModal = ({ isOpen, onClose, onSuccess }) => {
                         background: c.hex,
                         border: `2px solid ${isSel ? '#ffffff' : 'transparent'}`,
                         borderRadius: '50%',
-                        width: '28px',
-                        height: '28px',
+                        width: '26px',
+                        height: '26px',
                         cursor: 'pointer',
                         boxShadow: isSel ? `0 0 10px ${c.hex}` : 'none'
                       }}
@@ -266,19 +303,19 @@ export const CreateFamilyGroupModal = ({ isOpen, onClose, onSuccess }) => {
             </div>
 
             {/* Botones de acción */}
-            <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
               <button
                 type="button"
                 className="btn-secondary"
                 onClick={onClose}
-                style={{ flex: 1, padding: '11px', justifyContent: 'center', fontSize: '0.86rem' }}
+                style={{ flex: 1, padding: '10px', justifyContent: 'center', fontSize: '0.86rem' }}
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 className="btn-gold"
-                style={{ flex: 2, padding: '11px', justifyContent: 'center', fontSize: '0.90rem', fontWeight: '900' }}
+                style={{ flex: 2, padding: '10px', justifyContent: 'center', fontSize: '0.90rem', fontWeight: '900' }}
               >
                 <Check size={16} />
                 <span>Crear Grupo y Entrar</span>

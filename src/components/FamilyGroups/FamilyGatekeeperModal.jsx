@@ -3,7 +3,7 @@ import { useUser, MAX_FAMILY_GROUPS, MAX_PLAYERS_PER_GROUP, MAX_CONCURRENT_USERS
 import { CreateFamilyGroupModal } from './CreateFamilyGroupModal';
 import { AvatarIcon, AVATAR_LIST } from '../../assets/avatars';
 import { DynamicAvatar } from '../AvatarCreator/DynamicAvatar';
-import { Sparkles, UserPlus, Check, User, GraduationCap, Shield, Swords, ArrowRight, Lock, Eye, EyeOff, KeyRound, AlertCircle, Activity, DoorOpen, Plus, ChevronRight } from 'lucide-react';
+import { Sparkles, UserPlus, Check, User, GraduationCap, Shield, Swords, ArrowRight, Lock, Eye, EyeOff, KeyRound, AlertCircle, Activity, DoorOpen, Plus, ChevronRight, Mail, HelpCircle } from 'lucide-react';
 
 export const FamilyGatekeeperModal = ({ isOpen, onClose, onOpenAvatarBuilder }) => {
   const { 
@@ -12,6 +12,7 @@ export const FamilyGatekeeperModal = ({ isOpen, onClose, onOpenAvatarBuilder }) 
     activeGroupId, 
     isGroupUnlocked, 
     unlockFamilyGroup, 
+    recoverGroupPassword,
     leaveFamilyGroup, 
     users, 
     currentUser, 
@@ -20,7 +21,7 @@ export const FamilyGatekeeperModal = ({ isOpen, onClose, onOpenAvatarBuilder }) 
     serverMetrics 
   } = useUser();
 
-  // Flujo interno: 'select_group' | 'unlock_group' | 'select_player' | 'create_player'
+  // Flujo interno: 'select_group' | 'unlock_group' | 'recover_password' | 'select_player' | 'create_player'
   const [currentStep, setCurrentStep] = useState(() => {
     if (activeGroup && isGroupUnlocked) {
       return 'select_player';
@@ -45,6 +46,13 @@ export const FamilyGatekeeperModal = ({ isOpen, onClose, onOpenAvatarBuilder }) 
   const [enteredGroupPassword, setEnteredGroupPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [unlockError, setUnlockError] = useState('');
+
+  // Estado para Recuperación de Contraseña
+  const [recoveryEmail, setRecoveryEmail] = useState('');
+  const [recoveryNewPassword, setRecoveryNewPassword] = useState('');
+  const [showRecoveryPassword, setShowRecoveryPassword] = useState(false);
+  const [recoveryError, setRecoveryError] = useState('');
+  const [recoverySuccess, setRecoverySuccess] = useState('');
 
   // Estado para crear nuevo jugador
   const [newPlayerName, setNewPlayerName] = useState('');
@@ -75,7 +83,6 @@ export const FamilyGatekeeperModal = ({ isOpen, onClose, onOpenAvatarBuilder }) 
       setTargetGroupToUnlock(null);
       setEnteredGroupPassword('');
       setUnlockError('');
-      // Si el grupo tiene jugadores, ir a elegir jugador; si está vacío, ir a crear jugador
       if ((res.group.users || []).length > 0) {
         setCurrentStep('select_player');
       } else {
@@ -83,6 +90,25 @@ export const FamilyGatekeeperModal = ({ isOpen, onClose, onOpenAvatarBuilder }) 
       }
     } else {
       setUnlockError(res.error || 'Contraseña incorrecta.');
+    }
+  };
+
+  // Manejar recuperación de contraseña
+  const handleRecoverySubmit = (e) => {
+    e.preventDefault();
+    if (!targetGroupToUnlock) return;
+
+    const res = recoverGroupPassword(targetGroupToUnlock.id, recoveryEmail, recoveryNewPassword);
+    if (res.success) {
+      setRecoverySuccess('¡Contraseña restablecida exitosamente! Ya puedes ingresar con tu nueva clave.');
+      setRecoveryError('');
+      setEnteredGroupPassword(recoveryNewPassword);
+      setTimeout(() => {
+        setRecoverySuccess('');
+        setCurrentStep('unlock_group');
+      }, 1800);
+    } else {
+      setRecoveryError(res.error || 'Error al recuperar contraseña.');
     }
   };
 
@@ -286,7 +312,7 @@ export const FamilyGatekeeperModal = ({ isOpen, onClose, onOpenAvatarBuilder }) 
               <div style={{ position: 'relative' }}>
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  placeholder={targetGroupToUnlock.id === 'group_junvill' ? 'Ingresa la clave (JunV1ll123)' : 'Contraseña secreta del grupo'}
+                  placeholder="Ingresa la contraseña del grupo"
                   value={enteredGroupPassword}
                   onChange={(e) => {
                     setEnteredGroupPassword(e.target.value);
@@ -332,23 +358,30 @@ export const FamilyGatekeeperModal = ({ isOpen, onClose, onOpenAvatarBuilder }) 
                 </div>
               )}
 
-              {targetGroupToUnlock.id === 'group_junvill' && (
-                <div style={{
-                  background: 'rgba(234, 179, 8, 0.08)',
-                  border: '1px solid rgba(234, 179, 8, 0.2)',
-                  borderRadius: '8px',
-                  padding: '8px 12px',
-                  marginTop: '10px',
-                  fontSize: '0.75rem',
-                  color: '#fde047',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}>
-                  <KeyRound size={14} />
-                  <span>💡 <b>Contraseña del Grupo Junvill:</b> <code>JunV1ll123</code></span>
-                </div>
-              )}
+              {/* Botón de Recuperar Contraseña */}
+              <div style={{ textAlign: 'right', marginTop: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRecoveryEmail('');
+                    setRecoveryNewPassword('');
+                    setRecoveryError('');
+                    setRecoverySuccess('');
+                    setCurrentStep('recover_password');
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#38bdf8',
+                    fontSize: '0.78rem',
+                    cursor: 'pointer',
+                    fontWeight: '700',
+                    textDecoration: 'underline'
+                  }}
+                >
+                  ¿Olvidaste la contraseña del grupo? 🔑
+                </button>
+              </div>
             </div>
 
             <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
@@ -370,6 +403,129 @@ export const FamilyGatekeeperModal = ({ isOpen, onClose, onOpenAvatarBuilder }) 
                 style={{ flex: 2, padding: '11px', justifyContent: 'center', fontSize: '0.92rem', fontWeight: '900' }}
               >
                 <span>Desbloquear Grupo 🚀</span>
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* ========================================== */}
+        {/* VISTA E: RECUPERAR CONTRASEÑA DE GRUPO     */}
+        {/* ========================================== */}
+        {currentStep === 'recover_password' && targetGroupToUnlock && (
+          <form onSubmit={handleRecoverySubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ textAlign: 'center', marginBottom: '6px' }}>
+              <div style={{ fontSize: '2.5rem', marginBottom: '2px' }}>
+                {targetGroupToUnlock.emblem || '🛡️'}
+              </div>
+              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.3rem', margin: '0 0 4px', fontWeight: '900', color: '#f8fafc' }}>
+                Recuperar Contraseña: {targetGroupToUnlock.name}
+              </h2>
+              <p style={{ fontSize: '0.82rem', color: '#94a3b8', margin: 0 }}>
+                Ingresa el correo electrónico del creador / tutor para restablecer la contraseña.
+              </p>
+            </div>
+
+            {recoverySuccess && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(34, 197, 94, 0.15)', border: '1px solid #22c55e', color: '#86efac', padding: '10px 14px', borderRadius: '8px', fontSize: '0.84rem', fontWeight: '700' }}>
+                <Check size={16} />
+                <span>{recoverySuccess}</span>
+              </div>
+            )}
+
+            {recoveryError && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid #ef4444', color: '#fca5a5', padding: '10px 14px', borderRadius: '8px', fontSize: '0.84rem', fontWeight: '700' }}>
+                <AlertCircle size={16} />
+                <span>{recoveryError}</span>
+              </div>
+            )}
+
+            {/* Correo del Administrador */}
+            <div>
+              <label style={{ fontSize: '0.82rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', color: '#38bdf8' }}>
+                <Mail size={14} />
+                <span>Correo de Recuperación del Creador / Tutor:</span>
+              </label>
+              <input
+                type="email"
+                placeholder="ejemplo@gmail.com"
+                value={recoveryEmail}
+                onChange={(e) => {
+                  setRecoveryEmail(e.target.value);
+                  if (recoveryError) setRecoveryError('');
+                }}
+                autoFocus
+                required
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  borderRadius: '10px',
+                  border: '1.5px solid rgba(255,255,255,0.15)',
+                  background: '#0a0f1d',
+                  color: '#f8fafc',
+                  fontSize: '0.94rem',
+                  fontWeight: '700',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            {/* Nueva Contraseña */}
+            <div>
+              <label style={{ fontSize: '0.82rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', color: '#facc15' }}>
+                <Lock size={14} />
+                <span>Nueva Contraseña para el Grupo:</span>
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showRecoveryPassword ? 'text' : 'password'}
+                  placeholder="Define una nueva clave (mín. 4 caracteres)"
+                  value={recoveryNewPassword}
+                  onChange={(e) => {
+                    setRecoveryNewPassword(e.target.value);
+                    if (recoveryError) setRecoveryError('');
+                  }}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '10px 40px 10px 14px',
+                    borderRadius: '10px',
+                    border: '1.5px solid var(--color-gold, #ca8a04)',
+                    background: '#0a0f1d',
+                    color: '#f8fafc',
+                    fontSize: '0.94rem',
+                    boxSizing: 'border-box'
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowRecoveryPassword(!showRecoveryPassword)}
+                  style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                >
+                  {showRecoveryPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => {
+                  setRecoveryError('');
+                  setRecoverySuccess('');
+                  setCurrentStep('unlock_group');
+                }}
+                style={{ flex: 1, padding: '11px', justifyContent: 'center', fontSize: '0.86rem' }}
+              >
+                <span>⬅️ Cancelar</span>
+              </button>
+
+              <button
+                type="submit"
+                className="btn-gold"
+                style={{ flex: 2, padding: '11px', justifyContent: 'center', fontSize: '0.92rem', fontWeight: '900' }}
+              >
+                <span>Restablecer Contraseña 🔄</span>
               </button>
             </div>
           </form>
