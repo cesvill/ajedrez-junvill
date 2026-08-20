@@ -102,54 +102,6 @@ export const Header = ({
 
           {/* 3. BARRA RÁPIDA DE USUARIO, HERRAMIENTAS Y MANUAL */}
           <div className="user-quick-bar">
-            {/* Badge de Grupo Familiar Activo */}
-            {activeGroup && (
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={onOpenGatekeeper}
-                style={{
-                  padding: '4px 8px',
-                  fontSize: '0.74rem',
-                  fontWeight: '800',
-                  borderRadius: 'var(--radius-full)',
-                  border: `1.5px solid ${activeGroup.themeColor || 'var(--color-gold)'}`,
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  color: '#f8fafc',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  cursor: 'pointer'
-                }}
-                title={`Grupo Familiar: ${activeGroup.name} (Clic para cambiar de grupo)`}
-              >
-                <span style={{ fontSize: '0.95rem' }}>{activeGroup.emblem || '👑'}</span>
-                <span className="hide-mobile-compact">{activeGroup.name}</span>
-              </button>
-            )}
-
-            {/* Botón Prominente de Instalación PWA si no está instalada */}
-            {!isInstalled && (
-              <button
-                type="button"
-                onClick={openInstallModal}
-                className="btn-gold"
-                style={{
-                  padding: '4px 9px',
-                  fontSize: '0.74rem',
-                  fontWeight: '900',
-                  borderRadius: 'var(--radius-full)',
-                  gap: '4px',
-                  boxShadow: '0 2px 8px rgba(234, 179, 8, 0.25)',
-                  border: '1.5px solid #fef08a'
-                }}
-                title="Instalar como Aplicación en tu celular o PC (100% Offline)"
-              >
-                <Download size={13} />
-                <span className="hide-mobile-compact">Instalar App</span>
-              </button>
-            )}
-
             {/* Divisas del Jugador: Estrellas ⭐ */}
             <div className="currency-badge stars-badge" title="Estrellas acumuladas">
               <span>⭐</span>

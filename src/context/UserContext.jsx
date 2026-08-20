@@ -157,6 +157,140 @@ export const DEFAULT_JUNVILL_USERS = [
       coachAvatar: 'coach_aurelio',
       soundEnabled: true
     }
+  },
+  {
+    id: 'user_leti',
+    name: 'Leti',
+    password: DEFAULT_GENERIC_PASSWORD,
+    role: 'parent',
+    avatar: 'custom_dynamic',
+    avatarConfig: {
+      skin: '#fed7aa',
+      hairStyle: 'long',
+      hairColor: '#451a03',
+      eyeStyle: 'happy',
+      shirtStyle: 'hoodie',
+      shirtColor: '#ec4899',
+      accessory: 'none',
+      background: 'parchment_wood'
+    },
+    title: 'Tutora Familiar',
+    elo: 550,
+    puzzleRating: 500,
+    stars: 60,
+    gems: 15,
+    totalPoints: 10,
+    theme: 'modern_dark',
+    boardTheme: 'board_emerald',
+    pieceTheme: 'staunton',
+    systemSettings: {
+      soundEnabled: true,
+      soundVolume: 80,
+      autoQueen: true,
+      showCoordinates: true,
+      highlightMoves: true,
+      highlightLastMove: true,
+      moveMethod: 'drag_click'
+    },
+    unlockedItems: ['board_emerald', 'board_wood', 'shirt_blue'],
+    lessonProgress: {
+      'l01_piezas': { stars: 5, completed: true },
+      'l02_capturas': { stars: 5, completed: true }
+    },
+    botVictories: {
+      'qwerty': 2,
+      'cosmo': 1
+    },
+    stats: {
+      gamesPlayed: 5,
+      wins: 3,
+      losses: 2,
+      draws: 0,
+      puzzlesSolved: 10,
+      hintsUsed: 4,
+      accuracyAvg: 80
+    },
+    radarSkills: {
+      tactica: 40,
+      estrategia: 30,
+      posicional: 25,
+      calculo: 30,
+      aperturas: 30,
+      finales: 25
+    },
+    coachSettings: {
+      assistanceLevel: 'full',
+      botDifficulty: 1,
+      coachAvatar: 'coach_aurelio',
+      soundEnabled: true
+    }
+  },
+  {
+    id: 'user_martin',
+    name: 'Martin',
+    password: DEFAULT_GENERIC_PASSWORD,
+    role: 'student',
+    avatar: 'custom_dynamic',
+    avatarConfig: {
+      skin: '#fed7aa',
+      hairStyle: 'short',
+      hairColor: '#1e293b',
+      eyeStyle: 'happy',
+      shirtStyle: 'tshirt',
+      shirtColor: '#10b981',
+      accessory: 'cap',
+      background: 'blue_sky'
+    },
+    title: 'Campeón Junior',
+    elo: 500,
+    puzzleRating: 450,
+    stars: 50,
+    gems: 15,
+    totalPoints: 10,
+    theme: 'modern_dark',
+    boardTheme: 'board_emerald',
+    pieceTheme: 'staunton',
+    systemSettings: {
+      soundEnabled: true,
+      soundVolume: 85,
+      autoQueen: true,
+      showCoordinates: true,
+      highlightMoves: true,
+      highlightLastMove: true,
+      moveMethod: 'drag_click'
+    },
+    unlockedItems: ['board_emerald', 'board_wood', 'shirt_blue'],
+    lessonProgress: {
+      'l01_piezas': { stars: 5, completed: true },
+      'l02_capturas': { stars: 5, completed: true }
+    },
+    botVictories: {
+      'qwerty': 2,
+      'monkey': 1
+    },
+    stats: {
+      gamesPlayed: 6,
+      wins: 4,
+      losses: 2,
+      draws: 0,
+      puzzlesSolved: 12,
+      hintsUsed: 5,
+      accuracyAvg: 82
+    },
+    radarSkills: {
+      tactica: 45,
+      estrategia: 30,
+      posicional: 20,
+      calculo: 35,
+      aperturas: 30,
+      finales: 20
+    },
+    coachSettings: {
+      assistanceLevel: 'full',
+      botDifficulty: 1,
+      coachAvatar: 'coach_aurelio',
+      soundEnabled: true
+    }
   }
 ];
 
@@ -191,11 +325,14 @@ export const UserProvider = ({ children }) => {
               if (!Array.isArray(g.users) || g.users.length === 0) {
                 g.users = DEFAULT_JUNVILL_USERS;
               } else {
-                // Asegurar que César y Estudiante estén si faltaran
-                const hasCesar = g.users.some(u => u.name.toLowerCase().includes('césar') || u.name.toLowerCase().includes('cesar'));
-                if (!hasCesar) {
-                  g.users.push(DEFAULT_JUNVILL_USERS[1]);
-                }
+                // Asegurar que César, Estudiante, Leti y Martin estén presentes en Familia Junvill
+                const existingNames = g.users.map(u => (u.name || '').toLowerCase().trim());
+                DEFAULT_JUNVILL_USERS.forEach(defUser => {
+                  const defName = defUser.name.toLowerCase().trim();
+                  if (!existingNames.some(en => en === defName || en.includes(defName) || defName.includes(en))) {
+                    g.users.push(defUser);
+                  }
+                });
               }
             }
             if (!Array.isArray(g.users)) g.users = [];

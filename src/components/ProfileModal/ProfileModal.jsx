@@ -3,10 +3,11 @@ import { useUser, DEFAULT_GENERIC_PASSWORD } from '../../context/UserContext';
 import { AvatarIcon, AVATAR_LIST } from '../../assets/avatars';
 import { DynamicAvatar } from '../AvatarCreator/DynamicAvatar';
 import { FullBodyAvatar } from '../AvatarCreator/FullBodyAvatar';
-import { X, UserPlus, Check, Award, Trash2, Sparkles, User, Shield, GraduationCap, Users, RotateCcw, Edit2, Database, Download, Upload, CheckCircle2, Lock, Eye, EyeOff, KeyRound, AlertCircle } from 'lucide-react';
+import { X, UserPlus, Check, Award, Trash2, Sparkles, User, Shield, GraduationCap, Users, RotateCcw, Edit2, Database, Download, Upload, CheckCircle2, Lock, Eye, EyeOff, KeyRound, AlertCircle, DoorOpen } from 'lucide-react';
 
-export const ProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder }) => {
+export const ProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder, onOpenGatekeeper }) => {
   const { 
+    activeGroup,
     users, 
     currentUser, 
     setActiveUserId, 
@@ -160,6 +161,57 @@ export const ProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder }) => {
             <X size={22} />
           </button>
         </div>
+
+        {/* BANNER DE GRUPO FAMILIAR ACTIVO */}
+        {activeGroup && (
+          <div style={{
+            background: 'rgba(234, 179, 8, 0.08)',
+            border: `1.5px solid ${activeGroup.themeColor || 'var(--color-gold)'}`,
+            borderRadius: 'var(--radius-md, 12px)',
+            padding: '10px 16px',
+            marginBottom: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            flexWrap: 'wrap'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '1.6rem' }}>{activeGroup.emblem || '👑'}</span>
+              <div>
+                <div style={{ fontWeight: '900', fontSize: '0.96rem', color: 'var(--text-parchment-main)' }}>
+                  {activeGroup.name}
+                </div>
+                <div style={{ fontSize: '0.74rem', color: 'var(--text-parchment-muted)' }}>
+                  {users.length} miembros registrados • Admin: {activeGroup.adminName || 'Tutor'}
+                </div>
+              </div>
+            </div>
+
+            {onOpenGatekeeper && (
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => {
+                  onClose();
+                  onOpenGatekeeper();
+                }}
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '0.78rem',
+                  fontWeight: '800',
+                  gap: '6px',
+                  border: '1.5px solid var(--color-gold)',
+                  color: 'var(--color-gold)'
+                }}
+                title="Cambiar o administrar grupos familiares"
+              >
+                <Users size={14} />
+                <span>👨‍👩‍👧‍👦 Portal Familiar</span>
+              </button>
+            )}
+          </div>
+        )}
 
         {/* NOTIFICACIÓN TOAST */}
         {notification && (

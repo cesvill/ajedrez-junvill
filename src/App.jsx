@@ -290,6 +290,10 @@ export const App = () => {
           isOpen={isProfileModalOpen}
           onClose={() => setIsProfileModalOpen(false)}
           onOpenAvatarBuilder={() => setIsAvatarBuilderOpen(true)}
+          onOpenGatekeeper={() => {
+            setIsProfileModalOpen(false);
+            setIsGatekeeperOpen(true);
+          }}
         />
       )}
 
