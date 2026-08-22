@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { BOT_ROSTER } from '../../assets/botRoster';
 import { CHESS_VARIANTS } from '../../engine/variantsEngine';
 import { VariantRulesModal } from '../Variants/VariantRulesModal';
+import { useUser } from '../../context/UserContext';
 import { 
   Bot, Users, Globe, Play, Sparkles, X, Swords, Zap, 
   ArrowRight, ArrowLeft, GraduationCap, Trophy, ChevronRight, HelpCircle, BookOpen 
@@ -15,6 +16,7 @@ export const GameModeModal = ({
   onOpenRobotsView,
   activeBot = null
 }) => {
+  const { pendingInvitationsForMe, acceptFamilyInvitation } = useUser();
   const [selectedOpponent, setSelectedOpponent] = useState(null); // 'bot' | 'pass_and_play' | null
   const [chosenBot, setChosenBot] = useState(activeBot || BOT_ROSTER[0]);
   const [rulesVariantId, setRulesVariantId] = useState(null);
@@ -124,6 +126,48 @@ export const GameModeModal = ({
              ========================================================================= */}
           {!selectedOpponent && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {/* RETO FAMILIAR ENTRANTE SI EXISTE */}
+              {pendingInvitationsForMe && pendingInvitationsForMe.length > 0 && (
+                <div style={{
+                  background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.22) 0%, rgba(16, 185, 129, 0.18) 100%)',
+                  border: '2px solid var(--color-gold)',
+                  borderRadius: '12px',
+                  padding: '14px 18px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  flexWrap: 'wrap',
+                  boxShadow: '0 4px 16px rgba(234, 179, 8, 0.25)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '1.4rem' }}>⚔️</span>
+                    <div>
+                      <div style={{ fontWeight: '900', fontSize: '0.96rem', color: 'var(--text-parchment-main)' }}>
+                        ¡{pendingInvitationsForMe[0].fromUser?.name} te ha retado a una partida!
+                      </div>
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-parchment-muted)' }}>
+                        ⏱️ {Math.round((pendingInvitationsForMe[0].timeControl || 300) / 60)} min • {pendingInvitationsForMe[0].withAssistance ? '💡 Con Ayudas' : '🛡️ Sin Ayudas'} • Sala: {pendingInvitationsForMe[0].roomId}
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="btn-gold"
+                    onClick={() => {
+                      const inv = acceptFamilyInvitation(pendingInvitationsForMe[0].id);
+                      handleClose();
+                      if (onSelectP2P) onSelectP2P(inv?.roomId);
+                    }}
+                    style={{ padding: '8px 16px', fontSize: '0.84rem', fontWeight: '900', gap: '6px' }}
+                  >
+                    <Swords size={15} />
+                    <span>Aceptar y Jugar Ahora ⚔️</span>
+                  </button>
+                </div>
+              )}
+
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
                 {/* 1. MODO ROBOT / IA */}
                 <div

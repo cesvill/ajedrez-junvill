@@ -379,11 +379,129 @@ export const UserProvider = ({ children }) => {
     }
   });
 
+const INVITATIONS_STORAGE_KEY = 'ajedrez_junvill_family_invitations_v1';
+
+  // 4. ESTADO DE INVITACIONES / RETOS FAMILIARES ACTIVOS
+  const [familyInvitations, setFamilyInvitations] = useState(() => {
+    try {
+      const saved = localStorage.getItem(INVITATIONS_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const now = Date.now();
+          // Mantener invitaciones de menos de 45 minutos
+          return parsed.filter(inv => (now - (inv.createdAt || 0)) < 45 * 60 * 1000);
+        }
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  // Sincronización en tiempo real de invitaciones familiares entre pestañas/dispositivos
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === INVITATIONS_STORAGE_KEY && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) {
+            setFamilyInvitations(parsed);
+          }
+        } catch (err) {}
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
   // Derivaciones
   const activeGroup = groups.find(g => g.id === activeGroupId) || groups[0] || DEFAULT_FAMILY_GROUPS[0];
   const isGroupUnlocked = activeGroup ? unlockedGroupIds.includes(activeGroup.id) : false;
   const users = activeGroup ? (activeGroup.users || []) : [];
   const currentUser = users.find(u => u.id === activeUserId) || users[0] || DEFAULT_JUNVILL_USERS[0];
+
+  // Invitaciones dirigidas al usuario actual
+  const pendingInvitationsForMe = familyInvitations.filter(inv => {
+    if (inv.status !== 'pending') return false;
+    const matchId = inv.toUserId === currentUser?.id;
+    const matchName = (inv.toUserName || '').toLowerCase().trim() === (currentUser?.name || '').toLowerCase().trim();
+    return matchId || matchName;
+  });
+
+  // Invitaciones enviadas por el usuario actual
+  const outgoingInvitationsByMe = familyInvitations.filter(inv => {
+    return inv.status === 'pending' && inv.fromUser?.id === currentUser?.id;
+  });
+
+  // Enviar / Crear Reto Familiar
+  const sendFamilyInvitation = (toUser, timeControl = 300, withAssistance = true, customRoomId = null) => {
+    if (!currentUser || !toUser) return null;
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let randCode = '';
+    for (let i = 0; i < 4; i++) {
+      randCode += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    const newRoomId = customRoomId || `JUN${randCode}`;
+
+    const invitation = {
+      id: `inv_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      roomId: newRoomId,
+      groupId: activeGroupId || 'group_junvill',
+      fromUser: {
+        id: currentUser.id,
+        name: currentUser.name,
+        avatar: currentUser.avatar,
+        avatarConfig: currentUser.avatarConfig,
+        elo: currentUser.elo || 600,
+        role: currentUser.role || 'student'
+      },
+      toUserId: toUser.id,
+      toUserName: toUser.name,
+      timeControl: timeControl || 300,
+      withAssistance: withAssistance !== false,
+      createdAt: Date.now(),
+      status: 'pending'
+    };
+
+    setFamilyInvitations(prev => {
+      const filtered = prev.filter(i => !(i.fromUser?.id === currentUser.id && i.toUserId === toUser.id));
+      const updated = [invitation, ...filtered];
+      try {
+        localStorage.setItem(INVITATIONS_STORAGE_KEY, JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+
+    return invitation;
+  };
+
+  // Aceptar Reto Familiar
+  const acceptFamilyInvitation = (invitationId) => {
+    const inv = familyInvitations.find(i => i.id === invitationId);
+    if (!inv) return null;
+
+    setFamilyInvitations(prev => {
+      const updated = prev.filter(i => i.id !== invitationId);
+      try {
+        localStorage.setItem(INVITATIONS_STORAGE_KEY, JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+
+    return inv;
+  };
+
+  // Rechazar Reto Familiar
+  const declineFamilyInvitation = (invitationId) => {
+    setFamilyInvitations(prev => {
+      const updated = prev.filter(i => i.id !== invitationId);
+      try {
+        localStorage.setItem(INVITATIONS_STORAGE_KEY, JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+  };
 
   // Sincronización continua de estado con localStorage / sessionStorage
   useEffect(() => {
@@ -958,7 +1076,13 @@ export const UserProvider = ({ children }) => {
       exportSaveData,
       importSaveData,
       resetUserData,
-      serverMetrics
+      serverMetrics,
+      familyInvitations,
+      pendingInvitationsForMe,
+      outgoingInvitationsByMe,
+      sendFamilyInvitation,
+      acceptFamilyInvitation,
+      declineFamilyInvitation
     }}>
       {children}
     </UserContext.Provider>

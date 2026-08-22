@@ -10,6 +10,8 @@ import { audioManager } from '../engine/audio';
 import { QRCodeDisplay } from '../components/QRCodeModal/QRCodeDisplay';
 import { HandicapConfigModal } from '../components/HandicapModal/HandicapConfigModal';
 import { getHandicapFen, getHandicapSummary, DEFAULT_HANDICAP_CONFIG } from '../engine/handicapEngine';
+import { getCapturedPieces } from '../engine/capturedPieces';
+import { CapturedPiecesBar } from '../components/ChessBoard/CapturedPiecesBar';
 import confetti from 'canvas-confetti';
 import { 
   X, Globe, Copy, Check, QrCode, Play, Users, Clock, ShieldCheck, 
@@ -28,7 +30,7 @@ const CHEER_EMOJIS = [
 ];
 
 export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
-  const { currentUser, activeGroup, users, recordGameResult } = useUser();
+  const { currentUser, activeGroup, users, recordGameResult, sendFamilyInvitation } = useUser();
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
@@ -69,6 +71,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
   // Opciones de partida
   const [timeControl, setTimeControl] = useState(300); // 300 seg (5 min)
   const [assignedColor, setAssignedColor] = useState('white'); // 'white' | 'black'
+  const [withAssistance, setWithAssistance] = useState(false); // Modo Clásico Puro sin ayudas por defecto
   const [whiteTime, setWhiteTime] = useState(300);
   const [blackTime, setBlackTime] = useState(300);
 
@@ -140,7 +143,8 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
             avatarConfig: currentUser?.avatarConfig,
             elo: currentUser?.elo || 600,
             color: isHost ? (assignedColor === 'white' ? 'black' : 'white') : assignedColor,
-            timeControl
+            timeControl,
+            withAssistance
           }
         });
       }
@@ -161,6 +165,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
         whiteTime,
         blackTime,
         timeControl,
+        withAssistance,
         whitePlayer: assignedColor === 'white' ? currentUser : opponentProfile,
         blackPlayer: assignedColor === 'black' ? currentUser : opponentProfile,
         moveHistory: game.history({ verbose: true })
@@ -210,6 +215,9 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
   const handleIncomingData = (data) => {
     if (data.type === 'PROFILE_SYNC') {
       setOpponentProfile(data.profile);
+      if (data.profile.withAssistance !== undefined) {
+        setWithAssistance(data.profile.withAssistance);
+      }
       if (!p2pRef.current?.isHost) {
         setAssignedColor(data.profile.color);
         if (data.profile.timeControl) {
@@ -218,6 +226,9 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
           setBlackTime(data.profile.timeControl);
         }
       }
+    } else if (data.type === 'ASSISTANCE_TOGGLE') {
+      setWithAssistance(data.withAssistance);
+      setStatusMessage(data.withAssistance ? '💡 El rival activó las ayudas tácticas.' : '🛡️ El rival activó el Modo Clásico (sin ayudas).');
     } else if (data.type === 'SPECTATOR_SYNC') {
       // Estado inicial recibido por espectador
       const { fullGameState } = data;
@@ -227,6 +238,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
         setWhiteTime(fullGameState.whiteTime);
         setBlackTime(fullGameState.blackTime);
         setTimeControl(fullGameState.timeControl);
+        if (fullGameState.withAssistance !== undefined) setWithAssistance(fullGameState.withAssistance);
         setWhitePlayerProfile(fullGameState.whitePlayer);
         setBlackPlayerProfile(fullGameState.blackPlayer);
       }
@@ -384,32 +396,31 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
   };
 
   // Realizar Jugada (Local)
-  const handlePieceMove = (source, target) => {
+  const handlePieceMove = (moveResult, newFen) => {
     if (mode !== 'playing') return false;
 
-    const currentTurnColor = game.turn() === 'w' ? 'white' : 'black';
-    if (currentTurnColor !== assignedColor) return false;
+    const isWhiteTurn = game.turn() === 'w';
+    const isMyTurn = (assignedColor === 'white' && isWhiteTurn) || (assignedColor === 'black' && !isWhiteTurn);
+    if (!isMyTurn) return false;
 
     try {
-      const move = game.move({ from: source, to: target, promotion: 'q' });
-      if (move) {
-        if (game.isCheckmate() || game.isCheck()) audioManager.playCheck();
-        else if (move.captured) audioManager.playCapture();
-        else audioManager.playMove();
+      const updatedGame = new Chess(newFen || game.fen());
+      if (updatedGame.isCheckmate() || updatedGame.isCheck()) audioManager.playCheck();
+      else if (moveResult?.captured) audioManager.playCapture();
+      else audioManager.playMove();
 
-        setLastMove(move);
-        setGame(new Chess(game.fen()));
+      setLastMove(moveResult);
+      setGame(updatedGame);
 
-        // Transmitir jugada por WebRTC a rival y espectadores
-        p2pRef.current?.sendMove(move, game.fen(), { white: whiteTime, black: blackTime });
+      // Transmitir jugada por WebRTC a rival y espectadores
+      p2pRef.current?.sendMove(moveResult, updatedGame.fen(), { white: whiteTime, black: blackTime });
 
-        checkGameOver(game);
-        return true;
-      }
+      checkGameOver(updatedGame);
+      return true;
     } catch (e) {
+      console.error("Error al ejecutar jugada local:", e);
       return false;
     }
-    return false;
   };
 
   // Enviar mensaje de chat seguro
@@ -527,6 +538,9 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
     const newRoom = P2PEngine.generateRoomId();
     setGeneratedRoomId(newRoom);
     setRoomId(newRoom);
+    if (sendFamilyInvitation) {
+      sendFamilyInvitation(targetUser, timeControl, withAssistance, newRoom);
+    }
     handleCreateHost(newRoom);
   };
 
@@ -1217,7 +1231,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
                 borderRadius: '8px',
                 padding: '6px 12px'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                   <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden' }}>
                     <AvatarIcon avatarId={mode === 'spectating' ? (blackPlayerProfile?.avatar || 'knight') : (opponentProfile?.avatar || 'knight')} size={32} />
                   </div>
@@ -1229,12 +1243,19 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
                       {mode === 'spectating' ? `${blackPlayerProfile?.elo || 600} Elo` : `${opponentProfile?.elo || 600} Elo`}
                     </div>
                   </div>
+
+                  {/* Fichas capturadas por el oponente en orden */}
+                  <CapturedPiecesBar
+                    capturedList={assignedColor === 'white' ? getCapturedPieces(game.fen()).capturedByBlack : getCapturedPieces(game.fen()).capturedByWhite}
+                    advantage={assignedColor === 'white' ? getCapturedPieces(game.fen()).blackAdvantage : getCapturedPieces(game.fen()).whiteAdvantage}
+                    color={assignedColor === 'white' ? 'w' : 'b'}
+                  />
                 </div>
 
                 {/* Reloj Negras */}
                 {timeControl > 0 && (
                   <div style={{
-                    background: game.turn() === 'b' ? '#3b82f6' : '#0a0f1d',
+                    background: game.turn() === (assignedColor === 'white' ? 'b' : 'w') ? '#3b82f6' : '#0a0f1d',
                     color: '#ffffff',
                     padding: '4px 10px',
                     borderRadius: '6px',
@@ -1243,7 +1264,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
                     fontSize: '1rem',
                     border: '1px solid rgba(255, 255, 255, 0.15)'
                   }}>
-                    {Math.floor(blackTime / 60)}:{(blackTime % 60).toString().padStart(2, '0')}
+                    {Math.floor((assignedColor === 'white' ? blackTime : whiteTime) / 60)}:{((assignedColor === 'white' ? blackTime : whiteTime) % 60).toString().padStart(2, '0')}
                   </div>
                 )}
               </div>
@@ -1251,11 +1272,11 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
               {/* Tablero de Ajedrez */}
               <div style={{ position: 'relative', width: '100%', maxWidth: '440px', margin: '0 auto' }}>
                 <ChessBoard
-                  game={game}
+                  fen={game.fen()}
                   onMove={handlePieceMove}
                   orientation={mode === 'spectating' ? 'white' : assignedColor}
                   lastMove={lastMove}
-                  interactive={mode === 'playing'}
+                  interactive={mode === 'playing' && ((assignedColor === 'white' && game.turn() === 'w') || (assignedColor === 'black' && game.turn() === 'b'))}
                 />
 
                 {/* Burbujas flotantes de reacciones de espectadores */}
@@ -1289,7 +1310,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
                 borderRadius: '8px',
                 padding: '6px 12px'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                   <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden' }}>
                     <AvatarIcon avatarId={mode === 'spectating' ? (whitePlayerProfile?.avatar || 'teen_gamer') : (currentUser?.avatar || 'teen_gamer')} size={32} />
                   </div>
@@ -1301,12 +1322,19 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
                       {mode === 'spectating' ? `${whitePlayerProfile?.elo || 600} Elo` : `${currentUser?.elo || 600} Elo`}
                     </div>
                   </div>
+
+                  {/* Fichas capturadas por el jugador local en orden */}
+                  <CapturedPiecesBar
+                    capturedList={assignedColor === 'white' ? getCapturedPieces(game.fen()).capturedByWhite : getCapturedPieces(game.fen()).capturedByBlack}
+                    advantage={assignedColor === 'white' ? getCapturedPieces(game.fen()).whiteAdvantage : getCapturedPieces(game.fen()).blackAdvantage}
+                    color={assignedColor === 'white' ? 'b' : 'w'}
+                  />
                 </div>
 
                 {/* Reloj Blancas */}
                 {timeControl > 0 && (
                   <div style={{
-                    background: game.turn() === 'w' ? '#3b82f6' : '#0a0f1d',
+                    background: game.turn() === (assignedColor === 'white' ? 'w' : 'b') ? '#3b82f6' : '#0a0f1d',
                     color: '#ffffff',
                     padding: '4px 10px',
                     borderRadius: '6px',
@@ -1315,7 +1343,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
                     fontSize: '1rem',
                     border: '1px solid rgba(255, 255, 255, 0.15)'
                   }}>
-                    {Math.floor(whiteTime / 60)}:{(whiteTime % 60).toString().padStart(2, '0')}
+                    {Math.floor((assignedColor === 'white' ? whiteTime : blackTime) / 60)}:{((assignedColor === 'white' ? whiteTime : blackTime) % 60).toString().padStart(2, '0')}
                   </div>
                 )}
               </div>
@@ -1379,25 +1407,55 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
 
               {/* Botones de Control de Partida (Si es jugador) */}
               {mode === 'playing' && (
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {/* Botón Rápido de Ayudas para Negociar/Desactivar */}
                   <button
                     type="button"
                     className="btn-secondary"
-                    onClick={handleOfferDraw}
-                    style={{ flex: 1, padding: '8px', fontSize: '0.78rem', justifyContent: 'center' }}
+                    onClick={() => {
+                      const next = !withAssistance;
+                      setWithAssistance(next);
+                      p2pRef.current?.send({ type: 'ASSISTANCE_TOGGLE', withAssistance: next });
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      fontSize: '0.80rem',
+                      fontWeight: '800',
+                      border: !withAssistance ? '1.5px solid #10b981' : '1.5px solid var(--color-gold)',
+                      background: !withAssistance ? 'rgba(16, 185, 129, 0.15)' : 'rgba(234, 179, 8, 0.08)',
+                      color: !withAssistance ? '#10b981' : 'var(--text-parchment-main)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      justifyContent: 'center'
+                    }}
+                    title="Deshabilitar o habilitar todas las ayudas para ambos jugadores"
                   >
-                    <span>🤝 Ofrecer Tablas</span>
+                    {!withAssistance ? <ShieldCheck size={15} color="#10b981" /> : <Sparkles size={15} color="#eab308" />}
+                    <span>{!withAssistance ? '🛡️ Sin Ayudas (Modo Clásico Puro)' : '💡 Ayudas Habilitadas (Clic para Desactivar)'}</span>
                   </button>
 
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    onClick={handleResign}
-                    style={{ flex: 1, padding: '8px', fontSize: '0.78rem', justifyContent: 'center', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.4)' }}
-                  >
-                    <Flag size={14} color="#ef4444" />
-                    <span>Rendirse</span>
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={handleOfferDraw}
+                      style={{ flex: 1, padding: '8px', fontSize: '0.78rem', justifyContent: 'center' }}
+                    >
+                      <span>🤝 Ofrecer Tablas</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={handleResign}
+                      style={{ flex: 1, padding: '8px', fontSize: '0.78rem', justifyContent: 'center', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.4)' }}
+                    >
+                      <Flag size={14} color="#ef4444" />
+                      <span>Rendirse</span>
+                    </button>
+                  </div>
                 </div>
               )}
 

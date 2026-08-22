@@ -5,7 +5,7 @@ import { AvatarIcon, AVATAR_LIST } from '../../assets/avatars';
 import { DynamicAvatar } from '../AvatarCreator/DynamicAvatar';
 import { Sparkles, UserPlus, Check, User, GraduationCap, Shield, Swords, ArrowRight, Lock, Eye, EyeOff, KeyRound, AlertCircle, Activity, DoorOpen, Plus, ChevronRight, Mail, HelpCircle } from 'lucide-react';
 
-export const FamilyGatekeeperModal = ({ isOpen, onClose, onOpenAvatarBuilder }) => {
+export const FamilyGatekeeperModal = ({ isOpen, onClose, onOpenAvatarBuilder, onOpenP2P }) => {
   const { 
     groups, 
     activeGroup, 
@@ -18,7 +18,9 @@ export const FamilyGatekeeperModal = ({ isOpen, onClose, onOpenAvatarBuilder }) 
     currentUser, 
     setActiveUserId, 
     createUser, 
-    serverMetrics 
+    serverMetrics,
+    familyInvitations,
+    acceptFamilyInvitation
   } = useUser();
 
   // Flujo interno: 'select_group' | 'unlock_group' | 'recover_password' | 'select_player' | 'create_player'
@@ -565,6 +567,44 @@ export const FamilyGatekeeperModal = ({ isOpen, onClose, onOpenAvatarBuilder }) 
                 <span>Cambiar Grupo</span>
               </button>
             </div>
+
+            {/* RETOS FAMILIARES ACTIVOS EN ESTE GRUPO */}
+            {familyInvitations && familyInvitations.filter(i => i.groupId === activeGroup.id && i.status === 'pending').length > 0 && (
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.20) 0%, rgba(16, 185, 129, 0.15) 100%)',
+                border: '1.5px solid var(--color-gold)',
+                borderRadius: '12px',
+                padding: '12px 16px',
+                marginBottom: '16px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '900', fontSize: '0.88rem', color: 'var(--text-parchment-main)', marginBottom: '8px' }}>
+                  <Swords size={16} color="#eab308" />
+                  <span>Retos Familiares en Espera de Rival:</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {familyInvitations.filter(i => i.groupId === activeGroup.id && i.status === 'pending').map(inv => (
+                    <div key={inv.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(0,0,0,0.3)', padding: '8px 12px', borderRadius: '8px' }}>
+                      <div style={{ fontSize: '0.82rem', color: '#f8fafc' }}>
+                        <b>{inv.fromUser?.name}</b> reta a <b>{inv.toUserName}</b> (⏱️ {Math.round((inv.timeControl || 300) / 60)}m)
+                      </div>
+                      <button
+                        type="button"
+                        className="btn-gold"
+                        onClick={() => {
+                          const accepted = acceptFamilyInvitation(inv.id);
+                          onClose();
+                          if (onOpenP2P) onOpenP2P(inv.roomId);
+                        }}
+                        style={{ padding: '4px 10px', fontSize: '0.74rem', fontWeight: '900', gap: '4px' }}
+                      >
+                        <Swords size={12} />
+                        <span>Aceptar Reto</span>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div style={{ fontSize: '0.80rem', fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '10px' }}>
               ¿Quién jugará hoy?

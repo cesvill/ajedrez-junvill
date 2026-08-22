@@ -11,7 +11,7 @@ import {
   Trophy, Swords, Target, BookOpen, Sparkles, TrendingUp, Flame, 
   Shield, Award, Play, ChevronRight, User, Users, Bot, Star, 
   CheckCircle2, Compass, ArrowRight, Zap, Globe, Crown, ShieldCheck,
-  RotateCcw, Trash2, Clock, PlayCircle
+  RotateCcw, Trash2, Clock, PlayCircle, X
 } from 'lucide-react';
 
 export const HomeView = ({ 
@@ -24,7 +24,7 @@ export const HomeView = ({
   onStartLesson,
   onStartBotGame
 }) => {
-  const { currentUser } = useUser();
+  const { currentUser, pendingInvitationsForMe, acceptFamilyInvitation, declineFamilyInvitation } = useUser();
   const [showRadarSection, setShowRadarSection] = useState(true);
 
   // 1. Encontrar la siguiente lección recomendada
@@ -99,6 +99,80 @@ export const HomeView = ({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '22px', paddingBottom: '32px' }}>
       
+      {/* 0. RETOS E INVITACIONES FAMILIARES ENTRANTE (PRIMERO EN HOME) */}
+      {pendingInvitationsForMe && pendingInvitationsForMe.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {pendingInvitationsForMe.map((inv) => (
+            <div
+              key={inv.id}
+              style={{
+                background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.25) 0%, rgba(16, 185, 129, 0.20) 100%)',
+                border: '2.5px solid var(--color-gold)',
+                borderRadius: 'var(--radius-lg, 16px)',
+                padding: '16px 20px',
+                boxShadow: '0 8px 30px rgba(245, 158, 11, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '14px'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--color-gold)' }}>
+                  {inv.fromUser?.avatarConfig ? (
+                    <DynamicAvatar config={inv.fromUser.avatarConfig} size={48} />
+                  ) : (
+                    <AvatarIcon avatarId={inv.fromUser?.avatar || 'teen_gamer'} size={48} />
+                  )}
+                </div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '1.2rem' }}>⚔️</span>
+                    <span style={{ fontWeight: '900', fontSize: '1.1rem', color: 'var(--text-parchment-main)' }}>
+                      ¡{inv.fromUser?.name || 'Un miembro de la familia'} te ha invitado a una partida!
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.80rem', color: 'var(--text-parchment-muted)', marginTop: '2px' }}>
+                    ⏱️ {Math.round((inv.timeControl || 300) / 60)} min • {inv.withAssistance ? '💡 Con Ayudas' : '🛡️ Modo Clásico (Sin Ayudas)'} • Código: <b style={{ color: '#60a5fa', fontFamily: 'monospace' }}>{inv.roomId}</b>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  className="btn-gold"
+                  onClick={() => {
+                    acceptFamilyInvitation(inv.id);
+                    if (onOpenP2P) onOpenP2P(inv.roomId);
+                  }}
+                  style={{
+                    padding: '10px 18px',
+                    fontSize: '0.90rem',
+                    fontWeight: '900',
+                    gap: '6px',
+                    boxShadow: '0 4px 12px rgba(245, 158, 11, 0.4)'
+                  }}
+                >
+                  <Swords size={16} />
+                  <span>Aceptar y Jugar Ahora ⚔️</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => declineFamilyInvitation(inv.id)}
+                  style={{ padding: '10px 14px', fontSize: '0.82rem' }}
+                >
+                  <X size={15} />
+                  <span>Rechazar</span>
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* 1. TARJETA HERO: BIENVENIDA Y PERFIL DEL JUGADOR */}
       <div style={{
         background: 'linear-gradient(135deg, var(--bg-parchment-card) 0%, rgba(245, 158, 11, 0.08) 100%)',

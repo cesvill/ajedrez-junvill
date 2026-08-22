@@ -28,7 +28,7 @@ import { getBotById } from './assets/botRoster';
 
 export const App = () => {
   const { currentUser, activeGroup, isGroupUnlocked } = useUser();
-  const [activeTab, setActiveTab] = useState('inicio'); // 'inicio' | 'aprender' | 'problemas' | 'robots' | 'jugar' | 'torneos' | 'yo'
+  const [activeTab, setActiveTab] = useState(() => parseUrlState()?.view || 'inicio'); // 'inicio' | 'aprender' | 'problemas' | 'robots' | 'jugar' | 'torneos' | 'yo'
   const [activeLesson, setActiveLesson] = useState(null);
   const [activeBotMatch, setActiveBotMatch] = useState(null);
 
@@ -198,7 +198,10 @@ export const App = () => {
             onOpenManual={() => setIsManualOpen(true)}
             onOpenAvatarBuilder={() => setIsAvatarBuilderOpen(true)}
             onOpenBugReport={handleOpenBugReport}
-            onOpenP2P={() => setIsP2POpen(true)}
+            onOpenP2P={(customRoomId) => {
+              setUrlRoomId(customRoomId || null);
+              setIsP2POpen(true);
+            }}
             onStartLesson={handleStartLesson}
             onStartBotGame={handleStartBotMatch}
           />
@@ -229,7 +232,10 @@ export const App = () => {
           <PlayView
             initialBotMatch={activeBotMatch}
             onExitMatch={() => setActiveBotMatch(null)}
-            onOpenP2P={() => setIsP2POpen(true)}
+            onOpenP2P={(customRoomId) => {
+              setUrlRoomId(customRoomId || null);
+              setIsP2POpen(true);
+            }}
             onOpenRobots={() => handleTabChange('robots')}
             onExitToMenu={() => handleTabChange('inicio')}
             onOpenBugReport={handleOpenBugReport}
@@ -281,6 +287,11 @@ export const App = () => {
         onOpenAvatarBuilder={() => {
           setIsGatekeeperOpen(false);
           setIsAvatarBuilderOpen(true);
+        }}
+        onOpenP2P={(customRoomId) => {
+          setUrlRoomId(customRoomId || null);
+          setIsGatekeeperOpen(false);
+          setIsP2POpen(true);
         }}
       />
 

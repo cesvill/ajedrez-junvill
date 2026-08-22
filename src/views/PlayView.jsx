@@ -23,8 +23,10 @@ import { usePWAInstall } from '../hooks/usePWAInstall';
 import { audioManager } from '../engine/audio';
 import { voiceEngine } from '../engine/voiceEngine';
 import { useUser } from '../context/UserContext';
+import { getCapturedPieces } from '../engine/capturedPieces';
+import { CapturedPiecesBar } from '../components/ChessBoard/CapturedPiecesBar';
 import confetti from 'canvas-confetti';
-import { Swords, Lightbulb, HelpCircle, RotateCcw, Play, RefreshCw, Settings, ShieldAlert, Sparkles, Trophy, CheckCircle, UserCheck, FileSearch, Globe, Volume2, VolumeX, Shuffle, Users, Bot, Maximize, Minimize, Pause, BookOpen, Puzzle, User, Home, ArrowLeft, Scale, X, Bug, Save, Trash2, Download } from 'lucide-react';
+import { Swords, Lightbulb, HelpCircle, RotateCcw, Play, RefreshCw, Settings, ShieldAlert, Sparkles, Trophy, CheckCircle, UserCheck, FileSearch, Globe, Volume2, VolumeX, Shuffle, Users, Bot, Maximize, Minimize, Pause, BookOpen, Puzzle, User, Home, ArrowLeft, Scale, X, Bug, Save, Trash2, Download, Shield } from 'lucide-react';
 
 export const PlayView = ({ 
   activeBot = null, 
@@ -35,10 +37,11 @@ export const PlayView = ({
   onExitMatch,
   onOpenBugReport 
 }) => {
-  const { currentUser, updateCurrentUser, recordGameResult, recordBotWin } = useUser();
+  const { currentUser, updateCurrentUser, recordGameResult, recordBotWin, pendingInvitationsForMe, acceptFamilyInvitation, declineFamilyInvitation } = useUser();
   const [isPauseMenuOpen, setIsPauseMenuOpen] = useState(false);
   const [isVariantRulesOpen, setIsVariantRulesOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isAssistanceDisabled, setIsAssistanceDisabled] = useState(false);
   const { isInstalled, triggerInstall } = usePWAInstall();
 
   useEffect(() => {
@@ -1028,8 +1031,63 @@ export const PlayView = ({
 
   const activeHint = currentHintLevel > 0 && hints ? hints[currentHintLevel - 1] : null;
 
+  const capturedPieces = useMemo(() => getCapturedPieces(game.fen()), [game]);
+
   return (
     <div className="game-responsive-container">
+      {/* 0. BANNER DE RETO FAMILIAR ENTRANTE SI EXISTE */}
+      {pendingInvitationsForMe && pendingInvitationsForMe.length > 0 && (
+        <div style={{
+          gridColumn: '1 / -1',
+          background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.25) 0%, rgba(16, 185, 129, 0.20) 100%)',
+          border: '2px solid var(--color-gold)',
+          borderRadius: 'var(--radius-lg, 16px)',
+          padding: '12px 18px',
+          boxShadow: '0 6px 20px rgba(245, 158, 11, 0.25)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px',
+          marginBottom: '10px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '1.4rem' }}>⚔️</span>
+            <div>
+              <div style={{ fontWeight: '900', fontSize: '0.96rem', color: 'var(--text-parchment-main)' }}>
+                ¡{pendingInvitationsForMe[0].fromUser?.name || 'Un familiar'} te está retando en línea!
+              </div>
+              <div style={{ fontSize: '0.74rem', color: 'var(--text-parchment-muted)' }}>
+                ⏱️ {Math.round((pendingInvitationsForMe[0].timeControl || 300) / 60)}m • Sala: {pendingInvitationsForMe[0].roomId}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button
+              type="button"
+              className="btn-gold"
+              onClick={() => {
+                const inv = acceptFamilyInvitation(pendingInvitationsForMe[0].id);
+                if (inv && onOpenP2P) onOpenP2P(inv.roomId);
+              }}
+              style={{ padding: '7px 14px', fontSize: '0.82rem', fontWeight: '900', gap: '5px' }}
+            >
+              <Swords size={14} />
+              <span>Aceptar Reto Familiar ⚔️</span>
+            </button>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => declineFamilyInvitation(pendingInvitationsForMe[0].id)}
+              style={{ padding: '7px 10px', fontSize: '0.78rem' }}
+            >
+              <X size={13} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* COLUMNA IZQUIERDA: OPONENTE + TABLERO + JUGADOR */}
       <div className="game-board-column">
         {/* Tarjeta del Oponente con Altura Fija Rigurosa */}
@@ -1071,8 +1129,16 @@ export const PlayView = ({
             )}
 
             <div className="game-card-info">
-              <div className="game-card-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div className="game-card-title" style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                 <span>{gameMode === 'pass_and_play' ? 'Jugador 2 (Negras)' : `${botToPlay?.name || 'Robot'} (${playerColor === 'white' ? 'Negras' : 'Blancas'})`}</span>
+                
+                {/* Piezas capturadas por el oponente en orden */}
+                <CapturedPiecesBar
+                  capturedList={playerColor === 'white' ? capturedPieces.capturedByBlack : capturedPieces.capturedByWhite}
+                  advantage={playerColor === 'white' ? capturedPieces.blackAdvantage : capturedPieces.whiteAdvantage}
+                  color={playerColor === 'white' ? 'w' : 'b'}
+                />
+
                 {gameVariant !== 'standard' && (
                   <button
                     onClick={() => setIsVariantRulesOpen(true)}
@@ -1167,10 +1233,10 @@ export const PlayView = ({
           onMove={handlePlayerMove}
           lastMove={lastMove}
           animatingMove={animatingMove}
-          showLegalMoves={handicapConfig.visualMoveGuide}
-          dangerSquares={dangerSquares}
-          hintQuadrant={activeHint?.quadrant}
-          hintSquare={activeHint?.square}
+          showLegalMoves={!isAssistanceDisabled && handicapConfig.visualMoveGuide}
+          dangerSquares={isAssistanceDisabled ? [] : dangerSquares}
+          hintQuadrant={isAssistanceDisabled ? null : activeHint?.quadrant}
+          hintSquare={isAssistanceDisabled ? null : activeHint?.square}
           hillSquares={gameVariant === 'king_of_the_hill' ? ['d4', 'd5', 'e4', 'e5'] : []}
           allowedPieceType={gameVariant === 'dice_chess' ? currentDiceRoll : null}
         />
@@ -1185,8 +1251,15 @@ export const PlayView = ({
               <AvatarIcon avatarId={currentUser?.avatar || 'custom_dynamic'} avatarConfig={currentUser?.avatarConfig} size={36} />
             </div>
             <div className="game-card-info">
-              <div className="game-card-title">
-                {currentUser?.name || 'Estudiante'} ({playerColor === 'white' ? 'Blancas' : 'Negras'})
+              <div className="game-card-title" style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                <span>{currentUser?.name || 'Estudiante'} ({playerColor === 'white' ? 'Blancas' : 'Negras'})</span>
+                
+                {/* Piezas capturadas por el jugador local en orden */}
+                <CapturedPiecesBar
+                  capturedList={playerColor === 'white' ? capturedPieces.capturedByWhite : capturedPieces.capturedByBlack}
+                  advantage={playerColor === 'white' ? capturedPieces.whiteAdvantage : capturedPieces.blackAdvantage}
+                  color={playerColor === 'white' ? 'b' : 'w'}
+                />
               </div>
               <div className="game-card-subtitle">
                 {currentUser?.title || 'Aprendiz'} • {currentUser?.elo || 650} Elo
@@ -1327,6 +1400,31 @@ export const PlayView = ({
 
         {/* Grid Ergonómico de Botones de Acción Táctiles (Tutor y Ayudas Pedagógicas) */}
         <div className="game-actions-grid">
+          {/* BOTÓN RÁPIDO: MODO CLÁSICO / DESACTIVAR TODAS LAS AYUDAS */}
+          <button
+            type="button"
+            className={isAssistanceDisabled ? "btn-primary btn-full-row" : "btn-secondary btn-full-row"}
+            onClick={() => {
+              setIsAssistanceDisabled(prev => !prev);
+              setHints(null);
+              setCurrentHintLevel(0);
+            }}
+            style={{
+              justifyContent: 'center',
+              padding: '10px 14px',
+              fontSize: '0.85rem',
+              fontWeight: '900',
+              border: isAssistanceDisabled ? '2px solid #10b981' : '1.5px solid var(--color-gold)',
+              background: isAssistanceDisabled ? 'rgba(16, 185, 129, 0.15)' : 'rgba(234, 179, 8, 0.08)',
+              color: isAssistanceDisabled ? '#10b981' : 'var(--text-parchment-main)',
+              gap: '8px'
+            }}
+            title="Activar o desactivar todas las pistas, flechas y sugerencias del tutor de una sola vez"
+          >
+            {isAssistanceDisabled ? <Shield size={16} color="#10b981" /> : <Lightbulb size={16} color="#eab308" />}
+            <span>{isAssistanceDisabled ? '🛡️ Ayudas Desactivadas (Modo Clásico Puro)' : '💡 Ayudas y Pistas: ACTIVAS (Clic para Desactivar Todas)'}</span>
+          </button>
+
           {/* Botón Principal de Revisión de Partida */}
           <button
             className="btn-primary btn-full-row"
