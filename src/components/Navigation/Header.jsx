@@ -5,7 +5,8 @@ import { usePWAInstall } from '../../hooks/usePWAInstall';
 import { PWAInstallModal } from '../PWA/PWAInstallModal';
 import { 
   Home, Swords, Bot, Puzzle, BookOpen, User, Trophy, 
-  Settings, Maximize, Minimize, Bug, FileText, Award, Flame, Download, Smartphone, Users, DoorOpen, Globe, MessageSquare
+  Settings, Maximize, Minimize, Bug, FileText, Award, Flame, Download, Smartphone, Users, DoorOpen, Globe, MessageSquare,
+  ChevronDown, Compass, Sparkles
 } from 'lucide-react';
 
 export const Header = ({ 
@@ -25,15 +26,20 @@ export const Header = ({
   const { currentUser, activeGroup, users, forceCloudSync, unreadMessagesCount } = useUser();
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
+  const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
   const toolsMenuRef = useRef(null);
+  const navMenuRef = useRef(null);
 
   const { isInstalled, isIOS, showInstallModal, setShowInstallModal, openInstallModal, triggerNativePrompt, hasNativePrompt } = usePWAInstall();
 
-  // Cerrar menú al hacer clic fuera
+  // Cerrar menús al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (toolsMenuRef.current && !toolsMenuRef.current.contains(e.target)) {
         setIsToolsMenuOpen(false);
+      }
+      if (navMenuRef.current && !navMenuRef.current.contains(e.target)) {
+        setIsNavMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -61,14 +67,17 @@ export const Header = ({
   };
 
   const tabs = [
-    { id: 'inicio', label: 'Inicio', icon: Home },
-    { id: 'aprender', label: 'Aprender', icon: BookOpen },
-    { id: 'problemas', label: 'Problemas', icon: Puzzle },
-    { id: 'robots', label: 'Robots', icon: Bot },
-    { id: 'jugar', label: 'Jugar', icon: Swords },
-    { id: 'torneos', label: 'Torneos', icon: Trophy },
-    { id: 'yo', label: 'Yo', icon: User },
+    { id: 'inicio', label: 'Inicio', icon: Home, desc: 'Panel principal, resumen y estado familiar', color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.15)' },
+    { id: 'aprender', label: 'Aprender', icon: BookOpen, desc: '110 lecciones pedagógicas interactivas', color: '#34d399', bg: 'rgba(52, 211, 153, 0.15)' },
+    { id: 'problemas', label: 'Problemas', icon: Puzzle, desc: 'Puzzles tácticos diarios y jaques mate', color: '#fbbf24', bg: 'rgba(251, 191, 36, 0.15)' },
+    { id: 'robots', label: 'Robots', icon: Bot, desc: '6 bots con personalidades y Elo dinámico', color: '#a78bfa', bg: 'rgba(167, 139, 250, 0.15)' },
+    { id: 'jugar', label: 'Jugar', icon: Swords, desc: 'Partidas P2P familiares y 10 minijuegos', color: '#f87171', bg: 'rgba(248, 113, 113, 0.15)' },
+    { id: 'torneos', label: 'Torneos', icon: Trophy, desc: 'Copas, campeonatos y tabla de clasificación', color: '#fb923c', bg: 'rgba(251, 146, 60, 0.15)' },
+    { id: 'yo', label: 'Yo / Perfil', icon: User, desc: 'Avatar studio, logros y estadísticas', color: '#ec4899', bg: 'rgba(236, 72, 153, 0.15)' },
   ];
+
+  const activeTabObj = tabs.find(t => t.id === activeTab) || tabs[0];
+  const ActiveIcon = activeTabObj.icon;
 
   return (
     <>
@@ -82,24 +91,164 @@ export const Header = ({
             <h1 className="brand-title">Ajedrez Junvill</h1>
           </div>
 
-          {/* 2. PESTAÑAS DE NAVEGACIÓN DESKTOP (PC) */}
-          <nav className="desktop-nav-tabs" aria-label="Navegación principal">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  className={`desktop-nav-tab ${isActive ? 'active' : ''}`}
-                  onClick={() => onTabChange(tab.id)}
-                >
-                  <Icon size={16} />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
-          </nav>
+          {/* 2. BOTÓN CENTRAL LLAMATIVO: SELECTOR / DESPLEGABLE DE SECCIONES */}
+          <div style={{ position: 'relative' }} ref={navMenuRef}>
+            <button
+              type="button"
+              onClick={() => setIsNavMenuOpen(!isNavMenuOpen)}
+              className="central-nav-hub-btn"
+              title="Explorar y cambiar de sección"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '6px 16px',
+                background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%)',
+                border: '1.5px solid #eab308',
+                borderRadius: '9999px',
+                color: '#f8fafc',
+                cursor: 'pointer',
+                boxShadow: isNavMenuOpen 
+                  ? '0 0 16px rgba(234, 179, 8, 0.4)' 
+                  : '0 4px 12px rgba(0, 0, 0, 0.3), 0 0 8px rgba(234, 179, 8, 0.2)',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <div style={{
+                background: 'linear-gradient(135deg, #eab308 0%, #ca8a04 100%)',
+                color: '#0f172a',
+                width: '24px',
+                height: '24px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 2px 6px rgba(234, 179, 8, 0.4)'
+              }}>
+                <ActiveIcon size={14} strokeWidth={2.5} />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left', lineHeight: 1.1 }}>
+                <span style={{ fontSize: '0.62rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '800' }}>
+                  Sección
+                </span>
+                <span style={{ fontSize: '0.88rem', fontWeight: '900', color: '#facc15' }}>
+                  {activeTabObj.label}
+                </span>
+              </div>
+
+              <ChevronDown 
+                size={16} 
+                strokeWidth={2.5}
+                color="#eab308"
+                style={{
+                  transition: 'transform 0.2s ease',
+                  transform: isNavMenuOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                  marginLeft: '2px'
+                }}
+              />
+            </button>
+
+            {/* MENÚ DESPLEGABLE CENTRAL (HUB DE SECCIONES) */}
+            {isNavMenuOpen && (
+              <div
+                className="central-nav-popover animate-scale-in"
+                style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 10px)',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  background: '#0f172a',
+                  border: '2px solid rgba(234, 179, 8, 0.4)',
+                  borderRadius: '18px',
+                  boxShadow: '0 20px 50px rgba(0,0,0,0.85), 0 0 25px rgba(234, 179, 8, 0.25)',
+                  padding: '14px',
+                  minWidth: '330px',
+                  maxWidth: '380px',
+                  zIndex: 2500,
+                  backdropFilter: 'blur(16px)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', paddingBottom: '8px', borderBottom: '1px solid #1e293b' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Compass size={15} color="#eab308" />
+                    <span style={{ fontSize: '0.8rem', fontWeight: '900', color: '#fde047', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Secciones de la Academia
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                    7 Módulos
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                  {tabs.map((tab) => {
+                    const Icon = tab.icon;
+                    const isActive = activeTab === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => {
+                          onTabChange(tab.id);
+                          setIsNavMenuOpen(false);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px',
+                          padding: '8px 12px',
+                          borderRadius: '10px',
+                          border: isActive ? '1.5px solid #eab308' : '1px solid transparent',
+                          background: isActive 
+                            ? 'linear-gradient(135deg, rgba(234, 179, 8, 0.18) 0%, rgba(30, 41, 59, 0.5) 100%)' 
+                            : 'rgba(30, 41, 59, 0.4)',
+                          color: isActive ? '#facc15' : '#f8fafc',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          transition: 'all 0.15s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isActive) e.currentTarget.style.background = 'rgba(51, 65, 85, 0.6)';
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isActive) e.currentTarget.style.background = 'rgba(30, 41, 59, 0.4)';
+                        }}
+                      >
+                        <div style={{
+                          background: isActive ? '#eab308' : tab.bg || 'rgba(100, 116, 139, 0.2)',
+                          color: isActive ? '#0f172a' : tab.color || '#38bdf8',
+                          padding: '7px',
+                          borderRadius: '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          boxShadow: isActive ? '0 2px 8px rgba(234, 179, 8, 0.4)' : 'none'
+                        }}>
+                          <Icon size={16} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <span style={{ fontSize: '0.86rem', fontWeight: '900' }}>
+                              {tab.label}
+                            </span>
+                            {isActive && (
+                              <span style={{ fontSize: '0.65rem', background: '#eab308', color: '#0f172a', padding: '1px 6px', borderRadius: '999px', fontWeight: '900' }}>
+                                Actual
+                              </span>
+                            )}
+                          </div>
+                          <p style={{ margin: '1px 0 0', fontSize: '0.7rem', color: '#94a3b8' }}>
+                            {tab.desc}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* 3. BARRA RÁPIDA DE USUARIO, HERRAMIENTAS Y MANUAL */}
           <div className="user-quick-bar">
