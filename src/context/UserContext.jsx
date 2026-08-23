@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { familySignaling } from '../engine/familySignaling';
 import { audioManager } from '../engine/audio';
-import { cloudSync } from '../engine/cloudSync';
+import { cloudSync, normalizeUserKey, deduplicateAndMergeUsers } from '../engine/cloudSync';
 
 const UserContext = createContext();
 
