@@ -8,6 +8,7 @@ import { useUser } from '../context/UserContext';
 import { getCoachById } from '../assets/coachesData';
 import confetti from 'canvas-confetti';
 import { X, CheckCircle2, AlertCircle, ArrowRight, RotateCcw, Lightbulb, Volume2, VolumeX, Sparkles, Bug, Maximize, Minimize } from 'lucide-react';
+import { BugReportModal } from '../components/BugReport/BugReportModal';
 
 export const LessonPlayerModal = ({ lesson, onClose, onOpenBugReport }) => {
   const { currentUser, recordLessonScore } = useUser();
@@ -411,17 +412,22 @@ export const LessonPlayerModal = ({ lesson, onClose, onOpenBugReport }) => {
     return `¡Mueve de ${sol.from.toUpperCase()} hacia ${sol.to.toUpperCase()}!`;
   };
 
-  const handleReportIssue = () => {
+  const [isInternalBugReportOpen, setIsInternalBugReportOpen] = useState(false);
+
+  const handleReportIssue = (e) => {
+    if (e && e.stopPropagation) e.stopPropagation();
+    const context = {
+      view: 'leccion',
+      lesson: lesson,
+      stepIndex: currentStepIdx,
+      step: currentStep,
+      fen: fenState,
+      orientation: lessonOrientation
+    };
     if (onOpenBugReport) {
-      onOpenBugReport({
-        view: 'leccion',
-        lesson: lesson,
-        stepIndex: currentStepIdx,
-        step: currentStep,
-        fen: fenState,
-        orientation: lessonOrientation
-      });
+      onOpenBugReport(context);
     }
+    setIsInternalBugReportOpen(true);
   };
 
   const activeHintText = getActiveHintText();
@@ -653,6 +659,20 @@ export const LessonPlayerModal = ({ lesson, onClose, onOpenBugReport }) => {
           </div>
         </div>
       </div>
+
+      {/* Modal de Reporte de Bug embebido directamente en la lección */}
+      <BugReportModal
+        isOpen={isInternalBugReportOpen}
+        onClose={() => setIsInternalBugReportOpen(false)}
+        contextData={{
+          view: 'leccion',
+          lesson: lesson,
+          stepIndex: currentStepIdx,
+          step: currentStep,
+          fen: fenState,
+          orientation: lessonOrientation
+        }}
+      />
     </div>
   );
 };

@@ -2280,64 +2280,64 @@ export const CURRICULUM_SECTIONS = [
         "steps": [
           {
             "type": "theory",
-            "title": "La Trinchera Inexpugnable",
-            "text": "Entregar tus últimas piezas activas para quedar sin jugadas legales en una posición donde NO estás en jaque salva medio punto milagroso.",
-            "fen": "k7/8/1K6/8/8/8/8/7R w - - 0 1"
+            "title": "El Rey Ahogado como Salvación",
+            "text": "Cuando estás en inferioridad material, si tu rey y piezas quedan sin movimientos legales (y no estás en jaque), la partida termina en tablas por ahogado. ¡Es el mejor recurso defensivo del ajedrez!",
+            "fen": "8/8/8/8/8/5k1p/8/7K w - - 0 1"
           },
           {
             "id": "ex_1",
-            "fen": "k7/8/1K6/8/8/8/8/7R w - - 0 1",
-            "instruction": "Paso 1: Da Jaque Mate en h8 con tu Torre.",
+            "fen": "8/8/8/8/8/5k1p/8/6K1 w - - 0 1",
+            "instruction": "Paso 1: Mueve tu Rey a la esquina h1 (de g1 a h1). Si el rey negro avanza a g3 o adelanta el peón a h2, ¡la partida termina en tablas por rey ahogado!",
             "solution": {
-              "from": "h1",
-              "to": "h8"
+              "from": "g1",
+              "to": "h1"
             },
-            "hint": "Lleva tu torre a h8.",
-            "feedback": "¡Mate limpio!"
+            "hint": "Mueve el rey a la esquina h1.",
+            "feedback": "¡Excelente! Al refugiarte en h1, las negras no pueden ganar porque todo avance provoca rey ahogado."
           },
           {
             "id": "ex_2",
-            "fen": "8/1k6/8/8/8/8/8/R3K3 w - - 0 1",
-            "instruction": "Paso 2: Corta en la 7ª fila con tu Torre.",
+            "fen": "8/8/8/8/8/5k2/4p3/5K2 w - - 0 1",
+            "instruction": "Paso 2: El peón en e2 te da jaque. Mueve tu Rey a e1 (de f1 a e1). Si el rey negro avanza a e3, ¡serán tablas inmediatas por rey ahogado!",
             "solution": {
-              "from": "a1",
-              "to": "a7"
+              "from": "f1",
+              "to": "e1"
             },
-            "hint": "Mueve la torre a a7.",
-            "feedback": "¡Corte de fila!"
+            "hint": "Coloca tu rey en e1 delante del peón.",
+            "feedback": "¡Gran defensa! Frente al peón en e1, si el rey negro apoya en e3 no tienes jugadas legales y quedas ahogado."
           },
           {
             "id": "ex_3",
-            "fen": "8/R7/1k6/8/8/8/8/4K3 w - - 0 1",
-            "instruction": "Paso 3: Acerca tu Rey a e2.",
+            "fen": "8/8/8/8/8/5k2/6q1/5Q1K w - - 0 1",
+            "instruction": "Paso 3: La Dama negra en g2 da jaque a tu Rey en h1. Captura la Dama con tu propia Dama en g2 (Dxg2+). Tras la recaptura enemiga, ¡quedarás ahogado y salvas el empate!",
             "solution": {
-              "from": "e1",
-              "to": "e2"
+              "from": "f1",
+              "to": "g2"
             },
-            "hint": "Avanza el rey a e2.",
-            "feedback": "¡Rey en marcha!"
+            "hint": "Captura la dama enemiga en g2.",
+            "feedback": "¡Sacrificio salvador! Al eliminar las damas, el rey negro en g2 te ahoga por completo asegurando las tablas."
           },
           {
             "id": "ex_4",
-            "fen": "8/R7/1k6/8/8/4K3/8/8 w - - 0 1",
-            "instruction": "Paso 4: Continúa a e4 con tu Rey.",
+            "fen": "7k/8/8/8/8/6q1/8/R6K w - - 0 1",
+            "instruction": "Paso 4: La dama negra en g3 amenaza jaque mate. Entrega tu Torre con Ta3 (de a1 a a3) atacando a la dama. Si la capturan, ¡tu rey en h1 queda totalmente ahogado!",
             "solution": {
-              "from": "e3",
-              "to": "e4"
+              "from": "a1",
+              "to": "a3"
             },
-            "hint": "Mueve el rey a e4.",
-            "feedback": "¡Rey centralizado!"
+            "hint": "Mueve tu torre a a3 atacando a la dama.",
+            "feedback": "¡Torre Kamikaze brillante! Si la dama come tu torre en a3 quedas ahogado, salvando medio punto milagroso."
           },
           {
             "id": "ex_5",
-            "fen": "8/R7/1k2K3/8/8/8/8/8 w - - 0 1",
-            "instruction": "Paso 5: Mueve tu Torre de a7 a a8.",
+            "fen": "k7/8/1K6/8/8/8/8/6Q1 w - - 0 1",
+            "instruction": "Paso 5: Ahora juegas con ventaja. Lleva tu Dama de g1 a g8 dando Jaque Mate directo (Dg8#), sin cometer el error de ahogar al rey rival.",
             "solution": {
-              "from": "a7",
-              "to": "a8"
+              "from": "g1",
+              "to": "g8"
             },
-            "hint": "Lleva la torre a a8.",
-            "feedback": "¡Técnica de ahogado y mate asimilada!"
+            "hint": "Lleva la dama a g8 para dar mate.",
+            "feedback": "¡Maestría completa! Aprendiste a utilizar el ahogado para salvarte y a evitarlo cuando estás ganando."
           }
         ]
       },
