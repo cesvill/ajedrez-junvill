@@ -4,6 +4,8 @@
  * en tiempo real entre múltiples dispositivos (tablets, smartphones, laptops y PCs).
  */
 
+const CLOUD_STORAGE_BASE = 'https://api.cl1p.net/ajedrez_junvill_cloud_sync_';
+
 class CloudSyncService {
   constructor() {
     this.syncInterval = null;
@@ -26,6 +28,10 @@ class CloudSyncService {
         console.error('Error en listener de CloudSync:', e);
       }
     });
+
+    try {
+      window.dispatchEvent(new CustomEvent('junvill_cloud_synced', { detail: data }));
+    } catch (e) {}
   }
 
   // Fusión inteligente de usuarios (Merge CRDT sin pérdidas)
@@ -42,7 +48,12 @@ class CloudSyncService {
     // 2. Fusionar con usuarios de la nube
     (cloudUsers || []).forEach(cUser => {
       if (!cUser || !cUser.id) return;
-      const lUser = userMap.get(cUser.id);
+      
+      let lUser = userMap.get(cUser.id);
+      if (!lUser) {
+        // Buscar por nombre si los IDs difieren
+        lUser = Array.from(userMap.values()).find(u => (u.name || '').toLowerCase().trim() === (cUser.name || '').toLowerCase().trim());
+      }
 
       if (!lUser) {
         // Usuario nuevo creado en otro dispositivo (ej. Martin, Leti)
@@ -77,6 +88,12 @@ class CloudSyncService {
         }
       });
 
+      // Calcular puntos totales acumulados
+      let totalLessonPts = 0;
+      Object.values(mergedLessonProgress).forEach(p => {
+        totalLessonPts += (p.stars || 0);
+      });
+
       // Fusionar estadísticas y victorias contra bots
       const mergedBotVictories = {
         ...(lUser.botVictories || {}),
@@ -100,16 +117,17 @@ class CloudSyncService {
         finales: Math.max(lUser.radarSkills?.finales || 0, cUser.radarSkills?.finales || 0)
       };
 
-      userMap.set(cUser.id, {
+      userMap.set(lUser.id, {
         ...lUser,
         ...cUser,
+        id: lUser.id,
         name: cUser.name || lUser.name,
         role: cUser.role || lUser.role,
         avatar: cUser.avatar || lUser.avatar,
         avatarConfig: cUser.avatarConfig || lUser.avatarConfig,
         stars: Math.max(lUser.stars || 0, cUser.stars || 0),
         gems: Math.max(lUser.gems || 0, cUser.gems || 0),
-        totalPoints: Math.max(lUser.totalPoints || 0, cUser.totalPoints || 0),
+        totalPoints: Math.max(totalLessonPts, lUser.totalPoints || 0, cUser.totalPoints || 0),
         elo: Math.max(lUser.elo || 600, cUser.elo || 600),
         puzzleRating: Math.max(lUser.puzzleRating || 400, cUser.puzzleRating || 400),
         lessonProgress: mergedLessonProgress,
@@ -131,23 +149,44 @@ class CloudSyncService {
     return Array.from(userMap.values());
   }
 
-  // Obtener estado más reciente desde la Nube Central
+  // Obtener estado más reciente desde la Nube Central (con doble redundancia)
   async fetchCloudGroup(groupId = 'group_junvill') {
+    const cleanId = String(groupId || 'group_junvill').replace(/[^a-zA-Z0-9_-]/g, '');
+
+    // 1. Intentar Vercel Serverless Endpoint
     try {
-      // 1. Intentar Vercel Serverless Endpoint
       const response = await fetch(`/api/sync?groupId=${encodeURIComponent(groupId)}`, {
         method: 'GET',
-        headers: { 'Accept': 'application/json' }
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(3500)
       });
 
       if (response.ok) {
         const json = await response.json();
-        if (json && json.data) {
+        if (json && json.data && json.data.users && Array.isArray(json.data.users)) {
           return json.data;
         }
       }
     } catch (e) {
-      // Endpoint local / offline fallback
+      // Fallback a almacenamiento duradero directo
+    }
+
+    // 2. Fallback a nube duradera directa
+    try {
+      const directRes = await fetch(`${CLOUD_STORAGE_BASE}${cleanId}`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(4000)
+      });
+
+      if (directRes.ok) {
+        const json = await directRes.json();
+        if (json && json.users && Array.isArray(json.users)) {
+          return json;
+        }
+      }
+    } catch (err) {
+      // Fallback offline
     }
 
     return null;
@@ -157,31 +196,41 @@ class CloudSyncService {
   async pushGroupToCloud(groupData, groupId = 'group_junvill') {
     if (!groupData) return null;
     this.isSyncing = true;
+    const cleanId = String(groupId || 'group_junvill').replace(/[^a-zA-Z0-9_-]/g, '');
+    const payload = {
+      groupId,
+      groupData: {
+        ...groupData,
+        updatedAt: Date.now()
+      }
+    };
 
+    // 1. Enviar a Vercel Serverless
     try {
-      const response = await fetch('/api/sync', {
+      fetch('/api/sync', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        body: JSON.stringify({
-          groupId,
-          groupData: {
-            ...groupData,
-            updatedAt: Date.now()
-          }
-        })
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(4000)
+      }).catch(() => {});
+    } catch (e) {}
+
+    // 2. Enviar a Nube Duradera Directa
+    try {
+      const directRes = await fetch(`${CLOUD_STORAGE_BASE}${cleanId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload.groupData),
+        signal: AbortSignal.timeout(4000)
       });
 
-      if (response.ok) {
-        const json = await response.json();
+      if (directRes.ok) {
         this.lastSyncTime = Date.now();
-        return json.data || groupData;
       }
-    } catch (e) {
-      // Modo offline: se sincronizará al reconectar
-    } finally {
+    } catch (e) {} finally {
       this.isSyncing = false;
     }
 
@@ -189,7 +238,7 @@ class CloudSyncService {
   }
 
   // Iniciar sincronización periódica automática
-  startPeriodicSync(getActiveGroup, onCloudUpdate, intervalMs = 15000) {
+  startPeriodicSync(getActiveGroup, onCloudUpdate, intervalMs = 10000) {
     if (this.syncInterval) clearInterval(this.syncInterval);
 
     const performSync = async () => {
@@ -229,10 +278,13 @@ class CloudSyncService {
     // Sincronizar periódicamente
     this.syncInterval = setInterval(performSync, intervalMs);
 
-    // Sincronizar cuando el usuario regresa a la pestaña (focus)
+    // Sincronizar cuando el usuario regresa a la pestaña (focus / visibilidad)
     const handleFocus = () => performSync();
     window.addEventListener('focus', handleFocus);
     window.addEventListener('online', handleFocus);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') performSync();
+    });
 
     return () => {
       if (this.syncInterval) clearInterval(this.syncInterval);

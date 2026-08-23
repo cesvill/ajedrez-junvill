@@ -1,7 +1,151 @@
 // Vercel Serverless Function: Central Cloud Storage for Ajedrez Junvill
 // Persists and synchronizes groups and player profiles across all family devices (PC, tablet, smartphones).
 
-let inMemoryCloudStore = null;
+let inMemoryCloudStore = {};
+
+const CLOUD_STORAGE_BASE = 'https://api.cl1p.net/ajedrez_junvill_cloud_sync_';
+
+async function fetchFromDurableCloud(groupId) {
+  try {
+    const cleanId = String(groupId || 'group_junvill').replace(/[^a-zA-Z0-9_-]/g, '');
+    const res = await fetch(`${CLOUD_STORAGE_BASE}${cleanId}`, {
+      headers: { 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(4000)
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.users && Array.isArray(data.users)) {
+        return data;
+      }
+    }
+  } catch (e) {
+    // Fallback to memory
+  }
+  return inMemoryCloudStore[groupId] || null;
+}
+
+async function saveToDurableCloud(groupId, data) {
+  try {
+    const cleanId = String(groupId || 'group_junvill').replace(/[^a-zA-Z0-9_-]/g, '');
+    await fetch(`${CLOUD_STORAGE_BASE}${cleanId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+      signal: AbortSignal.timeout(4000)
+    });
+  } catch (e) {
+    // Fallback to memory
+  }
+}
+
+function mergeUsers(existingUsers = [], newUsers = []) {
+  const userMap = new Map();
+
+  (existingUsers || []).forEach(u => {
+    if (u && u.id) userMap.set(u.id, { ...u });
+  });
+
+  (newUsers || []).forEach(nUser => {
+    if (!nUser || !nUser.id) return;
+    
+    // Buscar por ID o por nombre
+    let existing = userMap.get(nUser.id);
+    if (!existing) {
+      existing = Array.from(userMap.values()).find(u => (u.name || '').toLowerCase().trim() === (nUser.name || '').toLowerCase().trim());
+    }
+
+    if (!existing) {
+      userMap.set(nUser.id, { ...nUser });
+      return;
+    }
+
+    // Fusión de lecciones
+    const mergedLessons = {
+      ...(existing.lessonProgress || {}),
+      ...(nUser.lessonProgress || {})
+    };
+
+    const allLessonKeys = Array.from(new Set([
+      ...Object.keys(existing.lessonProgress || {}),
+      ...Object.keys(nUser.lessonProgress || {})
+    ]));
+
+    allLessonKeys.forEach(k => {
+      const oldL = existing.lessonProgress?.[k];
+      const newL = nUser.lessonProgress?.[k];
+      if (oldL && newL) {
+        mergedLessons[k] = {
+          stars: Math.max(oldL.stars || 0, newL.stars || 0),
+          completed: Boolean(oldL.completed || newL.completed),
+          updatedAt: Math.max(oldL.updatedAt || 0, newL.updatedAt || 0)
+        };
+      } else if (newL) {
+        mergedLessons[k] = newL;
+      } else if (oldL) {
+        mergedLessons[k] = oldL;
+      }
+    });
+
+    // Calcular puntos acumulados de lecciones
+    let totalLessonPts = 0;
+    Object.values(mergedLessons).forEach(p => {
+      totalLessonPts += (p.stars || 0);
+    });
+
+    // Fusión de victorias contra bots
+    const mergedBotVictories = {
+      ...(existing.botVictories || {}),
+      ...(nUser.botVictories || {})
+    };
+    const allBots = Array.from(new Set([
+      ...Object.keys(existing.botVictories || {}),
+      ...Object.keys(nUser.botVictories || {})
+    ]));
+    allBots.forEach(b => {
+      mergedBotVictories[b] = Math.max(existing.botVictories?.[b] || 0, nUser.botVictories?.[b] || 0);
+    });
+
+    // Fusión de radar
+    const mergedRadar = {
+      tactica: Math.max(existing.radarSkills?.tactica || 0, nUser.radarSkills?.tactica || 0),
+      estrategia: Math.max(existing.radarSkills?.estrategia || 0, nUser.radarSkills?.estrategia || 0),
+      posicional: Math.max(existing.radarSkills?.posicional || 0, nUser.radarSkills?.posicional || 0),
+      calculo: Math.max(existing.radarSkills?.calculo || 0, nUser.radarSkills?.calculo || 0),
+      aperturas: Math.max(existing.radarSkills?.aperturas || 0, nUser.radarSkills?.aperturas || 0),
+      finales: Math.max(existing.radarSkills?.finales || 0, nUser.radarSkills?.finales || 0)
+    };
+
+    userMap.set(existing.id, {
+      ...existing,
+      ...nUser,
+      id: existing.id,
+      name: nUser.name || existing.name,
+      role: nUser.role || existing.role,
+      avatar: nUser.avatar || existing.avatar,
+      avatarConfig: nUser.avatarConfig || existing.avatarConfig,
+      stars: Math.max(existing.stars || 0, nUser.stars || 0),
+      gems: Math.max(existing.gems || 0, nUser.gems || 0),
+      totalPoints: Math.max(totalLessonPts, existing.totalPoints || 0, nUser.totalPoints || 0),
+      elo: Math.max(existing.elo || 0, nUser.elo || 0),
+      puzzleRating: Math.max(existing.puzzleRating || 0, nUser.puzzleRating || 0),
+      lessonProgress: mergedLessons,
+      botVictories: mergedBotVictories,
+      radarSkills: mergedRadar,
+      stats: {
+        gamesPlayed: Math.max(existing.stats?.gamesPlayed || 0, nUser.stats?.gamesPlayed || 0),
+        wins: Math.max(existing.stats?.wins || 0, nUser.stats?.wins || 0),
+        losses: Math.max(existing.stats?.losses || 0, nUser.stats?.losses || 0),
+        draws: Math.max(existing.stats?.draws || 0, nUser.stats?.draws || 0),
+        puzzlesSolved: Math.max(existing.stats?.puzzlesSolved || 0, nUser.stats?.puzzlesSolved || 0),
+        hintsUsed: Math.max(existing.stats?.hintsUsed || 0, nUser.stats?.hintsUsed || 0),
+        accuracyAvg: Math.max(existing.stats?.accuracyAvg || 0, nUser.stats?.accuracyAvg || 0)
+      },
+      updatedAt: Date.now()
+    });
+  });
+
+  return Array.from(userMap.values());
+}
 
 export default async function handler(req, res) {
   // Configurar cabeceras CORS para comunicación segura entre dispositivos
@@ -21,13 +165,14 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       const groupId = req.query.groupId || 'group_junvill';
       
-      // Si hay datos en memoria o almacenamiento persistente, devolverlos
-      if (inMemoryCloudStore && inMemoryCloudStore[groupId]) {
+      const cloudData = await fetchFromDurableCloud(groupId);
+      if (cloudData) {
+        inMemoryCloudStore[groupId] = cloudData;
         return res.status(200).json({
           success: true,
           groupId,
-          data: inMemoryCloudStore[groupId],
-          updatedAt: inMemoryCloudStore[groupId].updatedAt || Date.now()
+          data: cloudData,
+          updatedAt: cloudData.updatedAt || Date.now()
         });
       }
 
@@ -45,54 +190,28 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Missing groupData in request body' });
       }
 
-      if (!inMemoryCloudStore) {
-        inMemoryCloudStore = {};
-      }
-
-      const existing = inMemoryCloudStore[groupId] || {};
+      // Obtener datos existentes (de memoria o nube)
+      const existing = (await fetchFromDurableCloud(groupId)) || inMemoryCloudStore[groupId] || {};
       
-      // Fusión inteligente (Smart Merge) para no sobreescribir avances de lecciones
-      const mergedUsers = (groupData.users || []).map(newUser => {
-        const existingUser = (existing.users || []).find(u => u.id === newUser.id || (u.name || '').toLowerCase() === (newUser.name || '').toLowerCase());
-        if (!existingUser) return newUser;
+      // Fusión inteligente (Smart Merge CRDT)
+      const mergedUsers = mergeUsers(existing.users, groupData.users);
 
-        // Fusionar lessonProgress
-        const mergedLessons = { ...(existingUser.lessonProgress || {}), ...(newUser.lessonProgress || {}) };
-        Object.keys(existingUser.lessonProgress || {}).forEach(k => {
-          const oldL = existingUser.lessonProgress[k];
-          const newL = newUser.lessonProgress?.[k];
-          if (oldL && newL) {
-            mergedLessons[k] = {
-              stars: Math.max(oldL.stars || 0, newL.stars || 0),
-              completed: Boolean(oldL.completed || newL.completed),
-              updatedAt: Math.max(oldL.updatedAt || 0, newL.updatedAt || 0)
-            };
-          }
-        });
-
-        return {
-          ...existingUser,
-          ...newUser,
-          lessonProgress: mergedLessons,
-          stars: Math.max(existingUser.stars || 0, newUser.stars || 0),
-          gems: Math.max(existingUser.gems || 0, newUser.gems || 0),
-          totalPoints: Math.max(existingUser.totalPoints || 0, newUser.totalPoints || 0),
-          elo: Math.max(existingUser.elo || 0, newUser.elo || 0),
-          updatedAt: Date.now()
-        };
-      });
-
-      inMemoryCloudStore[groupId] = {
+      const mergedGroup = {
         ...existing,
         ...groupData,
         users: mergedUsers,
         updatedAt: Date.now()
       };
 
+      inMemoryCloudStore[groupId] = mergedGroup;
+      
+      // Persistir de forma asíncrona pero confiable en la nube duradera
+      await saveToDurableCloud(groupId, mergedGroup);
+
       return res.status(200).json({
         success: true,
         groupId,
-        data: inMemoryCloudStore[groupId],
+        data: mergedGroup,
         message: 'Progreso sincronizado exitosamente en la Base de Datos Central'
       });
     }

@@ -964,8 +964,10 @@ export const UserProvider = ({ children }) => {
     setGroups(prev => {
       const updated = prev.map(g => {
         if (g.id === effectiveGroupId) {
-          const updatedUsers = (g.users || []).map(u => u.id === userId ? { ...u, ...updates } : u);
-          return { ...g, users: updatedUsers };
+          const updatedUsers = (g.users || []).map(u => u.id === userId ? { ...u, ...updates, updatedAt: Date.now() } : u);
+          const updatedG = { ...g, users: updatedUsers, updatedAt: Date.now() };
+          cloudSync.pushGroupToCloud(updatedG, effectiveGroupId).catch(() => {});
+          return updatedG;
         }
         return g;
       });
@@ -974,6 +976,31 @@ export const UserProvider = ({ children }) => {
       } catch (e) {}
       return updated;
     });
+  };
+
+  const forceCloudSync = async () => {
+    try {
+      const currentG = activeGroup;
+      if (!currentG) return { success: false, message: 'No hay grupo familiar activo' };
+      const cloudG = await cloudSync.fetchCloudGroup(currentG.id);
+      if (cloudG && cloudG.users && Array.isArray(cloudG.users)) {
+        const mergedUsers = cloudSync.mergeUsers(currentG.users, cloudG.users);
+        const mergedG = { ...currentG, ...cloudG, users: mergedUsers, updatedAt: Date.now() };
+        setGroups(prev => {
+          const next = prev.map(g => g.id === mergedG.id ? mergedG : g);
+          try { localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(next)); } catch (e) {}
+          return next;
+        });
+        await cloudSync.pushGroupToCloud(mergedG, currentG.id);
+        try { audioManager?.playVictory?.(); } catch (e) {}
+        return { success: true, message: '¡Avance sincronizado con éxito desde la Nube Central!', data: mergedG };
+      } else {
+        await cloudSync.pushGroupToCloud(currentG, currentG.id);
+        return { success: true, message: '¡Avance local respaldado exitosamente en la Nube Central!', data: currentG };
+      }
+    } catch (e) {
+      return { success: false, message: 'No se pudo conectar con la Nube Central: ' + e.message };
+    }
   };
 
   const resetUserProgress = (userId) => {
@@ -1229,6 +1256,7 @@ export const UserProvider = ({ children }) => {
       recordBotWin,
       recordGameResult,
       unlockItem,
+      forceCloudSync,
       exportSaveData,
       importSaveData,
       resetUserData,

@@ -19,7 +19,8 @@ export const ProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder, onOpenGatek
     changeUserPassword,
     isDbSynced,
     exportSaveData,
-    importSaveData
+    importSaveData,
+    forceCloudSync
   } = useUser();
 
   const [isCreating, setIsCreating] = useState(false);
@@ -188,28 +189,53 @@ export const ProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder, onOpenGatek
               </div>
             </div>
 
-            {onOpenGatekeeper && (
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               <button
                 type="button"
-                className="btn-secondary"
-                onClick={() => {
-                  onClose();
-                  onOpenGatekeeper();
+                className="btn-gold"
+                onClick={async () => {
+                  showToast('⏳ Sincronizando con la Nube Central...');
+                  try {
+                    const res = await forceCloudSync();
+                    showToast(res?.message || '¡Sincronizado!');
+                  } catch (e) {
+                    showToast('Error: ' + e.message);
+                  }
                 }}
                 style={{
                   padding: '6px 12px',
                   fontSize: '0.78rem',
                   fontWeight: '800',
-                  gap: '6px',
-                  border: '1.5px solid var(--color-gold)',
-                  color: 'var(--color-gold)'
+                  gap: '6px'
                 }}
-                title="Cambiar o administrar grupos familiares"
+                title="Sincroniza y descarga los últimos avances de todos los perfiles de la nube"
               >
-                <Users size={14} />
-                <span>👨‍👩‍👧‍👦 Portal Familiar</span>
+                <span>🔄 Sincronizar Nube</span>
               </button>
-            )}
+
+              {onOpenGatekeeper && (
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => {
+                    onClose();
+                    onOpenGatekeeper();
+                  }}
+                  style={{
+                    padding: '6px 12px',
+                    fontSize: '0.78rem',
+                    fontWeight: '800',
+                    gap: '6px',
+                    border: '1.5px solid var(--color-gold)',
+                    color: 'var(--color-gold)'
+                  }}
+                  title="Cambiar o administrar grupos familiares"
+                >
+                  <Users size={14} />
+                  <span>👨‍👩‍👧‍👦 Portal Familiar</span>
+                </button>
+              )}
+            </div>
           </div>
         )}
 

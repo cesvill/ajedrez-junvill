@@ -21,7 +21,7 @@ export const Header = ({
   onOpenManual,
   onOpenP2P 
 }) => {
-  const { currentUser, activeGroup, users } = useUser();
+  const { currentUser, activeGroup, users, forceCloudSync } = useUser();
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
   const toolsMenuRef = useRef(null);
@@ -178,6 +178,28 @@ export const Header = ({
                   <div className="item-text">
                     <span className="item-title" style={{ color: '#facc15' }}>👨‍👩‍👧‍👦 Portal Familiar</span>
                     <span className="item-sub">{activeGroup ? `${activeGroup.name} (${users.length} miembros)` : 'Cambiar de grupo'}</span>
+                  </div>
+                </button>
+
+                {/* 0.1 Sincronizar Nube Central */}
+                <button
+                  type="button"
+                  className="header-dropdown-item"
+                  onClick={async () => {
+                    setIsToolsMenuOpen(false);
+                    try {
+                      const res = await forceCloudSync();
+                      alert(res?.message || '¡Sincronizado con éxito!');
+                    } catch (e) {
+                      alert('Error al sincronizar: ' + e.message);
+                    }
+                  }}
+                  style={{ background: 'rgba(59, 130, 246, 0.10)', border: '1px solid rgba(59, 130, 246, 0.25)' }}
+                >
+                  <Globe size={16} color="#60a5fa" />
+                  <div className="item-text">
+                    <span className="item-title" style={{ color: '#60a5fa' }}>☁️ Sincronizar Nube Central</span>
+                    <span className="item-sub">Actualizar avances en todos tus dispositivos</span>
                   </div>
                 </button>
 

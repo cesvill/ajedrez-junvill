@@ -17,10 +17,13 @@ const BOARD_THEMES = [
 ];
 
 export const SettingsModal = ({ isOpen, onClose, onOpenAvatarBuilder, onOpenProfileModal, onOpenBugReport, onOpenP2P }) => {
-  const { currentUser, updateCurrentUser, exportSaveData, importSaveData, resetUserData } = useUser();
+  const { currentUser, updateCurrentUser, exportSaveData, importSaveData, resetUserData, forceCloudSync } = useUser();
   const [activeTab, setActiveTab] = useState('general'); // 'general' | 'board' | 'sound' | 'coach' | 'theme' | 'server' | 'data'
   const [importJsonText, setImportJsonText] = useState('');
   const [copiedExport, setCopiedExport] = useState(false);
+  const [copiedQuickCode, setCopiedQuickCode] = useState(false);
+  const [isSyncingCloud, setIsSyncingCloud] = useState(false);
+  const [cloudSyncStatus, setCloudSyncStatus] = useState(null);
   const [copiedServerLink, setCopiedServerLink] = useState(false);
   const [copiedLocalLink, setCopiedLocalLink] = useState(false);
 
@@ -120,6 +123,32 @@ export const SettingsModal = ({ isOpen, onClose, onOpenAvatarBuilder, onOpenProf
     a.click();
     setCopiedExport(true);
     setTimeout(() => setCopiedExport(false), 3000);
+  };
+
+  const handleManualCloudSync = async () => {
+    setIsSyncingCloud(true);
+    setCloudSyncStatus(null);
+    try {
+      const result = await forceCloudSync();
+      setCloudSyncStatus(result);
+    } catch (e) {
+      setCloudSyncStatus({ success: false, message: 'Error de sincronización: ' + e.message });
+    } finally {
+      setIsSyncingCloud(false);
+    }
+  };
+
+  const handleCopyQuickCode = () => {
+    const data = exportSaveData();
+    try {
+      navigator.clipboard.writeText(data).then(() => {
+        setCopiedQuickCode(true);
+        setTimeout(() => setCopiedQuickCode(false), 3000);
+      });
+    } catch (e) {
+      setCopiedQuickCode(true);
+      setTimeout(() => setCopiedQuickCode(false), 3000);
+    }
   };
 
   const handleImport = () => {
@@ -871,6 +900,81 @@ export const SettingsModal = ({ isOpen, onClose, onOpenAvatarBuilder, onOpenProf
           {/* 7. COPIA DE SEGURIDAD & DATOS */}
           {activeTab === 'data' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              {/* SECCIÓN 1: SINCRONIZACIÓN EN LA NUBE CENTRALIZADA */}
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(234, 179, 8, 0.12) 100%)',
+                border: '2px solid var(--color-gold)',
+                borderRadius: 'var(--radius-lg, 16px)',
+                padding: '16px 18px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--color-gold)', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem', fontWeight: '900' }}>
+                    ☁️
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '1rem', fontWeight: '900', color: 'var(--text-parchment-main)' }}>
+                      Base de Datos Centralizada en la Nube
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-parchment-muted)' }}>
+                      Sincroniza lecciones, estrellas y avances de Martin, César, Leti y todos los miembros entre tus tablets, PCs y móviles.
+                    </div>
+                  </div>
+                </div>
+
+                {cloudSyncStatus && (
+                  <div style={{
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    fontSize: '0.82rem',
+                    fontWeight: '800',
+                    background: cloudSyncStatus.success ? 'rgba(16, 185, 129, 0.18)' : 'rgba(239, 68, 68, 0.18)',
+                    color: cloudSyncStatus.success ? '#34d399' : '#f87171',
+                    border: `1px solid ${cloudSyncStatus.success ? '#10b981' : '#ef4444'}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <span>{cloudSyncStatus.success ? '✅' : '⚠️'}</span>
+                    <span>{cloudSyncStatus.message}</span>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  <button
+                    className="btn-gold"
+                    onClick={handleManualCloudSync}
+                    disabled={isSyncingCloud}
+                    style={{
+                      padding: '11px 20px',
+                      fontSize: '0.88rem',
+                      fontWeight: '900',
+                      gap: '8px'
+                    }}
+                  >
+                    {isSyncingCloud ? <Loader2 size={16} className="spin" /> : <span>🔄</span>}
+                    <span>{isSyncingCloud ? 'Sincronizando con la Nube...' : 'Sincronizar con la Nube Ahora'}</span>
+                  </button>
+
+                  <button
+                    className="btn-secondary"
+                    onClick={handleCopyQuickCode}
+                    style={{
+                      padding: '11px 16px',
+                      fontSize: '0.86rem',
+                      fontWeight: '800',
+                      gap: '6px'
+                    }}
+                    title="Copia todo el avance de la familia al portapapeles para pegarlo en otro dispositivo"
+                  >
+                    <Copy size={15} />
+                    <span>{copiedQuickCode ? '¡Copiado al Portapapeles! 📋' : 'Copiar Código de Transferencia'}</span>
+                  </button>
+                </div>
+              </div>
+
               <div>
                 <div style={{ fontSize: '0.88rem', fontWeight: '800', marginBottom: '8px', color: 'var(--text-parchment-main)' }}>
                   Exportar Progreso a un Archivo JSON:
@@ -883,10 +987,10 @@ export const SettingsModal = ({ isOpen, onClose, onOpenAvatarBuilder, onOpenProf
 
               <div style={{ paddingTop: '14px', borderTop: '1px solid var(--bg-parchment-border)' }}>
                 <div style={{ fontSize: '0.88rem', fontWeight: '800', marginBottom: '8px', color: 'var(--text-parchment-main)' }}>
-                  Restaurar Copia de Seguridad:
+                  Restaurar Copia de Seguridad o Código de Transferencia:
                 </div>
                 <textarea
-                  placeholder="Pega aquí el contenido JSON de tu copia de seguridad..."
+                  placeholder="Pega aquí el código copiado o contenido JSON de tu otro dispositivo..."
                   value={importJsonText}
                   onChange={(e) => setImportJsonText(e.target.value)}
                   style={{
@@ -904,7 +1008,7 @@ export const SettingsModal = ({ isOpen, onClose, onOpenAvatarBuilder, onOpenProf
                 />
                 <button className="btn-secondary" onClick={handleImport}>
                   <Upload size={16} />
-                  <span>Restaurar Datos desde JSON</span>
+                  <span>Restaurar / Aplicar Avance</span>
                 </button>
               </div>
 
