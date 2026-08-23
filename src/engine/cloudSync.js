@@ -1,3 +1,178 @@
+
+export function normalizeUserKey(nameOrId = '') {
+  const str = String(nameOrId).toLowerCase().trim()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '');
+  if (str.includes('martin')) return 'martin';
+  if (str.includes('leti')) return 'leti';
+  if (str.includes('cesar')) return 'cesar';
+  if (str.includes('estudiante') || str.includes('student')) return 'estudiante';
+  return str || 'unknown';
+}
+
+export function deduplicateAndMergeUsers(...userLists) {
+  const allUsers = userLists.flat().filter(Boolean);
+  const buckets = new Map();
+
+  allUsers.forEach(u => {
+    if (!u) return;
+    const key = normalizeUserKey(u.name || u.id);
+    if (!buckets.has(key)) {
+      buckets.set(key, []);
+    }
+    buckets.get(key).push(u);
+  });
+
+  const merged = [];
+
+  buckets.forEach((userVariants, key) => {
+    let canonicalId = `user_${key}`;
+    let canonicalName = userVariants[0].name || key;
+    let canonicalRole = 'student';
+
+    if (key === 'martin') {
+      canonicalId = 'user_martin';
+      canonicalName = 'Martin';
+      canonicalRole = 'student';
+    } else if (key === 'leti') {
+      canonicalId = 'user_leti';
+      canonicalName = 'Leti';
+      canonicalRole = 'student';
+    } else if (key === 'cesar') {
+      canonicalId = 'user_cesar';
+      canonicalName = 'César';
+      canonicalRole = 'parent';
+    } else if (key === 'estudiante') {
+      canonicalId = 'user_estudiante';
+      canonicalName = 'Estudiante Junvill';
+      canonicalRole = 'student';
+    }
+
+    const mergedLessons = {};
+    const mergedBotVictories = {};
+    const mergedRadar = { tactica: 20, estrategia: 20, posicional: 20, calculo: 20, aperturas: 20, finales: 20 };
+    const mergedStats = { gamesPlayed: 0, wins: 0, losses: 0, draws: 0, puzzlesSolved: 0, hintsUsed: 0, accuracyAvg: 80 };
+    let maxElo = canonicalRole === 'parent' ? 762 : 800;
+    let maxPuzzleRating = 400;
+    let maxStars = 30;
+    let maxGems = 10;
+    let avatarConfig = null;
+    let title = canonicalRole === 'parent' ? 'Tutor Familiar' : 'Campeón Junior';
+    let password = 'JunV1ll123';
+    let theme = 'modern_dark';
+    let boardTheme = 'board_emerald';
+    let pieceTheme = 'staunton';
+
+    userVariants.forEach(u => {
+      if (u.elo && u.elo > maxElo) maxElo = u.elo;
+      if (u.puzzleRating && u.puzzleRating > maxPuzzleRating) maxPuzzleRating = u.puzzleRating;
+      if (u.stars && u.stars > maxStars) maxStars = u.stars;
+      if (u.gems && u.gems > maxGems) maxGems = u.gems;
+      if (u.avatarConfig && Object.keys(u.avatarConfig).length > 3) avatarConfig = u.avatarConfig;
+      if (u.title && u.title !== 'Novato Promesa') title = u.title;
+      if (u.password) password = u.password;
+      if (u.theme) theme = u.theme;
+      if (u.boardTheme) boardTheme = u.boardTheme;
+      if (u.pieceTheme) pieceTheme = u.pieceTheme;
+
+      // Fusionar lecciones
+      Object.entries(u.lessonProgress || {}).forEach(([lid, prog]) => {
+        if (!mergedLessons[lid] || (prog.stars || 0) > (mergedLessons[lid].stars || 0)) {
+          mergedLessons[lid] = {
+            stars: Math.max(prog.stars || 0, mergedLessons[lid]?.stars || 0),
+            completed: Boolean(prog.completed || mergedLessons[lid]?.completed || (prog.stars || 0) >= 5),
+            updatedAt: Math.max(prog.updatedAt || 0, mergedLessons[lid]?.updatedAt || 0)
+          };
+        }
+      });
+
+      // Fusionar bots
+      Object.entries(u.botVictories || {}).forEach(([botId, vicCount]) => {
+        mergedBotVictories[botId] = Math.max(vicCount || 0, mergedBotVictories[botId] || 0);
+      });
+
+      // Fusionar radar
+      Object.entries(u.radarSkills || {}).forEach(([cat, val]) => {
+        mergedRadar[cat] = Math.max(val || 0, mergedRadar[cat] || 0);
+      });
+
+      // Fusionar stats
+      if (u.stats) {
+        mergedStats.gamesPlayed = Math.max(mergedStats.gamesPlayed, u.stats.gamesPlayed || 0);
+        mergedStats.wins = Math.max(mergedStats.wins, u.stats.wins || 0);
+        mergedStats.losses = Math.max(mergedStats.losses, u.stats.losses || 0);
+        mergedStats.draws = Math.max(mergedStats.draws, u.stats.draws || 0);
+        mergedStats.puzzlesSolved = Math.max(mergedStats.puzzlesSolved, u.stats.puzzlesSolved || 0);
+        mergedStats.hintsUsed = Math.max(mergedStats.hintsUsed, u.stats.hintsUsed || 0);
+        mergedStats.accuracyAvg = Math.max(mergedStats.accuracyAvg, u.stats.accuracyAvg || 0);
+      }
+    });
+
+    const completedCount = Object.values(mergedLessons).filter(p => p.completed || p.stars >= 5).length;
+
+    merged.push({
+      id: canonicalId,
+      name: canonicalName,
+      password,
+      role: canonicalRole,
+      avatar: 'custom_dynamic',
+      avatarConfig: avatarConfig || {
+        skin: '#fed7aa',
+        hairStyle: 'short',
+        hairColor: '#1e293b',
+        eyeStyle: 'happy',
+        shirtStyle: 'tshirt',
+        shirtColor: '#10b981',
+        pantsStyle: 'sweatpants',
+        pantsColor: '#0f172a',
+        shoesStyle: 'sneakers',
+        shoesColor: '#dc2626',
+        accessory: 'none',
+        background: 'cyber_grid'
+      },
+      title,
+      elo: maxElo,
+      puzzleRating: maxPuzzleRating,
+      stars: maxStars,
+      gems: maxGems,
+      totalPoints: completedCount,
+      theme,
+      boardTheme,
+      pieceTheme,
+      systemSettings: {
+        soundEnabled: true,
+        soundVolume: 85,
+        autoQueen: true,
+        showCoordinates: true,
+        highlightMoves: true,
+        highlightLastMove: true,
+        moveMethod: 'drag_click'
+      },
+      unlockedItems: ['board_emerald', 'board_wood', 'shirt_blue', 'shirt_green'],
+      lessonProgress: mergedLessons,
+      botVictories: mergedBotVictories,
+      stats: mergedStats,
+      radarSkills: mergedRadar,
+      coachSettings: { assistanceLevel: 'full', botDifficulty: 1, coachAvatar: 'coach_aurelio', soundEnabled: true },
+      updatedAt: Date.now()
+    });
+  });
+
+  const order = ['cesar', 'leti', 'martin', 'estudiante'];
+  merged.sort((a, b) => {
+    const ka = normalizeUserKey(a.name || a.id);
+    const kb = normalizeUserKey(b.name || b.id);
+    const ia = order.indexOf(ka);
+    const ib = order.indexOf(kb);
+    if (ia !== -1 && ib !== -1) return ia - ib;
+    if (ia !== -1) return -1;
+    if (ib !== -1) return 1;
+    return (a.name || '').localeCompare(b.name || '');
+  });
+
+  return merged;
+}
+
 /**
  * Motor de Sincronización en la Nube Centralizada (Cloud Synchronization Engine)
  * Sincroniza el avance de lecciones, estrellas, gemas y usuarios de la Familia Junvill
@@ -36,114 +211,7 @@ class CloudSyncService {
 
   // Fusión inteligente de usuarios (Merge CRDT sin pérdidas)
   mergeUsers(localUsers = [], cloudUsers = []) {
-    const userMap = new Map();
-
-    // 1. Agregar usuarios locales
-    (localUsers || []).forEach(u => {
-      if (u && u.id) {
-        userMap.set(u.id, { ...u });
-      }
-    });
-
-    // 2. Fusionar con usuarios de la nube
-    (cloudUsers || []).forEach(cUser => {
-      if (!cUser || !cUser.id) return;
-      
-      let lUser = userMap.get(cUser.id);
-      if (!lUser) {
-        // Buscar por nombre si los IDs difieren
-        lUser = Array.from(userMap.values()).find(u => (u.name || '').toLowerCase().trim() === (cUser.name || '').toLowerCase().trim());
-      }
-
-      if (!lUser) {
-        // Usuario nuevo creado en otro dispositivo (ej. Martin, Leti)
-        userMap.set(cUser.id, { ...cUser });
-        return;
-      }
-
-      // Fusionar lecciones completadas (conserva el mayor número de estrellas y estado completado)
-      const mergedLessonProgress = {
-        ...(lUser.lessonProgress || {}),
-        ...(cUser.lessonProgress || {})
-      };
-
-      const allLessonKeys = Array.from(new Set([
-        ...Object.keys(lUser.lessonProgress || {}),
-        ...Object.keys(cUser.lessonProgress || {})
-      ]));
-
-      allLessonKeys.forEach(k => {
-        const lProgress = lUser.lessonProgress?.[k];
-        const cProgress = cUser.lessonProgress?.[k];
-        if (lProgress && cProgress) {
-          mergedLessonProgress[k] = {
-            stars: Math.max(lProgress.stars || 0, cProgress.stars || 0),
-            completed: Boolean(lProgress.completed || cProgress.completed),
-            updatedAt: Math.max(lProgress.updatedAt || 0, cProgress.updatedAt || 0)
-          };
-        } else if (cProgress) {
-          mergedLessonProgress[k] = cProgress;
-        } else if (lProgress) {
-          mergedLessonProgress[k] = lProgress;
-        }
-      });
-
-      // Calcular puntos totales acumulados (1 punto por leccion completada hasta 110)
-      const totalLessonPts = Object.values(mergedLessonProgress).filter(p => p.completed || p.stars >= 5).length;
-
-      // Fusionar estadísticas y victorias contra bots
-      const mergedBotVictories = {
-        ...(lUser.botVictories || {}),
-        ...(cUser.botVictories || {})
-      };
-      const allBotKeys = Array.from(new Set([
-        ...Object.keys(lUser.botVictories || {}),
-        ...Object.keys(cUser.botVictories || {})
-      ]));
-      allBotKeys.forEach(k => {
-        mergedBotVictories[k] = Math.max(lUser.botVictories?.[k] || 0, cUser.botVictories?.[k] || 0);
-      });
-
-      // Fusionar habilidades del radar
-      const mergedRadar = {
-        tactica: Math.max(lUser.radarSkills?.tactica || 0, cUser.radarSkills?.tactica || 0),
-        estrategia: Math.max(lUser.radarSkills?.estrategia || 0, cUser.radarSkills?.estrategia || 0),
-        posicional: Math.max(lUser.radarSkills?.posicional || 0, cUser.radarSkills?.posicional || 0),
-        calculo: Math.max(lUser.radarSkills?.calculo || 0, cUser.radarSkills?.calculo || 0),
-        aperturas: Math.max(lUser.radarSkills?.aperturas || 0, cUser.radarSkills?.aperturas || 0),
-        finales: Math.max(lUser.radarSkills?.finales || 0, cUser.radarSkills?.finales || 0)
-      };
-
-      userMap.set(lUser.id, {
-        ...lUser,
-        ...cUser,
-        id: lUser.id,
-        name: cUser.name || lUser.name,
-        role: cUser.role || lUser.role,
-        avatar: cUser.avatar || lUser.avatar,
-        avatarConfig: cUser.avatarConfig || lUser.avatarConfig,
-        stars: Math.max(lUser.stars || 0, cUser.stars || 0),
-        gems: Math.max(lUser.gems || 0, cUser.gems || 0),
-        totalPoints: Math.max(totalLessonPts, lUser.totalPoints || 0, cUser.totalPoints || 0),
-        elo: Math.max(lUser.elo || 600, cUser.elo || 600),
-        puzzleRating: Math.max(lUser.puzzleRating || 400, cUser.puzzleRating || 400),
-        lessonProgress: mergedLessonProgress,
-        botVictories: mergedBotVictories,
-        radarSkills: mergedRadar,
-        stats: {
-          gamesPlayed: Math.max(lUser.stats?.gamesPlayed || 0, cUser.stats?.gamesPlayed || 0),
-          wins: Math.max(lUser.stats?.wins || 0, cUser.stats?.wins || 0),
-          losses: Math.max(lUser.stats?.losses || 0, cUser.stats?.losses || 0),
-          draws: Math.max(lUser.stats?.draws || 0, cUser.stats?.draws || 0),
-          puzzlesSolved: Math.max(lUser.stats?.puzzlesSolved || 0, cUser.stats?.puzzlesSolved || 0),
-          hintsUsed: Math.max(lUser.stats?.hintsUsed || 0, cUser.stats?.hintsUsed || 0),
-          accuracyAvg: Math.max(lUser.stats?.accuracyAvg || 0, cUser.stats?.accuracyAvg || 0)
-        },
-        updatedAt: Date.now()
-      });
-    });
-
-    return Array.from(userMap.values());
+    return deduplicateAndMergeUsers(localUsers, cloudUsers);
   }
 
   // Obtener estado más reciente desde la Nube Central (con doble redundancia)

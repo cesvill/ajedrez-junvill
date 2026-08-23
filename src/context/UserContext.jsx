@@ -18,83 +18,7 @@ const ACTIVE_USER_KEY = 'ajedrez_junvill_active_user_id_v5';
 // Usuarios oficiales predeterminados para la Familia Junvill
 export const DEFAULT_JUNVILL_USERS = [
   {
-    id: 'user_1',
-    name: 'Estudiante Junvill',
-    password: DEFAULT_GENERIC_PASSWORD,
-    role: 'student',
-    avatar: 'custom_dynamic',
-    avatarConfig: {
-      skin: '#fed7aa',
-      hairStyle: 'messy',
-      hairColor: '#451a03',
-      eyeStyle: 'happy',
-      shirtStyle: 'hoodie',
-      shirtColor: '#2563eb',
-      pantsStyle: 'jeans',
-      pantsColor: '#1e3a8a',
-      shoesStyle: 'sneakers',
-      shoesColor: '#ffffff',
-      accessory: 'headphones',
-      heldItem: 'pawn_gold',
-      background: 'blue_sky'
-    },
-    title: 'Aprendiz Promesa',
-    elo: 680,
-    puzzleRating: 600,
-    stars: 105,
-    gems: 27,
-    totalPoints: 25,
-    theme: 'modern_dark',
-    boardTheme: 'board_emerald',
-    pieceTheme: 'staunton',
-    systemSettings: {
-      soundEnabled: true,
-      soundVolume: 85,
-      autoQueen: true,
-      showCoordinates: true,
-      highlightMoves: true,
-      highlightLastMove: true,
-      moveMethod: 'drag_click'
-    },
-    unlockedItems: ['board_emerald', 'board_wood', 'shirt_blue', 'shirt_red'],
-    lessonProgress: {
-      'l01_piezas': { stars: 5, completed: true },
-      'l02_capturas': { stars: 5, completed: true },
-      'l03_desprotegidas': { stars: 5, completed: true },
-      'l04_valor_piezas': { stars: 5, completed: true },
-      'l07_escapar_jaque': { stars: 5, completed: true }
-    },
-    botVictories: {
-      'qwerty': 3,
-      'cosmo': 1,
-      'monkey': 2
-    },
-    stats: {
-      gamesPlayed: 8,
-      wins: 5,
-      losses: 2,
-      draws: 1,
-      puzzlesSolved: 32,
-      hintsUsed: 12,
-      accuracyAvg: 86
-    },
-    radarSkills: {
-      tactica: 60,
-      estrategia: 40,
-      posicional: 35,
-      calculo: 45,
-      aperturas: 40,
-      finales: 30
-    },
-    coachSettings: {
-      assistanceLevel: 'full',
-      botDifficulty: 1,
-      coachAvatar: 'coach_aurelio',
-      soundEnabled: true
-    }
-  },
-  {
-    id: 'user_1786849943311',
+    id: 'user_cesar',
     name: 'César',
     password: DEFAULT_GENERIC_PASSWORD,
     role: 'parent',
@@ -115,8 +39,8 @@ export const DEFAULT_JUNVILL_USERS = [
       background: 'parchment_wood'
     },
     title: 'Tutor Familiar',
-    elo: 676,
-    puzzleRating: 400,
+    elo: 762,
+    puzzleRating: 650,
     stars: 225,
     gems: 42,
     totalPoints: 15,
@@ -134,35 +58,33 @@ export const DEFAULT_JUNVILL_USERS = [
     },
     unlockedItems: ['board_emerald', 'board_wood', 'shirt_blue'],
     lessonProgress: {
+      'l01_piezas': { stars: 5, completed: true },
       'l02_capturas': { stars: 5, completed: true },
       'l04_valor_piezas': { stars: 5, completed: true },
       'l05_coronacion': { stars: 5, completed: true }
     },
     botVictories: {
-      'qwerty': 1,
-      'cosmo': 1,
-      'monkey': 1,
-      'mateo_kid': 1,
-      'shark': 1,
-      'sofia_teen': 1,
-      'spark': 1
+      'qwerty': 4,
+      'cosmo': 2,
+      'monkey': 2,
+      'mateo_kid': 1
     },
     stats: {
       gamesPlayed: 23,
       wins: 14,
       losses: 5,
       draws: 4,
-      puzzlesSolved: 0,
-      hintsUsed: 0,
-      accuracyAvg: 0
+      puzzlesSolved: 15,
+      hintsUsed: 3,
+      accuracyAvg: 85
     },
     radarSkills: {
-      tactica: 35,
-      estrategia: 25,
-      posicional: 15,
-      calculo: 15,
-      aperturas: 15,
-      finales: 15
+      tactica: 55,
+      estrategia: 45,
+      posicional: 40,
+      calculo: 45,
+      aperturas: 40,
+      finales: 35
     },
     coachSettings: {
       assistanceLevel: 'full',
@@ -175,7 +97,7 @@ export const DEFAULT_JUNVILL_USERS = [
     id: 'user_leti',
     name: 'Leti',
     password: DEFAULT_GENERIC_PASSWORD,
-    role: 'parent',
+    role: 'student',
     avatar: 'custom_dynamic',
     avatarConfig: {
       skin: '#fed7aa',
@@ -192,12 +114,12 @@ export const DEFAULT_JUNVILL_USERS = [
       heldItem: 'queen_piece',
       background: 'royal_castle'
     },
-    title: 'Tutora Familiar',
-    elo: 550,
-    puzzleRating: 500,
-    stars: 60,
-    gems: 15,
-    totalPoints: 10,
+    title: 'Campeona Junior',
+    elo: 1210,
+    puzzleRating: 850,
+    stars: 610,
+    gems: 59,
+    totalPoints: 24,
     theme: 'modern_dark',
     boardTheme: 'board_emerald',
     pieceTheme: 'staunton',
@@ -210,31 +132,127 @@ export const DEFAULT_JUNVILL_USERS = [
       highlightLastMove: true,
       moveMethod: 'drag_click'
     },
-    unlockedItems: ['board_emerald', 'board_wood', 'shirt_blue'],
+    unlockedItems: ['board_emerald', 'board_wood', 'shirt_blue', 'shirt_green'],
     lessonProgress: {
-      'l01_piezas': { stars: 5, completed: true },
-      'l02_capturas': { stars: 5, completed: true }
-    },
+      "l01_piezas": {
+            "stars": 5,
+            "completed": true
+      },
+      "l02_capturas": {
+            "stars": 5,
+            "completed": true
+      },
+      "l03_desprotegidas": {
+            "stars": 5,
+            "completed": true
+      },
+      "l04_valor_piezas": {
+            "stars": 5,
+            "completed": true
+      },
+      "l05_coronacion": {
+            "stars": 5,
+            "completed": true
+      },
+      "l06_jaque": {
+            "stars": 5,
+            "completed": true
+      },
+      "l07_escapar_jaque": {
+            "stars": 5,
+            "completed": true
+      },
+      "l08_mate_1": {
+            "stars": 5,
+            "completed": true
+      },
+      "l09_rey_ahogado": {
+            "stars": 5,
+            "completed": true
+      },
+      "l10_enroque": {
+            "stars": 5,
+            "completed": true
+      },
+      "l11_al_paso": {
+            "stars": 5,
+            "completed": true
+      },
+      "l12_ataque_doble_peon": {
+            "stars": 5,
+            "completed": true
+      },
+      "l13_mate_pasillo": {
+            "stars": 5,
+            "completed": true
+      },
+      "l14_mate_dama_rey": {
+            "stars": 5,
+            "completed": true
+      },
+      "l15_mate_torre_rey": {
+            "stars": 5,
+            "completed": true
+      },
+      "l16_clavada_absoluta": {
+            "stars": 5,
+            "completed": true
+      },
+      "l17_clavada_relativa": {
+            "stars": 5,
+            "completed": true
+      },
+      "l18_horquilla_caballo": {
+            "stars": 5,
+            "completed": true
+      },
+      "l19_enfilada_skewer": {
+            "stars": 5,
+            "completed": true
+      },
+      "l20_ataque_descubierta": {
+            "stars": 5,
+            "completed": true
+      },
+      "l21_jaque_descubierta": {
+            "stars": 5,
+            "completed": true
+      },
+      "l22_jaque_doble": {
+            "stars": 5,
+            "completed": true
+      },
+      "l23_ataque_doble_dama": {
+            "stars": 5,
+            "completed": true
+      },
+      "l24_mate_pastor": {
+            "stars": 5,
+            "completed": true
+      }
+},
     botVictories: {
-      'qwerty': 2,
-      'cosmo': 1
+      'qwerty': 6,
+      'cosmo': 4,
+      'monkey': 3,
+      'mateo_kid': 2
     },
     stats: {
-      gamesPlayed: 5,
-      wins: 3,
-      losses: 2,
+      gamesPlayed: 18,
+      wins: 15,
+      losses: 3,
       draws: 0,
-      puzzlesSolved: 10,
+      puzzlesSolved: 35,
       hintsUsed: 4,
-      accuracyAvg: 80
+      accuracyAvg: 88
     },
     radarSkills: {
-      tactica: 40,
-      estrategia: 30,
-      posicional: 25,
-      calculo: 30,
-      aperturas: 30,
-      finales: 25
+      tactica: 70,
+      estrategia: 55,
+      posicional: 50,
+      calculo: 60,
+      aperturas: 55,
+      finales: 50
     },
     coachSettings: {
       assistanceLevel: 'full',
@@ -265,9 +283,9 @@ export const DEFAULT_JUNVILL_USERS = [
       background: 'cyber_grid'
     },
     title: 'Campeón Junior',
-    elo: 880,
-    puzzleRating: 650,
-    stars: 155,
+    elo: 1495,
+    puzzleRating: 950,
+    stars: 300,
     gems: 62,
     totalPoints: 31,
     theme: 'modern_dark',
@@ -284,151 +302,225 @@ export const DEFAULT_JUNVILL_USERS = [
     },
     unlockedItems: ['board_emerald', 'board_wood', 'shirt_blue', 'shirt_green'],
     lessonProgress: {
-          "l01_piezas": {
-                "stars": 5,
-                "completed": true
-          },
-          "l02_capturas": {
-                "stars": 5,
-                "completed": true
-          },
-          "l03_desprotegidas": {
-                "stars": 5,
-                "completed": true
-          },
-          "l04_valor_piezas": {
-                "stars": 5,
-                "completed": true
-          },
-          "l05_coronacion": {
-                "stars": 5,
-                "completed": true
-          },
-          "l06_jaque": {
-                "stars": 5,
-                "completed": true
-          },
-          "l07_escapar_jaque": {
-                "stars": 5,
-                "completed": true
-          },
-          "l08_mate_1": {
-                "stars": 5,
-                "completed": true
-          },
-          "l09_rey_ahogado": {
-                "stars": 5,
-                "completed": true
-          },
-          "l10_enroque": {
-                "stars": 5,
-                "completed": true
-          },
-          "l11_al_paso": {
-                "stars": 5,
-                "completed": true
-          },
-          "l12_ataque_doble_peon": {
-                "stars": 5,
-                "completed": true
-          },
-          "l13_mate_pasillo": {
-                "stars": 5,
-                "completed": true
-          },
-          "l14_mate_dama_rey": {
-                "stars": 5,
-                "completed": true
-          },
-          "l15_mate_torre_rey": {
-                "stars": 5,
-                "completed": true
-          },
-          "l16_clavada_absoluta": {
-                "stars": 5,
-                "completed": true
-          },
-          "l17_clavada_relativa": {
-                "stars": 5,
-                "completed": true
-          },
-          "l18_horquilla_caballo": {
-                "stars": 5,
-                "completed": true
-          },
-          "l19_enfilada_skewer": {
-                "stars": 5,
-                "completed": true
-          },
-          "l20_ataque_descubierta": {
-                "stars": 5,
-                "completed": true
-          },
-          "l21_jaque_descubierta": {
-                "stars": 5,
-                "completed": true
-          },
-          "l22_jaque_doble": {
-                "stars": 5,
-                "completed": true
-          },
-          "l23_ataque_doble_dama": {
-                "stars": 5,
-                "completed": true
-          },
-          "l24_mate_pastor": {
-                "stars": 5,
-                "completed": true
-          },
-          "l25_sobrecarga": {
-                "stars": 5,
-                "completed": true
-          },
-          "l26_pieza_atrapada": {
-                "stars": 5,
-                "completed": true
-          },
-          "l27_despeje_casillas": {
-                "stars": 5,
-                "completed": true
-          },
-          "l28_despeje_lineas": {
-                "stars": 5,
-                "completed": true
-          },
-          "l29_intercepcion_lineas": {
-                "stars": 5,
-                "completed": true
-          },
-          "l30_rayos_x": {
-                "stars": 5,
-                "completed": true
-          },
-          "l31_jaque_perpetuo": {
-                "stars": 5,
-                "completed": true
-          }
-    },
+      "l01_piezas": {
+            "stars": 5,
+            "completed": true
+      },
+      "l02_capturas": {
+            "stars": 5,
+            "completed": true
+      },
+      "l03_desprotegidas": {
+            "stars": 5,
+            "completed": true
+      },
+      "l04_valor_piezas": {
+            "stars": 5,
+            "completed": true
+      },
+      "l05_coronacion": {
+            "stars": 5,
+            "completed": true
+      },
+      "l06_jaque": {
+            "stars": 5,
+            "completed": true
+      },
+      "l07_escapar_jaque": {
+            "stars": 5,
+            "completed": true
+      },
+      "l08_mate_1": {
+            "stars": 5,
+            "completed": true
+      },
+      "l09_rey_ahogado": {
+            "stars": 5,
+            "completed": true
+      },
+      "l10_enroque": {
+            "stars": 5,
+            "completed": true
+      },
+      "l11_al_paso": {
+            "stars": 5,
+            "completed": true
+      },
+      "l12_ataque_doble_peon": {
+            "stars": 5,
+            "completed": true
+      },
+      "l13_mate_pasillo": {
+            "stars": 5,
+            "completed": true
+      },
+      "l14_mate_dama_rey": {
+            "stars": 5,
+            "completed": true
+      },
+      "l15_mate_torre_rey": {
+            "stars": 5,
+            "completed": true
+      },
+      "l16_clavada_absoluta": {
+            "stars": 5,
+            "completed": true
+      },
+      "l17_clavada_relativa": {
+            "stars": 5,
+            "completed": true
+      },
+      "l18_horquilla_caballo": {
+            "stars": 5,
+            "completed": true
+      },
+      "l19_enfilada_skewer": {
+            "stars": 5,
+            "completed": true
+      },
+      "l20_ataque_descubierta": {
+            "stars": 5,
+            "completed": true
+      },
+      "l21_jaque_descubierta": {
+            "stars": 5,
+            "completed": true
+      },
+      "l22_jaque_doble": {
+            "stars": 5,
+            "completed": true
+      },
+      "l23_ataque_doble_dama": {
+            "stars": 5,
+            "completed": true
+      },
+      "l24_mate_pastor": {
+            "stars": 5,
+            "completed": true
+      },
+      "l25_sobrecarga": {
+            "stars": 5,
+            "completed": true
+      },
+      "l26_pieza_atrapada": {
+            "stars": 5,
+            "completed": true
+      },
+      "l27_despeje_casillas": {
+            "stars": 5,
+            "completed": true
+      },
+      "l28_despeje_lineas": {
+            "stars": 5,
+            "completed": true
+      },
+      "l29_intercepcion_lineas": {
+            "stars": 5,
+            "completed": true
+      },
+      "l30_rayos_x": {
+            "stars": 5,
+            "completed": true
+      },
+      "l31_jaque_perpetuo": {
+            "stars": 5,
+            "completed": true
+      }
+},
     botVictories: {
-      'qwerty': 2,
-      'monkey': 1
+      'qwerty': 8,
+      'monkey': 5,
+      'mateo_kid': 4,
+      'cosmo': 3,
+      'shark': 2
     },
     stats: {
-      gamesPlayed: 6,
-      wins: 4,
-      losses: 2,
+      gamesPlayed: 25,
+      wins: 21,
+      losses: 4,
       draws: 0,
-      puzzlesSolved: 12,
+      puzzlesSolved: 48,
       hintsUsed: 5,
+      accuracyAvg: 92
+    },
+    radarSkills: {
+      tactica: 80,
+      estrategia: 65,
+      posicional: 60,
+      calculo: 75,
+      aperturas: 65,
+      finales: 60
+    },
+    coachSettings: {
+      assistanceLevel: 'full',
+      botDifficulty: 1,
+      coachAvatar: 'coach_aurelio',
+      soundEnabled: true
+    }
+  },
+  {
+    id: 'user_estudiante',
+    name: 'Estudiante Junvill',
+    password: DEFAULT_GENERIC_PASSWORD,
+    role: 'student',
+    avatar: 'custom_dynamic',
+    avatarConfig: {
+      skin: '#fed7aa',
+      hairStyle: 'short',
+      hairColor: '#27170a',
+      eyeStyle: 'happy',
+      shirtStyle: 'tshirt',
+      shirtColor: '#3b82f6',
+      pantsStyle: 'jeans',
+      pantsColor: '#1e3a8a',
+      shoesStyle: 'sneakers',
+      shoesColor: '#ffffff',
+      accessory: 'none',
+      background: 'parchment_wood'
+    },
+    title: 'Aprendiz Promesa',
+    elo: 827,
+    puzzleRating: 600,
+    stars: 100,
+    gems: 25,
+    totalPoints: 10,
+    theme: 'modern_dark',
+    boardTheme: 'board_emerald',
+    pieceTheme: 'staunton',
+    systemSettings: {
+      soundEnabled: true,
+      soundVolume: 80,
+      autoQueen: true,
+      showCoordinates: true,
+      highlightMoves: true,
+      highlightLastMove: true,
+      moveMethod: 'drag_click'
+    },
+    unlockedItems: ['board_emerald', 'board_wood', 'shirt_blue'],
+    lessonProgress: {
+      'l01_piezas': { stars: 5, completed: true },
+      'l02_capturas': { stars: 5, completed: true }
+    },
+    botVictories: {
+      'qwerty': 3,
+      'cosmo': 1
+    },
+    stats: {
+      gamesPlayed: 10,
+      wins: 7,
+      losses: 3,
+      draws: 0,
+      puzzlesSolved: 15,
+      hintsUsed: 3,
       accuracyAvg: 82
     },
     radarSkills: {
       tactica: 45,
-      estrategia: 30,
-      posicional: 20,
-      calculo: 35,
-      aperturas: 30,
-      finales: 20
+      estrategia: 35,
+      posicional: 30,
+      calculo: 40,
+      aperturas: 35,
+      finales: 30
     },
     coachSettings: {
       assistanceLevel: 'full',
@@ -467,14 +559,11 @@ export const UserProvider = ({ children }) => {
             if (!g.password) g.password = DEFAULT_GENERIC_PASSWORD;
             if (g.id === 'group_junvill') {
               if (!g.adminEmail) g.adminEmail = 'junvill13@gmail.com';
-              if (!Array.isArray(g.users) || g.users.length === 0) {
-                g.users = DEFAULT_JUNVILL_USERS;
-              } else {
-                // Fusión inteligente (CRDT): siempre conserva el mayor progreso de cada usuario
-                g.users = cloudSync.mergeUsers(g.users, DEFAULT_JUNVILL_USERS);
-              }
+              // Fusión y deduplicación canónica estricta
+              g.users = cloudSync.mergeUsers(g.users || [], DEFAULT_JUNVILL_USERS);
+            } else {
+              g.users = cloudSync.mergeUsers(g.users || [], []);
             }
-            if (!Array.isArray(g.users)) g.users = [];
             return g;
           });
           return normalized;
@@ -554,11 +643,11 @@ export const UserProvider = ({ children }) => {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // Derivaciones
+  // Derivaciones limpias y deduplicadas
   const activeGroup = groups.find(g => g.id === activeGroupId) || groups[0] || DEFAULT_FAMILY_GROUPS[0];
   const isGroupUnlocked = activeGroup ? unlockedGroupIds.includes(activeGroup.id) : false;
-  const users = activeGroup ? (activeGroup.users || []) : [];
-  const currentUser = users.find(u => u.id === activeUserId) || users[0] || DEFAULT_JUNVILL_USERS[0];
+  const users = activeGroup ? cloudSync.mergeUsers(activeGroup.users || [], DEFAULT_JUNVILL_USERS) : DEFAULT_JUNVILL_USERS;
+  const currentUser = users.find(u => u.id === activeUserId || normalizeUserKey(u.id || u.name) === normalizeUserKey(activeUserId)) || users[0] || DEFAULT_JUNVILL_USERS[0];
 
   // 5. SEÑALIZACIÓN ENTRE DISPOSITIVOS EN TIEMPO REAL (PeerJS Global)
   useEffect(() => {

@@ -706,8 +706,12 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
 
   if (!isOpen) return null;
 
-  // Lista de miembros familiares disponibles (excluyendo al usuario actual)
-  const familyMembers = (users || []).filter(u => u.id !== currentUser?.id);
+  // Lista de miembros familiares disponibles (excluyendo al usuario actual de forma canónica)
+  const myKey = String(currentUser?.name || currentUser?.id || '').toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const familyMembers = (users || []).filter(u => {
+    const uKey = String(u.name || u.id || '').toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    return u.id !== currentUser?.id && uKey !== myKey;
+  });
 
   return (
     <div className="modal-overlay" style={{ zIndex: 110, padding: isFullscreen ? 0 : '12px' }}>
