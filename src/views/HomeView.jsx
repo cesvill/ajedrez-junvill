@@ -7,6 +7,7 @@ import { FullBodyAvatar } from '../components/AvatarCreator/FullBodyAvatar';
 import { BOT_ROSTER, BotAvatarRenderer } from '../assets/botRoster';
 import { CURRICULUM_SECTIONS } from '../curriculum/lessonsData';
 import { YusupovRadar } from '../components/RadarChart/YusupovRadar';
+import { ErrorBoundary } from '../components/ErrorBoundary/ErrorBoundary';
 import { 
   Trophy, Swords, Target, BookOpen, Sparkles, TrendingUp, Flame, 
   Shield, Award, Play, ChevronRight, User, Users, Bot, Star, 
@@ -24,7 +25,15 @@ export const HomeView = ({
   onStartLesson,
   onStartBotGame
 }) => {
-  const { currentUser, pendingInvitationsForMe, acceptFamilyInvitation, declineFamilyInvitation } = useUser();
+  const { 
+    currentUser, 
+    pendingInvitationsForMe, 
+    outgoingInvitationsByMe, 
+    acceptFamilyInvitation, 
+    declineFamilyInvitation,
+    activeP2PGame,
+    clearActiveP2PGame
+  } = useUser();
   const [showRadarSection, setShowRadarSection] = useState(true);
 
   // 1. Encontrar la siguiente lección recomendada
@@ -53,9 +62,25 @@ export const HomeView = ({
 
   // Detección de Partida en Curso Guardada (Aislada por perfil de usuario)
   const STORAGE_KEY = `junvill_ongoing_game_v1_${currentUser?.id || 'default'}`;
+  const ONGOING_P2P_KEY = `junvill_ongoing_p2p_game_v1_${currentUser?.id || 'default'}`;
   
   const getOngoingGame = React.useCallback(() => {
     try {
+      // 1. Prioridad: Partida P2P familiar activa
+      const p2pRaw = localStorage.getItem(ONGOING_P2P_KEY);
+      if (p2pRaw) {
+        const parsedP2P = JSON.parse(p2pRaw);
+        if (parsedP2P && parsedP2P.fen && parsedP2P.roomId) {
+          const testP2P = new Chess(parsedP2P.fen);
+          if (!testP2P.isGameOver()) {
+            return { ...parsedP2P, type: 'p2p', turn: testP2P.turn() };
+          } else {
+            localStorage.removeItem(ONGOING_P2P_KEY);
+          }
+        }
+      }
+
+      // 2. Partida local vs Bot o Pass and Play
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return null;
       const parsed = JSON.parse(raw);
@@ -65,11 +90,11 @@ export const HomeView = ({
         localStorage.removeItem(STORAGE_KEY);
         return null;
       }
-      return { ...parsed, turn: testGame.turn() };
+      return { ...parsed, type: 'bot', turn: testGame.turn() };
     } catch (e) {
       return null;
     }
-  }, [STORAGE_KEY]);
+  }, [STORAGE_KEY, ONGOING_P2P_KEY]);
 
   const [ongoingGame, setOngoingGame] = useState(() => getOngoingGame());
 
@@ -81,7 +106,7 @@ export const HomeView = ({
     };
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
-  }, [getOngoingGame, currentUser?.id]);
+  }, [getOngoingGame, currentUser?.id, activeP2PGame]);
 
   const ongoingBot = ongoingGame?.botId
     ? (BOT_ROSTER.find(b => b.id === ongoingGame.botId) || BOT_ROSTER[0])
@@ -90,7 +115,12 @@ export const HomeView = ({
   const handleCancelOngoingGame = () => {
     if (window.confirm('¿Deseas cancelar y descartar la partida en curso?')) {
       try {
-        localStorage.removeItem(STORAGE_KEY);
+        if (ongoingGame?.type === 'p2p') {
+          localStorage.removeItem(ONGOING_P2P_KEY);
+          if (clearActiveP2PGame) clearActiveP2PGame();
+        } else {
+          localStorage.removeItem(STORAGE_KEY);
+        }
       } catch (e) {}
       setOngoingGame(null);
     }
@@ -99,7 +129,7 @@ export const HomeView = ({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '22px', paddingBottom: '32px' }}>
       
-      {/* 0. RETOS E INVITACIONES FAMILIARES ENTRANTE (PRIMERO EN HOME) */}
+      {/* 0. RETOS E INVITACIONES FAMILIARES ENTRANTES (PRIMERO EN HOME) */}
       {pendingInvitationsForMe && pendingInvitationsForMe.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {pendingInvitationsForMe.map((inv) => (
@@ -166,6 +196,64 @@ export const HomeView = ({
                 >
                   <X size={15} />
                   <span>Rechazar</span>
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* 0.1 RETOS SALIENTES ENVIADOS POR MÍ (EN ESPERA DE RIVAL) */}
+      {outgoingInvitationsByMe && outgoingInvitationsByMe.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {outgoingInvitationsByMe.map((inv) => (
+            <div
+              key={inv.id}
+              style={{
+                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.18) 0%, rgba(245, 158, 11, 0.12) 100%)',
+                border: '2px solid #3b82f6',
+                borderRadius: 'var(--radius-lg, 16px)',
+                padding: '14px 20px',
+                boxShadow: '0 6px 20px rgba(59, 130, 246, 0.25)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ fontSize: '1.8rem' }}>⏳</span>
+                <div>
+                  <div style={{ fontWeight: '900', fontSize: '1.05rem', color: '#60a5fa' }}>
+                    Reto familiar enviado a {inv.toUserName} • Esperando que se una...
+                  </div>
+                  <div style={{ fontSize: '0.80rem', color: 'var(--text-parchment-muted)', marginTop: '2px' }}>
+                    ⏱️ {Math.round((inv.timeControl || 300) / 60)} min • {inv.withAssistance ? '💡 Con Ayudas' : '🛡️ Sin Ayudas'} • Sala: <b style={{ color: '#fbbf24', fontFamily: 'monospace', letterSpacing: '1px' }}>{inv.roomId}</b>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  className="btn-gold"
+                  onClick={() => {
+                    if (onOpenP2P) onOpenP2P(inv.roomId);
+                  }}
+                  style={{ padding: '8px 16px', fontSize: '0.86rem', fontWeight: '900', gap: '6px' }}
+                >
+                  <Swords size={15} />
+                  <span>Entrar a la Sala ➔</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => declineFamilyInvitation(inv.id)}
+                  style={{ padding: '8px 12px', fontSize: '0.80rem' }}
+                >
+                  <X size={14} />
+                  <span>Cancelar</span>
                 </button>
               </div>
             </div>
@@ -289,7 +377,15 @@ export const HomeView = ({
           gap: '16px'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', minWidth: '280px', flex: 1 }}>
-            {ongoingGame.gameMode === 'pass_and_play' ? (
+            {ongoingGame.type === 'p2p' ? (
+              <div style={{ width: '56px', height: '56px', borderRadius: '50%', overflow: 'hidden', border: '3px solid #3b82f6', flexShrink: 0, boxShadow: '0 4px 12px rgba(59, 130, 246, 0.35)' }}>
+                {ongoingGame.opponent?.avatarConfig ? (
+                  <DynamicAvatar config={ongoingGame.opponent.avatarConfig} size={56} />
+                ) : (
+                  <AvatarIcon avatarId={ongoingGame.opponent?.avatar || 'knight'} size={56} />
+                )}
+              </div>
+            ) : ongoingGame.gameMode === 'pass_and_play' ? (
               <div style={{
                 width: '56px',
                 height: '56px',
@@ -315,8 +411,8 @@ export const HomeView = ({
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '3px' }}>
                 <span style={{
-                  background: '#f59e0b',
-                  color: '#000000',
+                  background: ongoingGame.type === 'p2p' ? '#3b82f6' : '#f59e0b',
+                  color: '#ffffff',
                   fontSize: '0.72rem',
                   fontWeight: '900',
                   padding: '2px 8px',
@@ -324,7 +420,7 @@ export const HomeView = ({
                   textTransform: 'uppercase',
                   letterSpacing: '0.5px'
                 }}>
-                  Partida en Curso ⚔️
+                  {ongoingGame.type === 'p2p' ? 'Partida Familiar P2P ⚔️' : 'Partida en Curso ⚔️'}
                 </span>
                 <span style={{ fontSize: '0.76rem', color: 'var(--text-parchment-muted)' }}>
                   {ongoingGame.updatedAt ? `Guardada ${new Date(ongoingGame.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Activa'}
@@ -332,9 +428,11 @@ export const HomeView = ({
               </div>
 
               <h3 style={{ margin: '0 0 3px', fontSize: '1.15rem', color: 'var(--text-parchment-main)', fontWeight: '900' }}>
-                {ongoingGame.gameMode === 'pass_and_play' 
-                  ? 'Partida 2 Jugadores (Pasa y Juega)' 
-                  : `Partida vs ${ongoingBot.name} (${ongoingBot.elo} Elo)`}
+                {ongoingGame.type === 'p2p'
+                  ? `Partida en Línea vs ${ongoingGame.opponent?.name || 'Familiar'} (Sala: ${ongoingGame.roomId})`
+                  : (ongoingGame.gameMode === 'pass_and_play' 
+                      ? 'Partida 2 Jugadores (Pasa y Juega)' 
+                      : `Partida vs ${ongoingBot.name} (${ongoingBot.elo} Elo)`)}
               </h3>
 
               <div style={{ fontSize: '0.84rem', color: 'var(--text-parchment-muted)', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
@@ -343,16 +441,18 @@ export const HomeView = ({
                 </span>
                 <span>•</span>
                 <span style={{ color: ongoingGame.turn === 'w' ? '#60a5fa' : '#f59e0b', fontWeight: '700' }}>
-                  {ongoingGame.gameMode === 'pass_and_play'
-                    ? (ongoingGame.turn === 'w' ? '⚪ Mueven Blancas (Jugador 1)' : '⚫ Mueven Negras (Jugador 2)')
-                    : (ongoingGame.turn === 'w' 
-                        ? (ongoingGame.playerColor === 'white' ? '🟢 Tu turno (Blancas)' : `🤖 Turno de ${ongoingBot.name} (Blancas)`)
-                        : (ongoingGame.playerColor === 'black' ? '🟢 Tu turno (Negras)' : `🤖 Turno de ${ongoingBot.name} (Negras)`))}
+                  {ongoingGame.type === 'p2p'
+                    ? (ongoingGame.turn === (ongoingGame.assignedColor === 'white' ? 'w' : 'b') ? '🟢 Tu turno para mover' : `⏳ Turno de ${ongoingGame.opponent?.name || 'rival'}`)
+                    : (ongoingGame.gameMode === 'pass_and_play'
+                        ? (ongoingGame.turn === 'w' ? '⚪ Mueven Blancas (Jugador 1)' : '⚫ Mueven Negras (Jugador 2)')
+                        : (ongoingGame.turn === 'w' 
+                            ? (ongoingGame.playerColor === 'white' ? '🟢 Tu turno (Blancas)' : `🤖 Turno de ${ongoingBot.name} (Blancas)`)
+                            : (ongoingGame.playerColor === 'black' ? '🟢 Tu turno (Negras)' : `🤖 Turno de ${ongoingBot.name} (Negras)`)))}
                 </span>
                 {ongoingGame.lastMove && (
                   <>
                     <span>•</span>
-                    <span>Última: <strong style={{ color: 'var(--text-parchment-main)' }}>{ongoingGame.lastMove.san}</strong></span>
+                    <span>Última: <strong style={{ color: 'var(--text-parchment-main)' }}>{ongoingGame.lastMove.san || `${ongoingGame.lastMove.from}➔${ongoingGame.lastMove.to}`}</strong></span>
                   </>
                 )}
               </div>
@@ -362,7 +462,13 @@ export const HomeView = ({
           {/* Botones de acción: Reanudar o Cancelar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
             <button
-              onClick={() => onNavigate('jugar')}
+              onClick={() => {
+                if (ongoingGame.type === 'p2p') {
+                  if (onOpenP2P) onOpenP2P(ongoingGame.roomId);
+                } else {
+                  onNavigate('jugar');
+                }
+              }}
               className="btn-gold"
               style={{
                 padding: '10px 18px',

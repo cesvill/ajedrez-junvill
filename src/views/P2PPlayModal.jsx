@@ -12,6 +12,7 @@ import { HandicapConfigModal } from '../components/HandicapModal/HandicapConfigM
 import { getHandicapFen, getHandicapSummary, DEFAULT_HANDICAP_CONFIG } from '../engine/handicapEngine';
 import { getCapturedPieces } from '../engine/capturedPieces';
 import { CapturedPiecesBar } from '../components/ChessBoard/CapturedPiecesBar';
+import { ErrorBoundary } from '../components/ErrorBoundary/ErrorBoundary';
 import confetti from 'canvas-confetti';
 import { 
   X, Globe, Copy, Check, QrCode, Play, Users, Clock, ShieldCheck, 
@@ -30,7 +31,16 @@ const CHEER_EMOJIS = [
 ];
 
 export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
-  const { currentUser, activeGroup, users, recordGameResult, sendFamilyInvitation } = useUser();
+  const { 
+    currentUser, 
+    activeGroup, 
+    users, 
+    recordGameResult, 
+    sendFamilyInvitation,
+    saveActiveP2PGame,
+    clearActiveP2PGame,
+    activeP2PGame
+  } = useUser();
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
@@ -262,6 +272,21 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
           setWhiteTime(data.clocks.white);
           setBlackTime(data.clocks.black);
         }
+        if (saveActiveP2PGame) {
+          saveActiveP2PGame({
+            type: 'p2p',
+            roomId,
+            opponent: opponentProfile,
+            fen: updatedGame.fen(),
+            assignedColor,
+            timeControl,
+            whiteTime: data.clocks?.white ?? whiteTime,
+            blackTime: data.clocks?.black ?? blackTime,
+            lastMove: data.move,
+            turn: updatedGame.turn(),
+            updatedAt: Date.now()
+          });
+        }
         checkGameOver(updatedGame);
       } catch (err) {
         console.error("Error aplicando jugada remota P2P:", err);
@@ -280,6 +305,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
       audioManager.playVictory();
       setGameResultReason('¡El rival se ha rendido! Victoria para ti 🏆');
       setMode('gameover');
+      if (clearActiveP2PGame) clearActiveP2PGame();
       recordGameResult('win', 20, 90);
       confetti({ particleCount: 100, spread: 80 });
     } else if (data.type === 'OFFER_DRAW') {
@@ -289,6 +315,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
       audioManager.playMove();
       setGameResultReason('Tablas acordadas por ambos jugadores 🤝');
       setMode('gameover');
+      if (clearActiveP2PGame) clearActiveP2PGame();
       recordGameResult('draw', 5, 75);
     } else if (data.type === 'REMATCH') {
       restartP2PGame();
@@ -368,6 +395,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
       confetti({ particleCount: 90, spread: 70 });
     }
     setMode('gameover');
+    if (clearActiveP2PGame) clearActiveP2PGame();
   };
 
   const checkGameOver = (currentGame) => {
@@ -377,6 +405,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
       audioManager.playVictory();
       setGameResultReason(isMeWinner ? '¡Jaque Mate! Has ganado la partida 🏆' : 'Jaque Mate. El rival ha ganado.');
       setMode('gameover');
+      if (clearActiveP2PGame) clearActiveP2PGame();
       if (isMeWinner) {
         recordGameResult('win', 20, 95);
         confetti({ particleCount: 120, spread: 90 });
@@ -391,6 +420,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
       else if (currentGame.isInsufficientMaterial()) reason = 'Tablas por Material Insuficiente';
       setGameResultReason(reason);
       setMode('gameover');
+      if (clearActiveP2PGame) clearActiveP2PGame();
       recordGameResult('draw', 5, 75);
     }
   };
@@ -411,6 +441,22 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
 
       setLastMove(moveResult);
       setGame(updatedGame);
+
+      if (saveActiveP2PGame) {
+        saveActiveP2PGame({
+          type: 'p2p',
+          roomId,
+          opponent: opponentProfile,
+          fen: updatedGame.fen(),
+          assignedColor,
+          timeControl,
+          whiteTime,
+          blackTime,
+          lastMove: moveResult,
+          turn: updatedGame.turn(),
+          updatedAt: Date.now()
+        });
+      }
 
       // Transmitir jugada por WebRTC a rival y espectadores
       p2pRef.current?.sendMove(moveResult, updatedGame.fen(), { white: whiteTime, black: blackTime });

@@ -22,6 +22,7 @@ import { BugReportModal } from './components/BugReport/BugReportModal';
 import { BugReportFloatingButton } from './components/BugReport/BugReportFloatingButton';
 import { FamilyGatekeeperModal } from './components/FamilyGroups/FamilyGatekeeperModal';
 import { ManualModal } from './components/Manual/ManualModal';
+import { ErrorBoundary } from './components/ErrorBoundary/ErrorBoundary';
 import { parseUrlState, syncUrl } from './engine/urlRouter';
 import { getLessonById } from './curriculum/lessonsData';
 import { getBotById } from './assets/botRoster';
@@ -169,7 +170,8 @@ export const App = () => {
   };
 
   return (
-    <div className="app-layout">
+    <ErrorBoundary componentName="Ajedrez Junvill">
+      <div className="app-layout">
       {/* Cabecera Principal */}
       <Header
         activeTab={activeTab}
@@ -371,7 +373,8 @@ export const App = () => {
         onClose={() => setIsManualOpen(false)}
         initialSection={activeTab}
       />
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 };
 

@@ -4,12 +4,9 @@ import path from 'path';
 const artifactDir = 'C:\\Users\\Cesar Villamil\\.gemini\\antigravity\\brain\\d28adc4a-2e80-4ac3-8724-f297dbd3a4e3';
 
 const filesToCopy = [
-  { src: 'scratch/51_homeview_family_invitation_first.png', dest: '51_homeview_family_invitation_first.png' },
-  { src: 'scratch/57_family_portal_with_invitations.png', dest: '57_family_portal_with_invitations.png' },
-  { src: 'scratch/58_gamemodemodal_with_family_invitation.png', dest: '58_gamemodemodal_with_family_invitation.png' },
-  { src: 'scratch/70_playview_in_game_live.png', dest: '70_playview_in_game_live.png' },
-  { src: 'scratch/72_playview_pure_mode_activated.png', dest: '72_playview_pure_mode_activated.png' },
-  { src: 'scratch/80_captured_pawn_and_advantage_badge.png', dest: '80_captured_pawn_and_advantage_badge.png' }
+  { src: 'scratch/81_home_outgoing_challenge_banner.png', dest: '81_home_outgoing_challenge_banner.png' },
+  { src: 'scratch/84_home_with_outgoing_and_ongoing_p2p.png', dest: '84_home_with_outgoing_and_ongoing_p2p.png' },
+  { src: 'scratch/85_p2p_modal_reconnected_and_active.png', dest: '85_p2p_modal_reconnected_and_active.png' }
 ];
 
 for (const { src, dest } of filesToCopy) {

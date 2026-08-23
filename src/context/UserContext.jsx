@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import { familySignaling } from '../engine/familySignaling';
+import { audioManager } from '../engine/audio';
 
 const UserContext = createContext();
 
@@ -379,7 +381,7 @@ export const UserProvider = ({ children }) => {
     }
   });
 
-const INVITATIONS_STORAGE_KEY = 'ajedrez_junvill_family_invitations_v1';
+  const INVITATIONS_STORAGE_KEY = 'ajedrez_junvill_family_invitations_v1';
 
   // 4. ESTADO DE INVITACIONES / RETOS FAMILIARES ACTIVOS
   const [familyInvitations, setFamilyInvitations] = useState(() => {
@@ -399,7 +401,7 @@ const INVITATIONS_STORAGE_KEY = 'ajedrez_junvill_family_invitations_v1';
     }
   });
 
-  // Sincronización en tiempo real de invitaciones familiares entre pestañas/dispositivos
+  // Sincronización en tiempo real de invitaciones familiares entre pestañas
   useEffect(() => {
     const handleStorageChange = (e) => {
       if (e.key === INVITATIONS_STORAGE_KEY && e.newValue) {
@@ -421,7 +423,68 @@ const INVITATIONS_STORAGE_KEY = 'ajedrez_junvill_family_invitations_v1';
   const users = activeGroup ? (activeGroup.users || []) : [];
   const currentUser = users.find(u => u.id === activeUserId) || users[0] || DEFAULT_JUNVILL_USERS[0];
 
-  // Invitaciones dirigidas al usuario actual
+  // 5. SEÑALIZACIÓN ENTRE DISPOSITIVOS EN TIEMPO REAL (PeerJS Global)
+  useEffect(() => {
+    if (!currentUser?.id) return;
+
+    familySignaling.init(
+      currentUser.id,
+      (incomingInvitation) => {
+        if (!incomingInvitation) return;
+        try { audioManager.playVictory(); } catch (e) {}
+        setFamilyInvitations(prev => {
+          const filtered = prev.filter(i => i.id !== incomingInvitation.id && i.roomId !== incomingInvitation.roomId);
+          const updated = [incomingInvitation, ...filtered];
+          try { localStorage.setItem(INVITATIONS_STORAGE_KEY, JSON.stringify(updated)); } catch (e) {}
+          return updated;
+        });
+      },
+      (invitationId, status) => {
+        if (status === 'accepted' || status === 'declined') {
+          setFamilyInvitations(prev => {
+            const updated = prev.filter(i => i.id !== invitationId);
+            try { localStorage.setItem(INVITATIONS_STORAGE_KEY, JSON.stringify(updated)); } catch (e) {}
+            return updated;
+          });
+        }
+      }
+    );
+  }, [currentUser?.id]);
+
+  // 6. PARTIDA FAMILIAR P2P EN CURSO
+  const ONGOING_P2P_KEY = `junvill_ongoing_p2p_game_v1_${currentUser?.id || 'default'}`;
+  const [activeP2PGame, setActiveP2PGame] = useState(() => {
+    try {
+      const raw = localStorage.getItem(`junvill_ongoing_p2p_game_v1_${activeUserId || 'default'}`);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (e) {
+      return null;
+    }
+  });
+
+  const saveActiveP2PGame = useCallback((gameData) => {
+    try {
+      const key = `junvill_ongoing_p2p_game_v1_${currentUser?.id || 'default'}`;
+      if (!gameData) {
+        localStorage.removeItem(key);
+        setActiveP2PGame(null);
+      } else {
+        localStorage.setItem(key, JSON.stringify(gameData));
+        setActiveP2PGame(gameData);
+      }
+    } catch (e) {}
+  }, [currentUser?.id]);
+
+  const clearActiveP2PGame = useCallback(() => {
+    try {
+      const key = `junvill_ongoing_p2p_game_v1_${currentUser?.id || 'default'}`;
+      localStorage.removeItem(key);
+      setActiveP2PGame(null);
+    } catch (e) {}
+  }, [currentUser?.id]);
+
+  // Invitaciones dirigidas al usuario actual (Entrantes)
   const pendingInvitationsForMe = familyInvitations.filter(inv => {
     if (inv.status !== 'pending') return false;
     const matchId = inv.toUserId === currentUser?.id;
@@ -429,9 +492,9 @@ const INVITATIONS_STORAGE_KEY = 'ajedrez_junvill_family_invitations_v1';
     return matchId || matchName;
   });
 
-  // Invitaciones enviadas por el usuario actual
+  // Invitaciones enviadas por el usuario actual (Salientes en espera)
   const outgoingInvitationsByMe = familyInvitations.filter(inv => {
-    return inv.status === 'pending' && inv.fromUser?.id === currentUser?.id;
+    return inv.status === 'pending' && (inv.fromUser?.id === currentUser?.id || (inv.fromUser?.name || '').toLowerCase() === (currentUser?.name || '').toLowerCase());
   });
 
   // Enviar / Crear Reto Familiar
@@ -473,6 +536,9 @@ const INVITATIONS_STORAGE_KEY = 'ajedrez_junvill_family_invitations_v1';
       return updated;
     });
 
+    // Notificar instantáneamente al dispositivo del rival por PeerJS
+    familySignaling.sendInvitation(toUser.id, invitation);
+
     return invitation;
   };
 
@@ -489,11 +555,16 @@ const INVITATIONS_STORAGE_KEY = 'ajedrez_junvill_family_invitations_v1';
       return updated;
     });
 
+    if (inv.fromUser?.id) {
+      familySignaling.sendStatus(inv.fromUser.id, invitationId, 'accepted');
+    }
+
     return inv;
   };
 
   // Rechazar Reto Familiar
   const declineFamilyInvitation = (invitationId) => {
+    const inv = familyInvitations.find(i => i.id === invitationId);
     setFamilyInvitations(prev => {
       const updated = prev.filter(i => i.id !== invitationId);
       try {
@@ -501,6 +572,10 @@ const INVITATIONS_STORAGE_KEY = 'ajedrez_junvill_family_invitations_v1';
       } catch (e) {}
       return updated;
     });
+
+    if (inv?.fromUser?.id) {
+      familySignaling.sendStatus(inv.fromUser.id, invitationId, 'declined');
+    }
   };
 
   // Sincronización continua de estado con localStorage / sessionStorage
@@ -1082,7 +1157,10 @@ const INVITATIONS_STORAGE_KEY = 'ajedrez_junvill_family_invitations_v1';
       outgoingInvitationsByMe,
       sendFamilyInvitation,
       acceptFamilyInvitation,
-      declineFamilyInvitation
+      declineFamilyInvitation,
+      activeP2PGame,
+      saveActiveP2PGame,
+      clearActiveP2PGame
     }}>
       {children}
     </UserContext.Provider>
