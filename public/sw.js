@@ -1,9 +1,9 @@
 /**
  * Service Worker Oficial de Ajedrez Junvill (PWA & Offline Engine)
- * Proporciona funcionamiento 100% autónomo sin conexión a internet y actualización en segundo plano.
+ * Proporciona funcionamiento 100% autónomo y actualización instantánea sin bloqueos de caché.
  */
 
-const CACHE_NAME = 'ajedrez-junvill-v1.2.0';
+const CACHE_NAME = 'ajedrez-junvill-v2.5.0-live';
 
 const PRECACHE_URLS = [
   '/',
@@ -15,22 +15,24 @@ const PRECACHE_URLS = [
   '/apple-touch-icon.png'
 ];
 
-// 1. INSTALACIÓN: Pre-cachear el App Shell inicial
+// 1. INSTALACIÓN: Pre-cachear el App Shell inicial y activar de inmediato
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(PRECACHE_URLS);
-    }).then(() => self.skipWaiting())
+    })
   );
 });
 
-// 2. ACTIVACIÓN: Limpiar versiones antiguas de caché y reclamar clientes inmediatamente
+// 2. ACTIVACIÓN: Limpiar todas las versiones antiguas de caché y reclamar clientes inmediatamente
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cache) => {
           if (cache !== CACHE_NAME) {
+            console.log('[SW] Eliminando caché obsoleta:', cache);
             return caches.delete(cache);
           }
         })
@@ -39,16 +41,16 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// 3. FETCH: Estrategia de Caché Inteligente (Cache-First con Stale-While-Revalidate y Fallback Offline)
+// 3. FETCH: Network-First para navegación y HTML; Cache-with-Network-Refresh para assets
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Ignorar esquemas que no sean HTTP/HTTPS (extensiones, devtools)
+  // Ignorar esquemas no HTTP/HTTPS
   if (!url.protocol.startsWith('http')) return;
 
-  // Si es una petición de navegación (HTML/Rutas): Network-First con fallback a index.html en caché
-  if (request.mode === 'navigate') {
+  // Navegación (HTML / Rutas): SIEMPRE Network-First para recibir la última versión desplegada
+  if (request.mode === 'navigate' || request.destination === 'document') {
     event.respondWith(
       fetch(request)
         .then((networkResponse) => {
@@ -65,34 +67,34 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Para assets estáticos (JS, CSS, SVG, PNG, Fuentes, Audios): Cache-First con actualización en segundo plano
+  // Assets estáticos (JS, CSS, Imágenes, Fuentes): Network-First para JS/CSS para evitar hashes viejos
+  if (request.destination === 'script' || request.destination === 'style' || url.pathname.startsWith('/assets/')) {
+    event.respondWith(
+      fetch(request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const copy = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          }
+          return networkResponse;
+        })
+        .catch(() => {
+          return caches.match(request);
+        })
+    );
+    return;
+  }
+
+  // Otros recursos (Imágenes, Sonidos): Cache-First con fallback a red
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
-      if (cachedResponse) {
-        // En segundo plano refrescar la caché si hay red
-        fetch(request)
-          .then((networkResponse) => {
-            if (networkResponse && networkResponse.status === 200) {
-              caches.open(CACHE_NAME).then((cache) => cache.put(request, networkResponse));
-            }
-          })
-          .catch(() => {});
-        return cachedResponse;
-      }
-
-      // Si no está en caché, traer de red y guardar
+      if (cachedResponse) return cachedResponse;
       return fetch(request).then((networkResponse) => {
-        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-          return networkResponse;
+        if (networkResponse && networkResponse.status === 200) {
+          const copy = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
         }
-        const responseToCache = networkResponse.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(request, responseToCache);
-        });
         return networkResponse;
-      }).catch((err) => {
-        // Fallback silencioso para peticiones fallidas offline
-        return cachedResponse;
       });
     })
   );
