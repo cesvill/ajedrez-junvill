@@ -19,9 +19,10 @@ export const Header = ({
   onOpenSettings, 
   onOpenBugReport, 
   onOpenManual,
-  onOpenP2P 
+  onOpenP2P,
+  onOpenFamilyChat
 }) => {
-  const { currentUser, activeGroup, users, forceCloudSync } = useUser();
+  const { currentUser, activeGroup, users, forceCloudSync, unreadMessagesCount } = useUser();
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
   const toolsMenuRef = useRef(null);
@@ -113,6 +114,43 @@ export const Header = ({
               <span>💎</span>
               <span className="currency-val">{currentUser?.gems || 0}</span>
             </div>
+
+            {/* BOTÓN DE CHAT FAMILIAR */}
+            <button
+              type="button"
+              onClick={onOpenFamilyChat}
+              className="btn-secondary"
+              title="Chat Familiar en Tiempo Real"
+              style={{
+                position: 'relative',
+                padding: '5px 10px',
+                fontSize: '0.78rem',
+                fontWeight: '800',
+                gap: '5px',
+                background: 'rgba(16, 185, 129, 0.15)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                color: '#34d399'
+              }}
+            >
+              <MessageSquare size={14} color="#34d399" />
+              <span>Chat</span>
+              {(unreadMessagesCount || 0) > 0 && (
+                <span style={{
+                  position: 'absolute',
+                  top: '-4px',
+                  right: '-4px',
+                  background: '#ef4444',
+                  color: '#ffffff',
+                  fontSize: '0.62rem',
+                  fontWeight: '900',
+                  padding: '1px 5px',
+                  borderRadius: '999px',
+                  boxShadow: '0 0 6px rgba(239, 68, 68, 0.6)'
+                }}>
+                  {unreadMessagesCount}
+                </span>
+              )}
+            </button>
 
             {/* CONTENEDOR RELATIVO PARA EL MENÚ POPOVER */}
             <div style={{ position: 'relative' }} ref={toolsMenuRef}>

@@ -10,6 +10,11 @@ import { audioManager } from '../engine/audio';
 import { QRCodeDisplay } from '../components/QRCodeModal/QRCodeDisplay';
 import { HandicapConfigModal } from '../components/HandicapModal/HandicapConfigModal';
 import { getHandicapFen, getHandicapSummary, DEFAULT_HANDICAP_CONFIG } from '../engine/handicapEngine';
+import { getStartingFenForVariant, getVariantById, checkVariantWinCondition, CHESS_VARIANTS } from '../engine/variantsEngine';
+import { DiceRoller } from '../components/Variants/DiceRoller';
+import { OnlineBadge } from '../components/FamilyPresence/OnlineBadge';
+import { FamilyChallengeDialog, MINIGAMES_LIST } from '../components/FamilyChallenges/FamilyChallengeDialog';
+import { FamilyChatDrawer } from '../components/FamilyChat/FamilyChatDrawer';
 import { getCapturedPieces } from '../engine/capturedPieces';
 import { CapturedPiecesBar } from '../components/ChessBoard/CapturedPiecesBar';
 import { ErrorBoundary } from '../components/ErrorBoundary/ErrorBoundary';
@@ -39,8 +44,19 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
     sendFamilyInvitation,
     saveActiveP2PGame,
     clearActiveP2PGame,
-    activeP2PGame
+    activeP2PGame,
+    isUserOnline,
+    familyMessages,
+    sendFamilyMessage
   } = useUser();
+
+  const [gameVariant, setGameVariant] = useState('standard');
+  const [currentDiceRoll, setCurrentDiceRoll] = useState(null);
+  const [isRollingDice, setIsRollingDice] = useState(false);
+  const [isChallengeDialogOpen, setIsChallengeDialogOpen] = useState(false);
+  const [selectedOpponentForChallenge, setSelectedOpponentForChallenge] = useState(null);
+  const [isFamilyChatOpen, setIsFamilyChatOpen] = useState(false);
+  const [selectedOpponentForChat, setSelectedOpponentForChat] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
@@ -358,6 +374,13 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
       if (data.profile.withAssistance !== undefined) {
         setWithAssistance(data.profile.withAssistance);
       }
+      if (data.profile.gameVariant) {
+        setGameVariant(data.profile.gameVariant);
+        if (data.profile.gameVariant !== 'standard') {
+          const variantFen = getStartingFenForVariant(data.profile.gameVariant);
+          setGame(new Chess(variantFen));
+        }
+      }
       if (!p2pRef.current?.isHost) {
         setAssignedColor(data.profile.color);
         if (data.profile.timeControl) {
@@ -366,6 +389,12 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
           setBlackTime(data.profile.timeControl);
         }
       }
+    } else if (data.type === 'DICE_ROLL') {
+      setCurrentDiceRoll(data.roll);
+      audioManager?.playMove?.();
+    } else if (data.type === 'PASS_DICE_TURN') {
+      setCurrentDiceRoll(null);
+      audioManager?.playMove?.();
     } else if (data.type === 'ASSISTANCE_TOGGLE') {
       setWithAssistance(data.withAssistance);
       setStatusMessage(data.withAssistance ? '💡 El rival activó las ayudas tácticas.' : '🛡️ El rival activó el Modo Clásico (sin ayudas).');
@@ -1174,57 +1203,92 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
                   </div>
                 ) : (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
-                    {familyMembers.map(member => (
-                      <div
-                        key={member.id}
-                        style={{
-                          background: '#0a0f1d',
-                          border: '1.5px solid rgba(255, 255, 255, 0.1)',
-                          borderRadius: '12px',
-                          padding: '14px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: '12px',
-                          transition: 'all 0.18s ease'
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div style={{ width: '46px', height: '46px', borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--color-gold)' }}>
-                            {member.avatarConfig ? (
-                              <DynamicAvatar config={member.avatarConfig} size={46} />
-                            ) : (
-                              <AvatarIcon avatarId={member.avatar || 'teen_gamer'} size={46} />
-                            )}
-                          </div>
-                          <div>
-                            <div style={{ fontWeight: '800', fontSize: '0.92rem', color: '#f8fafc' }}>
-                              {member.name}
-                            </div>
-                            <div style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
-                              {member.title || 'Aprendiz'} • {member.elo || 600} Elo
-                            </div>
-                          </div>
-                        </div>
-
-                        <button
-                          type="button"
-                          className="btn-gold"
-                          onClick={() => handleStartFamilyChallenge(member)}
-                          disabled={isConnecting}
+                    {familyMembers.map(member => {
+                      const online = isUserOnline ? isUserOnline(member.id) : false;
+                      return (
+                        <div
+                          key={member.id}
                           style={{
-                            padding: '8px 12px',
-                            fontSize: '0.80rem',
-                            fontWeight: '900',
-                            gap: '5px',
-                            whiteSpace: 'nowrap'
+                            background: '#0a0f1d',
+                            border: online ? '1.5px solid rgba(16, 185, 129, 0.4)' : '1.5px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '12px',
+                            padding: '14px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            flexWrap: 'wrap',
+                            gap: '12px',
+                            boxShadow: online ? '0 4px 16px rgba(16, 185, 129, 0.15)' : 'none',
+                            transition: 'all 0.18s ease'
                           }}
                         >
-                          <Swords size={14} />
-                          <span>Retar ({timeControl / 60}m)</span>
-                        </button>
-                      </div>
-                    ))}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{ position: 'relative', width: '46px', height: '46px', borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--color-gold)' }}>
+                              {member.avatarConfig ? (
+                                <DynamicAvatar config={member.avatarConfig} size={46} />
+                              ) : (
+                                <AvatarIcon avatarId={member.avatar || 'teen_gamer'} size={46} />
+                              )}
+                            </div>
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <div style={{ fontWeight: '800', fontSize: '0.94rem', color: '#f8fafc' }}>
+                                  {member.name}
+                                </div>
+                                <OnlineBadge isOnline={online} size="sm" />
+                              </div>
+                              <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: '2px' }}>
+                                {member.title || 'Aprendiz'} • {member.elo || 600} Elo
+                              </div>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                            <button
+                              type="button"
+                              className="btn-secondary"
+                              onClick={() => {
+                                setSelectedOpponentForChat(member);
+                                setIsFamilyChatOpen(true);
+                              }}
+                              style={{
+                                padding: '7px 10px',
+                                fontSize: '0.78rem',
+                                fontWeight: '700',
+                                gap: '4px',
+                                background: 'rgba(59, 130, 246, 0.12)',
+                                border: '1px solid rgba(59, 130, 246, 0.3)',
+                                color: '#60a5fa'
+                              }}
+                              title="Enviar mensaje directo"
+                            >
+                              <MessageSquare size={13} />
+                              <span>Mensaje</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              className="btn-gold"
+                              onClick={() => {
+                                setSelectedOpponentForChallenge(member);
+                                setIsChallengeDialogOpen(true);
+                              }}
+                              disabled={isConnecting}
+                              style={{
+                                padding: '7px 12px',
+                                fontSize: '0.80rem',
+                                fontWeight: '900',
+                                gap: '5px',
+                                whiteSpace: 'nowrap'
+                              }}
+                            >
+                              <Swords size={14} />
+                              <span>Retar ⚔️</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 
@@ -1699,6 +1763,28 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
                   </div>
                 )}
               </div>
+
+              {/* Si es Dados Mágicos, renderizar DiceRoller */}
+              {gameVariant === 'dice_chess' && mode === 'playing' && (
+                <div style={{ marginBottom: '8px' }}>
+                  <DiceRoller
+                    currentRoll={currentDiceRoll}
+                    onRoll={() => {
+                      const legalRolls = ['p', 'n', 'b', 'r', 'q', 'k'];
+                      const pick = legalRolls[Math.floor(Math.random() * legalRolls.length)];
+                      setCurrentDiceRoll(pick);
+                      p2pRef.current?.send({ type: 'DICE_ROLL', roll: pick });
+                    }}
+                    isRolling={isRollingDice}
+                    turn={game.turn()}
+                    hasLegalMovesForRoll={true}
+                    onPassTurn={() => {
+                      setCurrentDiceRoll(null);
+                      p2pRef.current?.send({ type: 'PASS_DICE_TURN' });
+                    }}
+                  />
+                </div>
+              )}
 
               {/* Tablero de Ajedrez */}
               <div style={{ position: 'relative', width: '100%', maxWidth: '440px', margin: '0 auto' }}>

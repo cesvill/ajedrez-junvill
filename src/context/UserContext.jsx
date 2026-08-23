@@ -608,6 +608,26 @@ export const UserProvider = ({ children }) => {
   });
 
   const INVITATIONS_STORAGE_KEY = 'ajedrez_junvill_family_invitations_v1';
+  const MESSAGES_STORAGE_KEY = 'ajedrez_junvill_family_messages_v1';
+  const PRESENCE_LOCAL_PREFIX = 'junvill_presence_';
+
+  // 3.1 PRESENCIA EN LÍNEA EN TIEMPO REAL
+  const [presenceHeartbeats, setPresenceHeartbeats] = useState({});
+
+  // 3.2 MENSAJERÍA FAMILIAR DIRECTA
+  const [familyMessages, setFamilyMessages] = useState(() => {
+    try {
+      const raw = localStorage.getItem('ajedrez_junvill_family_messages_v1');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed.slice(-200);
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  });
+  const [incomingToast, setIncomingToast] = useState(null);
 
   // 4. ESTADO DE INVITACIONES / RETOS FAMILIARES ACTIVOS
   const [familyInvitations, setFamilyInvitations] = useState(() => {
@@ -627,21 +647,57 @@ export const UserProvider = ({ children }) => {
     }
   });
 
-  // Sincronización en tiempo real de invitaciones familiares entre pestañas
+  // Sincronización en tiempo real de invitaciones, mensajes y presencia entre pestañas y dispositivos
   useEffect(() => {
     const handleStorageChange = (e) => {
       if (e.key === INVITATIONS_STORAGE_KEY && e.newValue) {
         try {
           const parsed = JSON.parse(e.newValue);
-          if (Array.isArray(parsed)) {
-            setFamilyInvitations(parsed);
-          }
+          if (Array.isArray(parsed)) setFamilyInvitations(parsed);
         } catch (err) {}
+      } else if (e.key === MESSAGES_STORAGE_KEY && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) setFamilyMessages(parsed);
+        } catch (err) {}
+      } else if (e.key && e.key.startsWith('junvill_presence_') && e.newValue) {
+        const userId = e.key.replace('junvill_presence_', '');
+        setPresenceHeartbeats(prev => ({ ...prev, [userId]: parseInt(e.newValue, 10) }));
       }
     };
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
+
+  // Emisión periódica de presencia activa (Heartbeat)
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    const targetIds = (users || []).map(u => u.id).filter(id => id !== currentUser.id);
+
+    try {
+      localStorage.setItem(`junvill_presence_${currentUser.id}`, Date.now().toString());
+    } catch (e) {}
+
+    familySignaling.broadcastHeartbeat(currentUser.id, {
+      userName: currentUser.name,
+      avatar: currentUser.avatar,
+      avatarConfig: currentUser.avatarConfig
+    }, targetIds);
+
+    const timer = setInterval(() => {
+      try {
+        localStorage.setItem(`junvill_presence_${currentUser.id}`, Date.now().toString());
+      } catch (e) {}
+
+      familySignaling.broadcastHeartbeat(currentUser.id, {
+        userName: currentUser.name,
+        avatar: currentUser.avatar,
+        avatarConfig: currentUser.avatarConfig
+      }, targetIds);
+    }, 6000);
+
+    return () => clearInterval(timer);
+  }, [currentUser?.id, users]);
 
   // Derivaciones limpias y deduplicadas
   const activeGroup = groups.find(g => g.id === activeGroupId) || groups[0] || DEFAULT_FAMILY_GROUPS[0];
@@ -753,8 +809,72 @@ export const UserProvider = ({ children }) => {
     return inv.status === 'pending' && (inv.fromUser?.id === currentUser?.id || (inv.fromUser?.name || '').toLowerCase() === (currentUser?.name || '').toLowerCase());
   });
 
-  // Enviar / Crear Reto Familiar (con Detección de Reto Mutuo)
-  const sendFamilyInvitation = (toUser, timeControl = 300, withAssistance = true, customRoomId = null) => {
+  // Helper para consultar si un familiar está conectado en tiempo real
+  const isUserOnline = useCallback((userId) => {
+    if (!userId) return false;
+    if (userId === currentUser?.id) return true;
+    const lastTime = presenceHeartbeats[userId] || 0;
+    let localTime = 0;
+    try {
+      localTime = parseInt(localStorage.getItem(`junvill_presence_${userId}`) || '0', 10);
+    } catch (e) {}
+    const mostRecent = Math.max(lastTime, localTime);
+    return (Date.now() - mostRecent) < 22000;
+  }, [currentUser?.id, presenceHeartbeats]);
+
+  // Enviar Mensaje Directo a un familiar
+  const sendFamilyMessage = useCallback((toUser, text, isEmote = false) => {
+    if (!currentUser || !toUser || !text) return null;
+    const msgObj = {
+      id: `fmsg_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      fromUser: {
+        id: currentUser.id,
+        name: currentUser.name,
+        avatar: currentUser.avatar,
+        avatarConfig: currentUser.avatarConfig
+      },
+      toUserId: toUser.id,
+      toUserName: toUser.name,
+      text: String(text).trim(),
+      isEmote: !!isEmote,
+      timestamp: Date.now(),
+      read: true
+    };
+
+    setFamilyMessages(prev => {
+      const updated = [...prev, msgObj];
+      try {
+        localStorage.setItem('ajedrez_junvill_family_messages_v1', JSON.stringify(updated.slice(-200)));
+      } catch (e) {}
+      return updated;
+    });
+
+    familySignaling.sendMessage(toUser.id, msgObj);
+    return msgObj;
+  }, [currentUser]);
+
+  const markMessagesAsRead = useCallback((withUserId) => {
+    setFamilyMessages(prev => {
+      const updated = prev.map(m => (m.fromUser?.id === withUserId && !m.read) ? { ...m, read: true } : m);
+      try {
+        localStorage.setItem('ajedrez_junvill_family_messages_v1', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+  }, []);
+
+  const unreadMessagesCount = familyMessages.filter(m => m.toUserId === currentUser?.id && !m.read).length;
+
+  // Enviar / Crear Reto Familiar (con soporte para minijuegos y variantes)
+  const sendFamilyInvitation = (
+    toUser, 
+    timeControl = 300, 
+    withAssistance = true, 
+    customRoomId = null,
+    gameVariant = 'standard',
+    customMessage = '',
+    handicapConfig = null
+  ) => {
     if (!currentUser || !toUser) return null;
 
     // 1. DETECCIÓN DE RETO MUTUO: Si el otro usuario ya te envió una invitación pendiente
@@ -796,6 +916,9 @@ export const UserProvider = ({ children }) => {
       toUserName: toUser.name,
       timeControl: timeControl || 300,
       withAssistance: withAssistance !== false,
+      gameVariant: gameVariant || 'standard',
+      customMessage: customMessage || '',
+      handicapConfig: handicapConfig || null,
       createdAt: Date.now(),
       status: 'pending'
     };
@@ -1489,7 +1612,14 @@ export const UserProvider = ({ children }) => {
       declineFamilyInvitation,
       activeP2PGame,
       saveActiveP2PGame,
-      clearActiveP2PGame
+      clearActiveP2PGame,
+      isUserOnline,
+      familyMessages,
+      sendFamilyMessage,
+      markMessagesAsRead,
+      unreadMessagesCount,
+      incomingToast,
+      setIncomingToast
     }}>
       {children}
     </UserContext.Provider>

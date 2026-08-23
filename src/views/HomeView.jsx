@@ -3,6 +3,8 @@ import { Chess } from 'chess.js';
 import { useUser } from '../context/UserContext';
 import { AvatarIcon } from '../assets/avatars';
 import { DynamicAvatar } from '../components/AvatarCreator/DynamicAvatar';
+import { OnlineBadge } from '../components/FamilyPresence/OnlineBadge';
+import { MINIGAMES_LIST } from '../components/FamilyChallenges/FamilyChallengeDialog';
 import { FullBodyAvatar } from '../components/AvatarCreator/FullBodyAvatar';
 import { BOT_ROSTER, BotAvatarRenderer } from '../assets/botRoster';
 import { CURRICULUM_SECTIONS } from '../curriculum/lessonsData';

@@ -1,20 +1,20 @@
 import Peer from 'peerjs';
 
 /**
- * Servicio de Señalización de Retos Familiares en Tiempo Real
- * Utiliza PeerJS global para notificar instantáneamente entre dispositivos (móvil, PC, tablet)
- * sin requerir servidores intermedios de backend.
+ * Servicio de Señalización y Conexión Familiar en Tiempo Real
+ * Soporta retos multijugador, minijuegos familiares, presencia en línea (Online status)
+ * y mensajería directa encriptada WebRTC sin backend central.
  */
 
 class FamilySignalingService {
   constructor() {
     this.peer = null;
     this.currentUserId = null;
-    this.invitationListeners = [];
+    this.heartbeatTimer = null;
   }
 
   // Inicializa el receptor para el usuario actualmente conectado
-  init(userId, onReceiveInvitation, onInvitationStatusChange, onProgressUpdate) {
+  init(userId, { onReceiveInvitation, onInvitationStatusChange, onProgressUpdate, onHeartbeat, onMessage } = {}) {
     if (this.currentUserId === userId && this.peer && !this.peer.destroyed) {
       return;
     }
@@ -37,26 +37,30 @@ class FamilySignalingService {
 
       this.peer.on('connection', (conn) => {
         conn.on('data', (data) => {
-          if (data?.type === 'FAMILY_INVITATION' && onReceiveInvitation) {
+          if (!data) return;
+          if (data.type === 'FAMILY_INVITATION' && onReceiveInvitation) {
             onReceiveInvitation(data.invitation);
-          } else if (data?.type === 'FAMILY_INVITATION_STATUS' && onInvitationStatusChange) {
+          } else if (data.type === 'FAMILY_INVITATION_STATUS' && onInvitationStatusChange) {
             onInvitationStatusChange(data.invitationId, data.status);
-          } else if (data?.type === 'FAMILY_PROGRESS_UPDATE' && onProgressUpdate) {
+          } else if (data.type === 'FAMILY_PROGRESS_UPDATE' && onProgressUpdate) {
             onProgressUpdate(data.groupData);
+          } else if (data.type === 'FAMILY_HEARTBEAT' && onHeartbeat) {
+            onHeartbeat(data.userId, data.payload);
+          } else if (data.type === 'FAMILY_MESSAGE' && onMessage) {
+            onMessage(data.message);
           }
         });
       });
 
       this.peer.on('error', (err) => {
-        // Si el peer ID ya está activo (ej: otra pestaña abierta), ignorar silenciosamente
-        console.log('[FamilySignaling] Info:', err?.type || err?.message);
+        // Ignorar silenciosamente colisiones normales de peer
       });
     } catch (e) {
       console.warn('[FamilySignaling] Init error:', e);
     }
   }
 
-  // Enviar un reto a otro integrante de la familia en tiempo real
+  // Enviar un reto (ajedrez estándar o cualquier minijuego) a otro familiar en tiempo real
   sendInvitation(targetUserId, invitation) {
     if (!targetUserId || !invitation) return;
 
@@ -85,11 +89,11 @@ class FamilySignalingService {
         try { tempPeer.destroy(); } catch (e) {}
       });
     } catch (err) {
-      console.warn('[FamilySignaling] Send error:', err);
+      console.warn('[FamilySignaling] Send invitation error:', err);
     }
   }
 
-  // Notificar actualización de estado (aceptado / rechazado)
+  // Notificar actualización de estado del reto (aceptado / rechazado)
   sendStatus(targetUserId, invitationId, status) {
     if (!targetUserId || !invitationId) return;
 
@@ -117,7 +121,69 @@ class FamilySignalingService {
     } catch (err) {}
   }
 
-  // Transmitir actualización de progreso en tiempo real a todos los miembros de la familia
+  // Enviar mensaje de chat directo a un familiar
+  sendMessage(targetUserId, messagePayload) {
+    if (!targetUserId || !messagePayload) return;
+
+    try {
+      const cleanTargetId = `ajedrez-junvill-user-${targetUserId.replace(/[^a-zA-Z0-9_-]/g, '')}`;
+      const tempPeer = new Peer({
+        config: {
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:global.stun.twilio.com:3478' }
+          ]
+        }
+      });
+
+      tempPeer.on('open', () => {
+        const conn = tempPeer.connect(cleanTargetId);
+        conn.on('open', () => {
+          conn.send({ type: 'FAMILY_MESSAGE', message: messagePayload, timestamp: Date.now() });
+          setTimeout(() => {
+            try { tempPeer.destroy(); } catch (e) {}
+          }, 2000);
+        });
+      });
+
+      tempPeer.on('error', () => {
+        try { tempPeer.destroy(); } catch (e) {}
+      });
+    } catch (err) {}
+  }
+
+  // Emitir señal de presencia activa (Heartbeat) a los demás familiares
+  broadcastHeartbeat(userId, payload, targetUserIds = []) {
+    if (!userId || !targetUserIds || targetUserIds.length === 0) return;
+
+    targetUserIds.forEach(targetUserId => {
+      if (!targetUserId || targetUserId === userId) return;
+      try {
+        const cleanTargetId = `ajedrez-junvill-user-${targetUserId.replace(/[^a-zA-Z0-9_-]/g, '')}`;
+        const tempPeer = new Peer({
+          config: {
+            iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+          }
+        });
+
+        tempPeer.on('open', () => {
+          const conn = tempPeer.connect(cleanTargetId);
+          conn.on('open', () => {
+            conn.send({ type: 'FAMILY_HEARTBEAT', userId, payload, timestamp: Date.now() });
+            setTimeout(() => {
+              try { tempPeer.destroy(); } catch (e) {}
+            }, 1800);
+          });
+        });
+
+        tempPeer.on('error', () => {
+          try { tempPeer.destroy(); } catch (e) {}
+        });
+      } catch (err) {}
+    });
+  }
+
+  // Transmitir actualización de progreso en tiempo real a todos los miembros
   broadcastProgressUpdate(groupData, targetUserIds = []) {
     if (!groupData || !targetUserIds || targetUserIds.length === 0) return;
 

@@ -18,6 +18,7 @@ import { SettingsModal } from './views/SettingsModal';
 import { AvatarBuilderModal } from './components/AvatarCreator/AvatarBuilderModal';
 import { P2PPlayModal } from './views/P2PPlayModal';
 import { FamilyChallengesModal } from './views/FamilyChallengesModal';
+import { FamilyChatDrawer } from './components/FamilyChat/FamilyChatDrawer';
 import { BugReportModal } from './components/BugReport/BugReportModal';
 import { BugReportFloatingButton } from './components/BugReport/BugReportFloatingButton';
 import { FamilyGatekeeperModal } from './components/FamilyGroups/FamilyGatekeeperModal';
@@ -54,6 +55,7 @@ export const App = () => {
   const [isPgnOpen, setIsPgnOpen] = useState(false);
   const [isP2POpen, setIsP2POpen] = useState(false);
   const [isBugReportOpen, setIsBugReportOpen] = useState(false);
+  const [isFamilyChatOpen, setIsFamilyChatOpen] = useState(false);
   const [bugReportContext, setBugReportContext] = useState({});
   const [urlRoomId, setUrlRoomId] = useState('');
 
@@ -175,6 +177,7 @@ export const App = () => {
       {/* Cabecera Principal */}
       <Header
         activeTab={activeTab}
+        onOpenFamilyChat={() => setIsFamilyChatOpen(true)}
         onTabChange={handleTabChange}
         onOpenProfile={() => setIsProfileModalOpen(true)}
         onOpenGatekeeper={() => setIsGatekeeperOpen(true)}
