@@ -77,11 +77,11 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_5",
-            "fen": "4k3/8/8/8/8/8/4Q3/4K3 w - - 0 1",
-            "instruction": "Paso 5: Centraliza tu Dama (la pieza más poderosa) moviéndola de e2 a e4.",
+            "fen": "4k3/8/8/8/8/8/3Q4/4K3 w - - 0 1",
+            "instruction": "Paso 5: Centraliza tu Dama (la pieza más poderosa) moviéndola de d2 a d4.",
             "solution": {
-              "from": "e2",
-              "to": "e4"
+              "from": "d2",
+              "to": "d4"
             },
             "hint": "Mueve tu dama de e2 a e4.",
             "feedback": "¡Ataque demoledor! La dama combina el movimiento de la Torre y el Alfil en todas las direcciones."
@@ -318,11 +318,11 @@ export const CURRICULUM_SECTIONS = [
             "type": "theory",
             "title": "La Gran Transformación",
             "text": "Cuando un peón llega a la última fila con el apoyo de tus piezas, corona inmediatamente en Dama protegida para asegurar la victoria.",
-            "fen": "3k4/4P3/8/8/8/8/4R3/4K3 w - - 0 1"
+            "fen": "6k1/4P3/8/8/8/8/4R3/4K3 w - - 0 1"
           },
           {
             "id": "ex_1",
-            "fen": "3k4/4P3/8/8/8/8/4R3/4K3 w - - 0 1",
+            "fen": "6k1/4P3/8/8/8/8/4R3/4K3 w - - 0 1",
             "instruction": "Paso 1: Tu peón en e7 avanza a e8 para coronar en Dama protegida por tu Torre de e2.",
             "solution": {
               "from": "e7",
@@ -334,7 +334,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_2",
-            "fen": "1k6/P7/8/8/8/8/R7/4K3 w - - 0 1",
+            "fen": "4k3/P7/8/8/8/8/R7/4K3 w - - 0 1",
             "instruction": "Paso 2: Corona tu peón de a7 a a8 en Dama con el respaldo de tu Torre en a2.",
             "solution": {
               "from": "a7",
@@ -346,11 +346,11 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_3",
-            "fen": "k7/1PK5/8/8/8/8/8/8 w - - 0 1",
-            "instruction": "Paso 3: Corona tu peón en b8 con Jaque Mate asistido por tu Rey en c7.",
+            "fen": "2k5/P7/2K5/8/8/8/8/8 w - - 0 1",
+            "instruction": "Paso 3: Corona tu peón de a7 en a8 con Jaque Mate asistido por tu Rey en c6.",
             "solution": {
-              "from": "b7",
-              "to": "b8",
+              "from": "a7",
+              "to": "a8",
               "promotion": "q"
             },
             "hint": "Corona en b8 transformando el peón en Dama.",
@@ -358,7 +358,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_4",
-            "fen": "6k1/7P/8/8/8/8/7R/4K3 w - - 0 1",
+            "fen": "2k5/7P/8/8/8/8/7R/4K3 w - - 0 1",
             "instruction": "Paso 4: Corona tu peón de h7 a h8 obteniendo una Dama defendida por tu Torre en h2.",
             "solution": {
               "from": "h7",
@@ -370,7 +370,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_5",
-            "fen": "4k3/3r4/8/8/8/8/3p4/4K3 b - - 0 1",
+            "fen": "4k3/3r4/8/8/8/8/3p4/1K6 b - - 0 1",
             "instruction": "Paso 5: Juegas con negras. Corona tu peón en d1 con jaque defendido por tu Torre en d7.",
             "solution": {
               "from": "d2",
@@ -542,10 +542,10 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_3",
-            "fen": "3k4/4r3/8/8/8/8/8/3QK3 b - - 0 1",
-            "instruction": "Paso 3 (I = Interponer): La Dama blanca en d1 da jaque a tu Rey en d8. Interpón tu Torre de e7 a d7 como escudo para bloquear el jaque.",
+            "fen": "3k4/7r/8/8/8/8/8/3QK3 b - - 0 1",
+            "instruction": "Paso 3 (I = Interponer): La Dama blanca en d1 da jaque a tu Rey en d8. Interpón tu Torre de h7 a d7 como escudo para bloquear el jaque.",
             "solution": {
-              "from": "e7",
+              "from": "h7",
               "to": "d7"
             },
             "alternativeSolutions": [
@@ -1031,22 +1031,22 @@ export const CURRICULUM_SECTIONS = [
             "type": "theory",
             "title": "Cerrar la Caja",
             "text": "Para dar mate con Dama y Rey debes usar la Dama para acorralar al Rey enemigo en una banda (cerrando una caja imaginaria) y luego acercar tu Rey para apoyar el mate.",
-            "fen": "4k3/8/8/8/8/8/4Q3/4K3 w - - 0 1"
+            "fen": "4k3/8/8/8/8/8/3Q4/4K3 w - - 0 1"
           },
           {
             "id": "ex_1",
-            "fen": "4k3/8/8/8/8/8/4Q3/4K3 w - - 0 1",
-            "instruction": "Paso 1: Coloca tu Dama a salto de caballo en e6 para acorralar al rey rival en la 8ª fila.",
+            "fen": "4k3/8/8/8/8/8/3Q4/4K3 w - - 0 1",
+            "instruction": "Paso 1: Coloca tu Dama en d6 para acorralar al rey rival en la 8ª fila.",
             "solution": {
-              "from": "e2",
-              "to": "e6"
+              "from": "d2",
+              "to": "d6"
             },
             "hint": "Mueve tu dama a e6.",
             "feedback": "¡Caja reducida con seguridad! La dama corta la 7ª fila sin exponerse."
           },
           {
             "id": "ex_2",
-            "fen": "4k3/4Q3/8/8/8/8/8/4K3 w - - 0 1",
+            "fen": "4k3/8/3Q4/8/8/8/8/4K3 w - - 0 1",
             "instruction": "Paso 2: Ahora acerca tu Rey de e1 a e2 para apoyar a tu Dama.",
             "solution": {
               "from": "e1",
@@ -1057,7 +1057,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_3",
-            "fen": "4k3/4Q3/8/8/8/4K3/8/8 w - - 0 1",
+            "fen": "4k3/8/3Q4/8/8/4K3/8/8 w - - 0 1",
             "instruction": "Paso 3: Continúa avanzando tu Rey a e4 para preparar el mate.",
             "solution": {
               "from": "e3",
@@ -1068,7 +1068,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_4",
-            "fen": "4k3/4Q3/8/8/4K3/8/8/8 w - - 0 1",
+            "fen": "4k3/8/3Q4/8/4K3/8/8/8 w - - 0 1",
             "instruction": "Paso 4: Da un paso más con tu Rey a e5 para colocarte en oposición frente al rey negro.",
             "solution": {
               "from": "e4",
@@ -1424,10 +1424,10 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_5",
-            "fen": "8/k7/8/8/8/8/5B2/4K2r w - - 0 1",
-            "instruction": "Paso 5: Interpón tu Alfil en g1 tapando el jaque.",
+            "fen": "1k6/8/8/8/8/4B3/8/4K2r w - - 0 1",
+            "instruction": "Paso 5: Interpón tu Alfil en g1 tapando el jaque de la torre negra.",
             "solution": {
-              "from": "f2",
+              "from": "e3",
               "to": "g1"
             },
             "hint": "Mueve el alfil a g1.",
@@ -1631,7 +1631,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_5",
-            "fen": "r1bqkb1r/pppp1ppp/8/8/2BB4/3P4/PPP1QPPP/RN2K2R w KQkq - 0 1",
+            "fen": "r1bqkb1r/pppp1ppp/8/8/2BB4/3P4/PPPN1PPP/R3K2R w KQkq - 0 1",
             "instruction": "Paso 5: Mueve tu alfil a c5 controlando diagonales.",
             "solution": {
               "from": "d4",
@@ -2239,11 +2239,11 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_3",
-            "fen": "6k1/5ppp/8/8/8/8/8/5q1K b - - 1 2",
-            "instruction": "Paso 3: Da jaque con Dama en h3.",
+            "fen": "6k1/5ppp/8/8/8/8/5q2/7K b - - 1 2",
+            "instruction": "Paso 3: Da jaque con Dama en h4.",
             "solution": {
-              "from": "f1",
-              "to": "h3"
+              "from": "f2",
+              "to": "h4"
             },
             "hint": "Mueve tu dama a h3.",
             "feedback": "¡Jaque continuo! El rey no tiene refugio."
@@ -2297,7 +2297,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_2",
-            "fen": "8/k7/8/8/8/8/8/R3K3 w - - 0 1",
+            "fen": "8/1k6/8/8/8/8/8/R3K3 w - - 0 1",
             "instruction": "Paso 2: Corta en la 7ª fila con tu Torre.",
             "solution": {
               "from": "a1",
@@ -2308,7 +2308,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_3",
-            "fen": "8/Rk6/8/8/8/8/8/4K3 w - - 0 1",
+            "fen": "8/R7/1k6/8/8/8/8/4K3 w - - 0 1",
             "instruction": "Paso 3: Acerca tu Rey a e2.",
             "solution": {
               "from": "e1",
@@ -2319,7 +2319,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_4",
-            "fen": "8/Rk6/8/8/8/4K3/8/8 w - - 0 1",
+            "fen": "8/R7/1k6/8/8/4K3/8/8 w - - 0 1",
             "instruction": "Paso 4: Continúa a e4 con tu Rey.",
             "solution": {
               "from": "e3",
@@ -2330,8 +2330,8 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_5",
-            "fen": "8/Rk6/4K3/8/8/8/8/8 w - - 0 1",
-            "instruction": "Paso 5: Da Jaque Mate en a8.",
+            "fen": "8/R7/1k2K3/8/8/8/8/8 w - - 0 1",
+            "instruction": "Paso 5: Mueve tu Torre de a7 a a8.",
             "solution": {
               "from": "a7",
               "to": "a8"
@@ -2627,11 +2627,11 @@ export const CURRICULUM_SECTIONS = [
             "type": "theory",
             "title": "La Pareja Legendaria",
             "text": "El mate árabe combina una Torre en la esquina (h8/g8) y un Caballo en f6/f3 que corta la casilla de escape del rey rival.",
-            "fen": "5rk1/5p1p/5N2/8/8/8/8/4K1R1 w - - 0 1"
+            "fen": "5r1k/5p1p/5N2/8/8/8/8/4K1R1 w - - 0 1"
           },
           {
             "id": "ex_1",
-            "fen": "5rk1/5p1p/5N2/8/8/8/8/4K1R1 w - - 0 1",
+            "fen": "5r1k/5p1p/5N2/8/8/8/8/4K1R1 w - - 0 1",
             "instruction": "Paso 1: Lleva tu Torre a g8 dando Jaque Mate Árabe con apoyo del caballo en f6.",
             "solution": {
               "from": "g1",
@@ -2642,7 +2642,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_2",
-            "fen": "6k1/5p1p/5N2/8/8/8/8/R3K3 w - - 0 1",
+            "fen": "7k/5p1p/5N2/8/8/8/8/R3K3 w - - 0 1",
             "instruction": "Paso 2: Da mate en la octava fila con Torre en a8.",
             "solution": {
               "from": "a1",
@@ -2696,11 +2696,11 @@ export const CURRICULUM_SECTIONS = [
             "type": "theory",
             "title": "El Pasillo Lateral",
             "text": "Un Caballo en e7 corta las casillas de escape g8 y g6 mientras una Torre en la columna \"h\" abierta asesta el mate definitivo.",
-            "fen": "5rk1/4Nppp/8/8/8/8/8/4K2R w - - 0 1"
+            "fen": "5r1k/4N1pp/8/8/8/8/8/4K2R w - - 0 1"
           },
           {
             "id": "ex_1",
-            "fen": "5rk1/4Nppp/8/8/8/8/8/4K2R w - - 0 1",
+            "fen": "5r1k/4N1pp/8/8/8/8/8/4K2R w - - 0 1",
             "instruction": "Paso 1: Lleva tu Torre a h7 dando Jaque Mate de Anastasia.",
             "solution": {
               "from": "h1",
@@ -2711,7 +2711,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_2",
-            "fen": "5rk1/4Nppp/8/8/8/8/8/R3K3 w - - 0 1",
+            "fen": "5r1k/4N1pp/8/8/8/8/8/R3K3 w - - 0 1",
             "instruction": "Paso 2: Da jaque mate en a8.",
             "solution": {
               "from": "a1",
@@ -2733,7 +2733,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_4",
-            "fen": "8/4Nppp/R6k/8/8/8/8/4K3 w - - 1 2",
+            "fen": "8/4N1pp/R7/7k/8/8/8/4K3 w - - 1 2",
             "instruction": "Paso 4: Mueve tu Rey a e2.",
             "solution": {
               "from": "e1",
@@ -2744,7 +2744,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_5",
-            "fen": "8/4Nppp/R6k/8/8/4K3/8/8 w - - 2 3",
+            "fen": "8/4N1pp/R7/7k/8/4K3/8/8 w - - 2 3",
             "instruction": "Paso 5: Lleva tu Torre a f6.",
             "solution": {
               "from": "a6",
@@ -3009,22 +3009,22 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_4",
-            "fen": "k7/8/1K6/8/8/8/8/R7 w - - 0 1",
-            "instruction": "Paso 4: Corta al rey en a7 con tu Torre.",
+            "fen": "k7/8/1K6/8/8/8/8/2R5 w - - 0 1",
+            "instruction": "Paso 4: Da Jaque Mate en c8 con tu Torre apoyada por tu Rey.",
             "solution": {
-              "from": "a1",
-              "to": "a7"
+              "from": "c1",
+              "to": "c8"
             },
             "hint": "Mueve la torre a a7.",
             "feedback": "¡Corte de fila!"
           },
           {
             "id": "ex_5",
-            "fen": "k7/R7/1K6/8/8/8/8/8 w - - 1 2",
-            "instruction": "Paso 5: Da Jaque Mate en a8.",
+            "fen": "k7/8/1K6/8/8/8/8/2R5 w - - 0 1",
+            "instruction": "Paso 5: Da Jaque Mate en c8 con tu Torre.",
             "solution": {
-              "from": "a7",
-              "to": "a8"
+              "from": "c1",
+              "to": "c8"
             },
             "hint": "Lleva la torre a a8.",
             "feedback": "¡Mate de la coz y patrones de asfixia dominados!"
@@ -3056,7 +3056,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_2",
-            "fen": "5rk1/5B1p/8/8/8/8/8/4K2R w K - 0 1",
+            "fen": "5r1k/5B1p/8/8/8/8/8/4K2R w - - 0 1",
             "instruction": "Paso 2: Lleva tu Torre a g1 dando jaque en la columna.",
             "solution": {
               "from": "h1",
@@ -3067,7 +3067,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_3",
-            "fen": "5rk1/5B1p/8/8/8/8/8/4K1R1 w - - 1 2",
+            "fen": "5r1k/5B1p/8/8/8/8/8/4K1R1 w - - 1 2",
             "instruction": "Paso 3: Retira tu Alfil a e6.",
             "solution": {
               "from": "f7",
@@ -3078,7 +3078,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_4",
-            "fen": "5rk1/7p/4B3/8/8/8/8/4K1R1 w - - 2 3",
+            "fen": "5r1k/7p/4B3/8/8/8/8/4K1R1 w - - 2 3",
             "instruction": "Paso 4: Mueve tu Rey a e2.",
             "solution": {
               "from": "e1",
@@ -3089,7 +3089,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_5",
-            "fen": "5rk1/7p/4B3/8/8/4K3/8/6R1 w - - 3 4",
+            "fen": "5r1k/7p/4B3/8/8/4K3/8/6R1 w - - 3 4",
             "instruction": "Paso 5: Lleva tu Torre a g8 dando Jaque Mate de Morphy.",
             "solution": {
               "from": "g1",
@@ -3216,7 +3216,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_4",
-            "fen": "8/k6R/8/8/8/4K3/8/8 w - - 1 2",
+            "fen": "k7/7R/8/8/8/4K3/8/8 w - - 1 2",
             "instruction": "Paso 4: Acerca tu Rey a e4.",
             "solution": {
               "from": "e3",
@@ -3227,7 +3227,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_5",
-            "fen": "8/k6R/4K3/8/8/8/8/8 w - - 2 3",
+            "fen": "k7/7R/4K3/8/8/8/8/8 w - - 2 3",
             "instruction": "Paso 5: Da Jaque Mate en a7 con tu Torre.",
             "solution": {
               "from": "h7",
@@ -3332,7 +3332,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_2",
-            "fen": "6k1/5pRp/8/8/2B5/8/8/4K3 w - - 0 1",
+            "fen": "7k/5pRp/8/8/2B5/8/8/4K3 w - - 0 1",
             "instruction": "Paso 2: Captura en f7 con tu Torre dando jaque descubierto de Alfil.",
             "solution": {
               "from": "g7",
@@ -3354,7 +3354,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_4",
-            "fen": "6k1/5pRp/8/8/2B5/4K3/8/8 w - - 1 2",
+            "fen": "7k/5pRp/8/8/2B5/4K3/8/8 w - - 1 2",
             "instruction": "Paso 4: Captura el peón en h7 con tu Torre.",
             "solution": {
               "from": "g7",
@@ -3524,11 +3524,11 @@ export const CURRICULUM_SECTIONS = [
             "type": "theory",
             "title": "El Monstruo en 6ª y 7ª Fila",
             "text": "Un peón pasado avanzado en la 6ª o 7ª fila paraliza al ejército rival y vale tanto como una pieza mayor.",
-            "fen": "3k4/4P3/8/8/8/8/4R3/4K3 w - - 0 1"
+            "fen": "6k1/4P3/8/8/8/8/4R3/4K3 w - - 0 1"
           },
           {
             "id": "ex_1",
-            "fen": "3k4/4P3/8/8/8/8/4R3/4K3 w - - 0 1",
+            "fen": "6k1/4P3/8/8/8/8/4R3/4K3 w - - 0 1",
             "instruction": "Paso 1: Corona tu peón pasado a Dama protegida por tu Torre en e8.",
             "solution": {
               "from": "e7",
@@ -3540,7 +3540,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_2",
-            "fen": "1k6/P7/8/8/8/8/R7/4K3 w - - 0 1",
+            "fen": "4k3/P7/8/8/8/8/R7/4K3 w - - 0 1",
             "instruction": "Paso 2: Corona tu peón en a8 con el respaldo de tu Torre en a2.",
             "solution": {
               "from": "a7",
@@ -3552,11 +3552,11 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_3",
-            "fen": "k7/1PK5/8/8/8/8/8/8 w - - 0 1",
-            "instruction": "Paso 3: Corona con Jaque Mate en b8 protegido por tu Rey en c7.",
+            "fen": "2k5/P7/2K5/8/8/8/8/8 w - - 0 1",
+            "instruction": "Paso 3: Corona tu peón de a7 en a8 con Jaque Mate asistido por tu Rey en c6.",
             "solution": {
-              "from": "b7",
-              "to": "b8",
+              "from": "a7",
+              "to": "a8",
               "promotion": "q"
             },
             "hint": "Corona en b8.",
@@ -3564,7 +3564,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_4",
-            "fen": "6k1/7P/8/8/8/8/7R/4K3 w - - 0 1",
+            "fen": "2k5/7P/8/8/8/8/7R/4K3 w - - 0 1",
             "instruction": "Paso 4: Corona en h8 defendido por tu Torre en h2.",
             "solution": {
               "from": "h7",
@@ -3576,7 +3576,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_5",
-            "fen": "4k3/3r4/8/8/8/8/3p4/4K3 b - - 0 1",
+            "fen": "4k3/3r4/8/8/8/8/3p4/1K6 b - - 0 1",
             "instruction": "Paso 5: Juegas con negras. Corona en d1 defendido por tu Torre en d7.",
             "solution": {
               "from": "d2",
@@ -3794,7 +3794,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_5",
-            "fen": "3k4/4P3/8/8/8/8/4R3/4K3 w - - 0 1",
+            "fen": "6k1/4P3/8/8/8/8/4R3/4K3 w - - 0 1",
             "instruction": "Paso 5: Corona tu peón en Dama protegida por tu Torre en e8.",
             "solution": {
               "from": "e7",
@@ -4178,7 +4178,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_2",
-            "fen": "8/4P3/4K3/8/8/8/8/R6k w - - 0 1",
+            "fen": "7k/4P3/4K3/8/8/8/8/R7 w - - 0 1",
             "instruction": "Paso 2: Corona tu peón en Dama en e8.",
             "solution": {
               "from": "e7",
@@ -4213,7 +4213,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_5",
-            "fen": "R3k3/8/8/8/8/8/8/4K3 w - - 1 2",
+            "fen": "4k3/R7/8/8/8/8/8/4K3 w - - 1 2",
             "instruction": "Paso 5: Acerca tu Rey a e2.",
             "solution": {
               "from": "e1",
@@ -4249,7 +4249,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_2",
-            "fen": "8/8/8/8/8/8/4r3/4K2k b - - 0 1",
+            "fen": "8/8/8/8/8/8/4r3/3K3k b - - 0 1",
             "instruction": "Paso 2: Retira tu Torre a e8.",
             "solution": {
               "from": "e2",
@@ -4260,7 +4260,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_3",
-            "fen": "4r3/8/8/8/8/8/8/4K2k b - - 1 2",
+            "fen": "4r3/8/8/8/8/8/8/3K3k b - - 1 2",
             "instruction": "Paso 3: Da jaque al rey en e1 con tu Torre.",
             "solution": {
               "from": "e8",
@@ -4421,11 +4421,11 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_5",
-            "fen": "8/8/8/8/4Q3/8/1B6/4K2k w - - 1 2",
-            "instruction": "Paso 5: Da Jaque Mate en h7 con tu Dama.",
+            "fen": "8/7k/8/8/8/2Q5/1B6/4K3 w - - 0 1",
+            "instruction": "Paso 5: Da Jaque Mate con tu Dama en g7 con apoyo de tu Alfil en b2.",
             "solution": {
-              "from": "e4",
-              "to": "h7"
+              "from": "c3",
+              "to": "g7"
             },
             "hint": "Lleva tu dama a h7.",
             "feedback": "¡Alfiles de distinto color dominados!"
@@ -4675,7 +4675,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_3",
-            "fen": "8/k7/8/8/8/8/8/R3K3 w - - 0 1",
+            "fen": "8/1k6/8/8/8/8/8/R3K3 w - - 0 1",
             "instruction": "Paso 3: Corta en la 7ª fila con tu Torre.",
             "solution": {
               "from": "a1",
@@ -4686,7 +4686,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_4",
-            "fen": "8/Rk6/8/8/8/4K3/8/8 w - - 0 1",
+            "fen": "8/R7/1k6/8/8/4K3/8/8 w - - 0 1",
             "instruction": "Paso 4: Acerca tu Rey a e4.",
             "solution": {
               "from": "e3",
@@ -4697,7 +4697,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_5",
-            "fen": "8/Rk6/4K3/8/8/8/8/8 w - - 1 2",
+            "fen": "8/R7/1k2K3/8/8/8/8/8 w - - 1 2",
             "instruction": "Paso 5: Da Jaque Mate en a8.",
             "solution": {
               "from": "a7",
@@ -4767,7 +4767,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_5",
-            "fen": "8/8/8/8/4Q3/8/8/4K2k w - - 1 2",
+            "fen": "7k/8/8/8/4Q3/8/8/4K3 w - - 1 2",
             "instruction": "Paso 5: Da Jaque Mate en h7.",
             "solution": {
               "from": "e4",
@@ -5023,7 +5023,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_3",
-            "fen": "8/8/8/8/4Q3/8/8/4K2k w - - 1 2",
+            "fen": "7k/8/8/8/4Q3/8/8/4K3 w - - 1 2",
             "instruction": "Paso 3: Avanza con tu Dama a e7.",
             "solution": {
               "from": "e4",
@@ -7169,7 +7169,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_2",
-            "fen": "8/4P3/4K3/8/8/8/8/R6k w - - 0 1",
+            "fen": "7k/4P3/4K3/8/8/8/8/R7 w - - 0 1",
             "instruction": "Paso 2: Corona tu peón en Dama en e8.",
             "solution": {
               "from": "e7",
@@ -7204,7 +7204,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_5",
-            "fen": "R3k3/8/8/8/8/8/8/4K3 w - - 1 2",
+            "fen": "4k3/R7/8/8/8/8/8/4K3 w - - 1 2",
             "instruction": "Paso 5: Acerca tu Rey a e2.",
             "solution": {
               "from": "e1",
@@ -7343,7 +7343,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_5",
-            "fen": "8/8/8/8/4Q3/8/8/4K2k w - - 1 2",
+            "fen": "7k/8/8/8/4Q3/8/8/4K3 w - - 1 2",
             "instruction": "Paso 5: Da Jaque Mate en h7.",
             "solution": {
               "from": "e4",
@@ -7746,7 +7746,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_4",
-            "fen": "3k4/4P3/8/8/8/8/4R3/4K3 w - - 0 1",
+            "fen": "6k1/4P3/8/8/8/8/4R3/4K3 w - - 0 1",
             "instruction": "Paso 4 (Prueba de Finales): Corona tu peón en Dama protegida por tu Torre en e8.",
             "solution": {
               "from": "e7",
@@ -7758,11 +7758,11 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_5",
-            "fen": "3k4/4Q3/4K3/8/8/8/8/8 w - - 0 1",
-            "instruction": "Paso 5 (Graduación Absoluta): Asesta el Jaque Mate definitivo con tu Dama en d7.",
+            "fen": "4k3/8/3Q4/4K3/8/8/8/8 w - - 0 1",
+            "instruction": "Paso 5 (Graduación Absoluta): Asesta el Jaque Mate definitivo con tu Dama en e7 con apoyo de tu Rey.",
             "solution": {
-              "from": "e7",
-              "to": "d7"
+              "from": "d6",
+              "to": "e7"
             },
             "hint": "Da mate con tu dama en d7.",
             "feedback": "¡¡FELICITACIONES GRAN MAESTRO JUNVILL!! Has completado al 100% las 110 lecciones interactivas de la academia."
