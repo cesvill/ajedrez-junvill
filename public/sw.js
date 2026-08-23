@@ -3,7 +3,7 @@
  * Proporciona funcionamiento 100% autónomo y actualización instantánea sin bloqueos de caché.
  */
 
-const CACHE_NAME = 'ajedrez-junvill-v2.5.0-live';
+const CACHE_NAME = 'ajedrez-junvill-v3.2.0-perfect';
 
 const PRECACHE_URLS = [
   '/',
