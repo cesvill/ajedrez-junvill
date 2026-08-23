@@ -2096,14 +2096,6 @@ body {
   transform: scale(1.02);
 }
 
-.avatar-head, .avatar-arms {
-  transform-origin: center;
-  transition: transform 0.3s ease;
-}
-
-.fullbody-avatar-wrap:hover .avatar-head {
-  transform: translateY(-2px);
-}
 
 /* Tarjetas de Variantes Interactivas */
 .variant-card-hover {
