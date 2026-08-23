@@ -83,7 +83,7 @@ export const CURRICULUM_SECTIONS = [
               "from": "d2",
               "to": "d4"
             },
-            "hint": "Mueve tu dama de e2 a e4.",
+            "hint": "Mueve tu dama de d2 a d4.",
             "feedback": "¡Ataque demoledor! La dama combina el movimiento de la Torre y el Alfil en todas las direcciones."
           }
         ]
@@ -353,7 +353,7 @@ export const CURRICULUM_SECTIONS = [
               "to": "a8",
               "promotion": "q"
             },
-            "hint": "Corona en b8 transformando el peón en Dama.",
+            "hint": "Corona en a8 transformando el peón en Dama.",
             "feedback": "¡Coronación con Jaque Mate! El rey negro está acorralado y la Dama está blindada por el rey."
           },
           {
@@ -897,8 +897,8 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_1",
-            "fen": "r1bqk2r/ppp2ppp/2nb1n2/8/4P3/3P4/PPP2PPP/RNBQKBNR w KQkq - 0 1",
-            "instruction": "Paso 1: Avanza tu peón central de e4 a e5 para hacer una horquilla protegida por d3, atacando al Caballo en f6 y al Alfil en d6.",
+            "fen": "r1bqk2r/ppp2ppp/2nb1n2/8/3PP3/8/PPP2PPP/RNBQKBNR w KQkq - 0 1",
+            "instruction": "Paso 1: Avanza tu peón de e4 a e5 con apoyo de d4 para hacer una horquilla al Caballo en f6 y al Alfil en d6.",
             "solution": {
               "from": "e4",
               "to": "e5"
@@ -908,8 +908,8 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_2",
-            "fen": "r1bqk2r/ppp2ppp/4b1n1/8/5P2/6P1/PPP1P2P/RNBQKBNR w KQkq - 0 1",
-            "instruction": "Paso 2: Avanza tu peón de f4 a f5 con apoyo de tu peón de g3, haciendo horquilla al Alfil en e6 y al Caballo en g6.",
+            "fen": "r1bqk2r/ppp2ppp/4b1n1/8/5PP1/8/PPP1P2P/RNBQKBNR w KQkq - 0 1",
+            "instruction": "Paso 2: Avanza tu peón de f4 a f5 con apoyo de g4, haciendo horquilla al Alfil en e6 y al Caballo en g6.",
             "solution": {
               "from": "f4",
               "to": "f5"
@@ -919,8 +919,8 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_3",
-            "fen": "r1bqk2r/ppp2ppp/1n1n4/8/2P5/1P6/P2PPPPP/RNBQKBNR w KQkq - 0 1",
-            "instruction": "Paso 3: Avanza tu peón de c4 a c5 con apoyo de b3, atacando a los dos Caballos negros en b6 y d6.",
+            "fen": "r1bqk2r/ppp2ppp/1n1n4/8/1PP5/8/P2PPPPP/RNBQKBNR w KQkq - 0 1",
+            "instruction": "Paso 3: Avanza tu peón de c4 a c5 con apoyo de b4, atacando a los dos Caballos negros en b6 y d6.",
             "solution": {
               "from": "c4",
               "to": "c5"
@@ -930,8 +930,8 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_4",
-            "fen": "2r1k3/8/3P4/2P5/8/8/8/4K3 w - - 0 1",
-            "instruction": "Paso 4: Avanza tu peón de d6 a d7 con jaque al Rey negro en e8 y atacando a la Torre en c8.",
+            "fen": "2r1k3/8/3PK3/2P5/8/8/8/8 w - - 0 1",
+            "instruction": "Paso 4: Avanza tu peón de d6 a d7 con jaque protegido por tu Rey en e6, atacando a la Torre en c8.",
             "solution": {
               "from": "d6",
               "to": "d7"
@@ -966,10 +966,10 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_1",
-            "fen": "3r2k1/5ppp/8/8/8/8/8/4R1K1 w - - 0 1",
-            "instruction": "Paso 1: La torre negra en d8 defiende, pero tu Torre en e1 penetra en la 8ª fila dando jaque.",
+            "fen": "3r2k1/5ppp/8/8/8/8/4R3/4R1K1 w - - 0 1",
+            "instruction": "Paso 1: Tu Torre avanzada en e2 penetra en la 8ª fila en e8 dando jaque.",
             "solution": {
-              "from": "e1",
+              "from": "e2",
               "to": "e8"
             },
             "hint": "Lleva tu torre a e8.",
@@ -1217,7 +1217,7 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_5",
-            "fen": "4k3/7r/8/8/8/2B5/8/4K3 w - - 0 1",
+            "fen": "4k2r/8/8/8/8/2B5/8/4K3 w - - 0 1",
             "instruction": "Paso 5: La torre negra en h8 está en la diagonal de tu Alfil. Captúrala en h8.",
             "solution": {
               "from": "c3",
@@ -1381,7 +1381,7 @@ export const CURRICULUM_SECTIONS = [
           {
             "id": "ex_1",
             "fen": "4k2r/8/8/8/8/8/8/R3K3 w Qk - 0 1",
-            "instruction": "Paso 1: Da jaque al rey en a8 con tu Torre; cuando el rey se mueva, capturarás la torre en h8.",
+            "instruction": "Paso 1: Lleva tu Torre de a1 a a8 dando jaque horizontal al rey; tras su retirada ganarás la torre en h8.",
             "solution": {
               "from": "a1",
               "to": "a8"
@@ -1588,29 +1588,29 @@ export const CURRICULUM_SECTIONS = [
           {
             "id": "ex_1",
             "fen": "r1bqkb1r/pppp1ppp/2n5/4N3/3B4/8/PPPPQPPP/RN2KB1R w KQkq - 0 1",
-            "instruction": "Paso 1: Salta a c6 con tu Caballo dando jaque con Caballo y con Dama simultáneamente (jaque doble).",
+            "instruction": "Paso 1: Salta a d7 con tu Caballo dando jaque con Caballo y Dama simultáneamente (jaque doble).",
             "solution": {
               "from": "e5",
-              "to": "c6"
+              "to": "d7"
             },
-            "hint": "Lleva tu caballo a c6.",
+            "hint": "Lleva tu caballo a d7 dando jaque doble.",
             "feedback": "¡Jaque Doble letal! Las negras no pueden bloquear ni capturar, el rey debe huir."
           },
           {
             "id": "ex_2",
             "fen": "r1bqkb1r/pppp1ppp/8/4N3/3B4/8/PPPPQPPP/RN2KB1R w KQkq - 0 1",
-            "instruction": "Paso 2: Salta a g6 dando jaque doble de Dama y Caballo.",
+            "instruction": "Paso 2: Salta a f7 con tu Caballo dando jaque doble de Caballo y Dama.",
             "solution": {
               "from": "e5",
-              "to": "g6"
+              "to": "f7"
             },
-            "hint": "Mueve tu caballo a g6.",
+            "hint": "Mueve tu caballo a f7 dando jaque doble.",
             "feedback": "¡Doble jaque imparable!"
           },
           {
             "id": "ex_3",
             "fen": "r1bqkb1r/pppp1ppp/8/4N3/2BB4/8/PPPPQPPP/RN2K2R w KQkq - 0 1",
-            "instruction": "Paso 3: Salta a f7 dando jaque doble de Caballo y Alfil.",
+            "instruction": "Paso 3: Salta a f7 dando jaque doble de Caballo y Dama.",
             "solution": {
               "from": "e5",
               "to": "f7"
@@ -1737,7 +1737,7 @@ export const CURRICULUM_SECTIONS = [
           {
             "id": "ex_2",
             "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/8/PPPP1PPP/RNBQK1NR w KQkq - 1 3",
-            "instruction": "Paso 2: Lleva tu Dama a h5 amenazando jaque mate en f7 en la siguiente jugada.",
+            "instruction": "Paso 2: Lleva tu Dama a h5 preparando la amenaza de mate sobre f7.",
             "solution": {
               "from": "d1",
               "to": "h5"
@@ -2245,7 +2245,7 @@ export const CURRICULUM_SECTIONS = [
               "from": "f2",
               "to": "h4"
             },
-            "hint": "Mueve tu dama a h3.",
+            "hint": "Mueve tu dama a h4.",
             "feedback": "¡Jaque continuo! El rey no tiene refugio."
           },
           {
@@ -2549,7 +2549,7 @@ export const CURRICULUM_SECTIONS = [
         ]
       },
       {
-        "id": "l36_debilidad_septima_octava",
+                "id": "l36_debilidad_septima_octava",
         "number": 36,
         "title": "La debilidad de la 7ª y 8ª fila",
         "category": "tactica",
@@ -2558,62 +2558,62 @@ export const CURRICULUM_SECTIONS = [
             "type": "theory",
             "title": "Invasión en las Filas Decisivas",
             "text": "Una Torre o Dama infiltrada en la 7ª u 8ª fila devora peones indefensos y coordina ataques de mate contra el Rey.",
-            "fen": "r4rk1/5ppp/8/8/8/8/R7/4K3 w - - 0 1"
+            "fen": "5rk1/5ppp/8/8/8/8/8/R3K3 w - - 0 1"
           },
           {
             "id": "ex_1",
-            "fen": "r4rk1/5ppp/8/8/8/8/R7/4K3 w - - 0 1",
-            "instruction": "Paso 1: Invade la 8ª fila con tu Torre en a8.",
-            "solution": {
-              "from": "a2",
-              "to": "a8"
-            },
-            "hint": "Lleva tu torre a a8.",
-            "feedback": "¡Invasión letal!"
-          },
-          {
-            "id": "ex_2",
-            "fen": "R4rk1/5ppp/8/8/8/8/8/4K3 w - - 1 2",
-            "instruction": "Paso 2: Captura la Torre en f8 dando Jaque Mate.",
-            "solution": {
-              "from": "a8",
-              "to": "f8"
-            },
-            "hint": "Captura en f8 con tu torre.",
-            "feedback": "¡Jaque Mate en la 8ª fila!"
-          },
-          {
-            "id": "ex_3",
             "fen": "5rk1/5ppp/8/8/8/8/8/R3K3 w - - 0 1",
-            "instruction": "Paso 3: Lleva tu Torre a a8.",
+            "instruction": "Paso 1: Invade la 8ª fila llevando tu Torre de a1 a a8 dando jaque al rey rival.",
             "solution": {
               "from": "a1",
               "to": "a8"
             },
-            "hint": "Mueve la torre a a8.",
-            "feedback": "¡Presión en la 8ª fila!"
+            "hint": "Lleva tu torre a a8.",
+            "feedback": "¡Invasión letal en la 8ª fila!"
+          },
+          {
+            "id": "ex_2",
+            "fen": "5rk1/R4ppp/8/8/8/8/8/4K3 w - - 0 1",
+            "instruction": "Paso 2: Devora el peón indefenso de f7 con tu Torre en 7ª fila.",
+            "solution": {
+              "from": "a7",
+              "to": "f7"
+            },
+            "hint": "Captura en f7 con la torre.",
+            "feedback": "¡Peón devorado en la 7ª fila!"
+          },
+          {
+            "id": "ex_3",
+            "fen": "5rk1/5R1p/8/8/8/8/8/4K3 w - - 0 1",
+            "instruction": "Paso 3: Captura la Torre negra en f8 con tu Torre ganando material decisivo.",
+            "solution": {
+              "from": "f7",
+              "to": "f8"
+            },
+            "hint": "Captura en f8 con la torre.",
+            "feedback": "¡Torre enemiga neutralizada!"
           },
           {
             "id": "ex_4",
-            "fen": "R4rk1/5ppp/8/8/8/8/8/4K3 w - - 0 1",
-            "instruction": "Paso 4: Centraliza tu Rey a e2.",
+            "fen": "5k2/7p/8/8/8/8/8/4K2R w - - 0 1",
+            "instruction": "Paso 4: Devora el peón retrasado en h7 con tu Torre de h1.",
             "solution": {
-              "from": "e1",
-              "to": "e2"
+              "from": "h1",
+              "to": "h7"
             },
-            "hint": "Mueve tu rey a e2.",
-            "feedback": "¡Rey en camino!"
+            "hint": "Captura en h7 con la torre.",
+            "feedback": "¡Flanco de rey completamente desmantelado!"
           },
           {
             "id": "ex_5",
-            "fen": "R4rk1/5ppp/8/8/8/4K3/8/8 w - - 1 2",
-            "instruction": "Paso 5: Continúa con tu Rey a e4.",
+            "fen": "k7/7R/1K6/8/8/8/8/8 w - - 0 1",
+            "instruction": "Paso 5: Asesta el Jaque Mate definitivo en h8 con tu Torre apoyada por tu Rey en b6.",
             "solution": {
-              "from": "e3",
-              "to": "e4"
+              "from": "h7",
+              "to": "h8"
             },
-            "hint": "Avanza el rey a e4.",
-            "feedback": "¡Filas 7ª y 8ª dominadas!"
+            "hint": "Lleva la torre a h8.",
+            "feedback": "¡Jaque Mate magistral! Las filas 7ª y 8ª han sentenciado la partida."
           }
         ]
       },
@@ -2627,62 +2627,62 @@ export const CURRICULUM_SECTIONS = [
             "type": "theory",
             "title": "La Pareja Legendaria",
             "text": "El mate árabe combina una Torre en la esquina (h8/g8) y un Caballo en f6/f3 que corta la casilla de escape del rey rival.",
-            "fen": "5r1k/5p1p/5N2/8/8/8/8/4K1R1 w - - 0 1"
+            "fen": "7k/5p1p/5N2/8/8/8/8/4K1R1 w - - 0 1"
           },
           {
             "id": "ex_1",
-            "fen": "5r1k/5p1p/5N2/8/8/8/8/4K1R1 w - - 0 1",
+            "fen": "7k/5p1p/5N2/8/8/8/8/4K1R1 w - - 0 1",
             "instruction": "Paso 1: Lleva tu Torre a g8 dando Jaque Mate Árabe con apoyo del caballo en f6.",
             "solution": {
               "from": "g1",
               "to": "g8"
             },
             "hint": "Mueve la torre a g8.",
-            "feedback": "¡Jaque Mate Árabe!"
+            "feedback": "¡Jaque Mate Árabe perfecto e imparable!"
           },
           {
             "id": "ex_2",
-            "fen": "7k/5p1p/5N2/8/8/8/8/R3K3 w - - 0 1",
-            "instruction": "Paso 2: Da mate en la octava fila con Torre en a8.",
+            "fen": "7k/6p1/5N2/8/8/8/8/R3K3 w - - 0 1",
+            "instruction": "Paso 2: Da Jaque Mate en la octava fila con tu Torre en a8.",
             "solution": {
               "from": "a1",
               "to": "a8"
             },
             "hint": "Lleva la torre a a8.",
-            "feedback": "¡Jaque Mate perfecto!"
+            "feedback": "¡Jaque Mate en a8! El caballo en f6 sella el destino del rey."
           },
           {
             "id": "ex_3",
-            "fen": "8/5p1p/5N1k/8/8/8/8/R3K3 w - - 0 1",
-            "instruction": "Paso 3: Lleva tu Torre a a7 cortando al rey.",
+            "fen": "7k/5p1p/8/8/8/5N2/8/4K1R1 w - - 0 1",
+            "instruction": "Paso 3: Salta con tu Caballo a g5 para coordinar el mate árabe.",
             "solution": {
-              "from": "a1",
-              "to": "a7"
+              "from": "f3",
+              "to": "g5"
             },
-            "hint": "Mueve la torre a a7.",
-            "feedback": "¡Corte de fila!"
+            "hint": "Mueve tu caballo a g5.",
+            "feedback": "¡Caballo listo para el remate!"
           },
           {
             "id": "ex_4",
-            "fen": "8/R4p1p/5N1k/8/8/8/8/4K3 w - - 1 2",
-            "instruction": "Paso 4: Acerca tu Rey a e2.",
+            "fen": "7k/5p1p/8/6N1/8/8/8/4K1R1 w - - 1 2",
+            "instruction": "Paso 4: Salta a f7 con tu Caballo dando jaque al rey.",
             "solution": {
-              "from": "e1",
-              "to": "e2"
+              "from": "g5",
+              "to": "f7"
             },
-            "hint": "Avanza el rey a e2.",
-            "feedback": "¡Rey activo!"
+            "hint": "Salta a f7 con el caballo.",
+            "feedback": "¡Jaque de Caballo!"
           },
           {
             "id": "ex_5",
-            "fen": "8/R4p1p/5N1k/8/8/4K3/8/8 w - - 2 3",
-            "instruction": "Paso 5: Captura el peón en f7 con tu Torre.",
+            "fen": "7k/5p1p/5N2/8/8/8/8/4K1R1 w - - 0 1",
+            "instruction": "Paso 5: Lleva tu Torre a g8 dando Jaque Mate Árabe.",
             "solution": {
-              "from": "a7",
-              "to": "f7"
+              "from": "g1",
+              "to": "g8"
             },
-            "hint": "Captura en f7 con la torre.",
-            "feedback": "¡Mate árabe y combinaciones dominadas!"
+            "hint": "Lleva la torre a g8.",
+            "feedback": "¡Mate Árabe dominado por completo!"
           }
         ]
       },
@@ -2694,64 +2694,64 @@ export const CURRICULUM_SECTIONS = [
         "steps": [
           {
             "type": "theory",
-            "title": "El Pasillo Lateral",
-            "text": "Un Caballo en e7 corta las casillas de escape g8 y g6 mientras una Torre en la columna \"h\" abierta asesta el mate definitivo.",
-            "fen": "5r1k/4N1pp/8/8/8/8/8/4K2R w - - 0 1"
+            "title": "El Cerrojo del Caballo",
+            "text": "Un Caballo en e7 corta las casillas de escape g8 y g6 mientras una Torre en la columna 'h' abierta asesta el mate definitivo.",
+            "fen": "8/4N1pk/8/7R/8/8/8/4K3 b - - 0 1"
           },
           {
             "id": "ex_1",
-            "fen": "5r1k/4N1pp/8/8/8/8/8/4K2R w - - 0 1",
-            "instruction": "Paso 1: Lleva tu Torre a h7 dando Jaque Mate de Anastasia.",
+            "fen": "8/4N1pk/8/R7/8/8/8/4K3 w - - 0 1",
+            "instruction": "Paso 1: Asesta el Jaque Mate de Anastasia llevando tu Torre a h5.",
             "solution": {
-              "from": "h1",
-              "to": "h7"
+              "from": "a5",
+              "to": "h5"
             },
-            "hint": "Lleva tu torre a h7.",
+            "hint": "Captura en h6 con tu torre.",
             "feedback": "¡Jaque Mate de Anastasia fulminante!"
           },
           {
             "id": "ex_2",
-            "fen": "5r1k/4N1pp/8/8/8/8/8/R3K3 w - - 0 1",
-            "instruction": "Paso 2: Da jaque mate en a8.",
+            "fen": "8/4N1pk/8/R7/8/8/8/4K3 w - - 0 1",
+            "instruction": "Paso 2: Da Jaque Mate llevando tu Torre a h5.",
             "solution": {
-              "from": "a1",
-              "to": "a8"
+              "from": "a5",
+              "to": "h5"
             },
-            "hint": "Mueve la torre a a8.",
-            "feedback": "¡Mate en 8ª fila!"
+            "hint": "Mueve la torre a h5 dando mate.",
+            "feedback": "¡Jaque Mate de Anastasia perfecto!"
           },
           {
             "id": "ex_3",
-            "fen": "8/4Nppp/7k/8/8/8/8/R3K3 w - - 0 1",
-            "instruction": "Paso 3: Corta en la 6ª fila con tu Torre.",
+            "fen": "7k/6p1/7p/5N2/8/8/8/4K2R w - - 0 1",
+            "instruction": "Paso 3: Salta con tu Caballo de f5 a e7 para activar el cerrojo de casillas g8 y g6.",
             "solution": {
-              "from": "a1",
-              "to": "a6"
+              "from": "f5",
+              "to": "e7"
             },
-            "hint": "Lleva la torre a a6.",
-            "feedback": "¡Corte de fila!"
+            "hint": "Mueve el caballo a e7.",
+            "feedback": "¡Caballo en posición ideal de Anastasia!"
           },
           {
             "id": "ex_4",
-            "fen": "8/4N1pp/R7/7k/8/8/8/4K3 w - - 1 2",
-            "instruction": "Paso 4: Mueve tu Rey a e2.",
+            "fen": "7k/4N1p1/7p/8/8/4K3/8/7R w - - 1 2",
+            "instruction": "Paso 4: Acerca tu Rey a e4 para respaldar la posición.",
             "solution": {
-              "from": "e1",
-              "to": "e2"
+              "from": "e3",
+              "to": "e4"
             },
-            "hint": "Avanza el rey a e2.",
-            "feedback": "¡Rey en marcha!"
+            "hint": "Avanza el rey a e4.",
+            "feedback": "¡Rey en el centro!"
           },
           {
             "id": "ex_5",
-            "fen": "8/4N1pp/R7/7k/8/4K3/8/8 w - - 2 3",
-            "instruction": "Paso 5: Lleva tu Torre a f6.",
+            "fen": "8/4N1pk/8/R7/4K3/8/8/8 w - - 0 1",
+            "instruction": "Paso 5: Asesta el Jaque Mate de Anastasia llevando tu Torre a h5.",
             "solution": {
-              "from": "a6",
-              "to": "f6"
+              "from": "a5",
+              "to": "h5"
             },
-            "hint": "Mueve la torre a f6.",
-            "feedback": "¡Mate de Anastasia completado!"
+            "hint": "Captura en h6 con la torre dando mate.",
+            "feedback": "¡Patrón de Anastasia completado!"
           }
         ]
       },
@@ -2894,71 +2894,71 @@ export const CURRICULUM_SECTIONS = [
         ]
       },
       {
-        "id": "l41_mate_greco",
+                "id": "l41_mate_greco",
         "number": 41,
         "title": "El mate de Greco",
         "category": "tactica",
         "steps": [
           {
             "type": "theory",
-            "title": "Apertura de la Columna Torre",
-            "text": "Abrir la columna \"h\" tras un sacrificio contra el peón de g7/h7 permite un mate directo con Torre y Alfil en el enroque.",
-            "fen": "6k1/5ppp/8/8/2B5/8/8/4K2R w K - 0 1"
+            "title": "El Alfil Asesino y la Torre en H",
+            "text": "El alfil controla la casilla de escape g8 a través de la diagonal mientras la Torre en la columna 'h' da el jaque mate en h7 o h8.",
+            "fen": "7k/5ppp/8/8/8/2B5/8/4K2R w - - 0 1"
           },
           {
             "id": "ex_1",
-            "fen": "6k1/5ppp/8/8/2B5/8/8/4K2R w K - 0 1",
-            "instruction": "Paso 1: Captura en f7 con tu Alfil dando jaque.",
+            "fen": "7k/6p1/8/8/4Q3/3B4/8/4K3 w - - 0 1",
+            "instruction": "Paso 1: Asesta el Jaque Mate de Greco llevando tu Dama a h7 con apoyo de tu Alfil en d3.",
             "solution": {
-              "from": "c4",
-              "to": "f7"
+              "from": "e4",
+              "to": "h7"
             },
-            "hint": "Captura en f7 con el alfil.",
-            "feedback": "¡Ataque a la debilidad del rey!"
+            "hint": "Captura en h7 con la torre dando mate.",
+            "feedback": "¡Jaque Mate de Greco perfecto!"
           },
           {
             "id": "ex_2",
-            "fen": "5k2/5Bpp/8/8/8/8/8/4K2R w K - 0 1",
-            "instruction": "Paso 2: Captura el peón en h7 con tu Torre.",
+            "fen": "7k/6p1/8/8/4Q3/3B4/8/4K3 w - - 0 1",
+            "instruction": "Paso 2: Asesta el Jaque Mate de Greco llevando tu Dama a h7.",
             "solution": {
-              "from": "h1",
+              "from": "e4",
               "to": "h7"
             },
-            "hint": "Captura en h7 con la torre.",
-            "feedback": "¡Columna \"h\" abierta!"
+            "hint": "Lleva la torre a h8.",
+            "feedback": "¡Jaque en la esquina!"
           },
           {
             "id": "ex_3",
-            "fen": "5k2/5B1R/8/8/8/8/8/4K3 w - - 0 1",
-            "instruction": "Paso 3: Retira tu Alfil a e6 cortando al rey.",
+            "fen": "7k/5ppp/8/8/8/8/4B3/4K2R w - - 0 1",
+            "instruction": "Paso 3: Coloca tu Alfil en c4 apuntando a la diagonal decisiva.",
             "solution": {
-              "from": "f7",
-              "to": "e6"
+              "from": "e2",
+              "to": "c4"
             },
-            "hint": "Mueve el alfil a e6.",
-            "feedback": "¡Corte de casillas!"
+            "hint": "Mueve el alfil a c4.",
+            "feedback": "¡Alfil apuntando al enroque!"
           },
           {
             "id": "ex_4",
-            "fen": "5k2/7R/4B3/8/8/8/8/4K3 w - - 1 2",
-            "instruction": "Paso 4: Acerca tu Rey a e2.",
+            "fen": "7k/5ppp/8/8/2B5/8/8/4K2R w - - 1 2",
+            "instruction": "Paso 4: Reubica tu Alfil a d3 aumentando la presión en h7.",
             "solution": {
-              "from": "e1",
-              "to": "e2"
+              "from": "c4",
+              "to": "d3"
             },
-            "hint": "Avanza el rey a e2.",
-            "feedback": "¡Rey en apoyo!"
+            "hint": "Mueve el alfil a d3.",
+            "feedback": "¡Batería letal lista!"
           },
           {
             "id": "ex_5",
-            "fen": "5k2/7R/4B3/8/8/4K3/8/8 w - - 2 3",
-            "instruction": "Paso 5: Da Jaque Mate llevando tu Torre a f7.",
+            "fen": "7k/6p1/8/8/4Q3/3B4/8/4K3 w - - 0 1",
+            "instruction": "Paso 5: Da Jaque Mate de Greco llevando tu Dama a h7 con apoyo de tu Alfil en d3.",
             "solution": {
-              "from": "h7",
-              "to": "f7"
+              "from": "e4",
+              "to": "h7"
             },
-            "hint": "Mueve la torre a f7.",
-            "feedback": "¡Mate de Greco ejecutado!"
+            "hint": "Captura en h7 con tu torre.",
+            "feedback": "¡Mate de Greco asimilado a la perfección!"
           }
         ]
       },
@@ -2972,131 +2972,131 @@ export const CURRICULUM_SECTIONS = [
             "type": "theory",
             "title": "Asfixiado por sus Propias Tropas",
             "text": "El Rey enemigo está completamente rodeado por sus propias piezas. Un solo Caballo salta y asesta el jaque mate sin que el Rey pueda escapar.",
-            "fen": "6k1/5ppp/8/8/8/5N2/8/4K2R w K - 0 1"
+            "fen": "6rk/6pp/8/8/8/5N2/8/4K3 w - - 0 1"
           },
           {
             "id": "ex_1",
-            "fen": "6k1/5ppp/8/8/8/5N2/8/4K2R w K - 0 1",
-            "instruction": "Paso 1: Salta con tu Caballo a g5 apuntando a h7 y f7.",
+            "fen": "6rk/6pp/8/8/8/5N2/8/4K3 w - - 0 1",
+            "instruction": "Paso 1: Salta con tu Caballo a g5 apuntando a la casilla de mate en f7.",
             "solution": {
               "from": "f3",
               "to": "g5"
             },
             "hint": "Mueve el caballo a g5.",
-            "feedback": "¡Caballo agresivo hacia el enroque!"
+            "feedback": "¡Caballo en posición de asfixia!"
           },
           {
             "id": "ex_2",
-            "fen": "6k1/5ppp/8/6N1/8/8/8/4K2R w K - 1 2",
-            "instruction": "Paso 2: Captura en h7 con tu Caballo dando jaque.",
+            "fen": "6rk/6pp/8/6N1/8/8/8/4K3 w - - 0 1",
+            "instruction": "Paso 2: Asesta el Jaque Mate de la Coz definitivo con tu Caballo en f7.",
             "solution": {
               "from": "g5",
-              "to": "h7"
+              "to": "f7"
             },
-            "hint": "Captura en h7 con el caballo.",
-            "feedback": "¡Jaque en el flanco de rey!"
+            "hint": "Salta a f7 con el caballo dando mate.",
+            "feedback": "¡Jaque Mate de la Coz legendario! El rey negro no puede moverse por estar rodeado de sus propias piezas."
           },
           {
             "id": "ex_3",
-            "fen": "7k/5ppp/8/8/8/8/8/4K2R w K - 2 3",
-            "instruction": "Paso 3: Captura en h7 con tu Torre dando Jaque Mate.",
+            "fen": "kr6/pp6/8/8/8/2N5/8/4K3 w - - 0 1",
+            "instruction": "Paso 3: En el flanco de dama: salta con tu Caballo a b5 preparando el mate de la coz.",
             "solution": {
-              "from": "h1",
-              "to": "h7"
+              "from": "c3",
+              "to": "b5"
             },
-            "hint": "Captura en h7 con la torre.",
-            "feedback": "¡Jaque Mate!"
+            "hint": "Mueve el caballo a b5.",
+            "feedback": "¡Amenaza de mate en c7!"
           },
           {
             "id": "ex_4",
-            "fen": "k7/8/1K6/8/8/8/8/2R5 w - - 0 1",
-            "instruction": "Paso 4: Da Jaque Mate en c8 con tu Torre apoyada por tu Rey.",
+            "fen": "kr6/pp6/8/1N6/8/8/8/4K3 w - - 1 2",
+            "instruction": "Paso 4: Asesta el Jaque Mate de la Coz en c7 con tu Caballo.",
             "solution": {
-              "from": "c1",
-              "to": "c8"
+              "from": "b5",
+              "to": "c7"
             },
-            "hint": "Mueve la torre a a7.",
-            "feedback": "¡Corte de fila!"
+            "hint": "Salta a c7 con el caballo dando mate.",
+            "feedback": "¡Jaque Mate en el flanco de dama!"
           },
           {
             "id": "ex_5",
-            "fen": "k7/8/1K6/8/8/8/8/2R5 w - - 0 1",
-            "instruction": "Paso 5: Da Jaque Mate en c8 con tu Torre.",
+            "fen": "6rk/6pp/8/6N1/8/8/8/4K3 w - - 0 1",
+            "instruction": "Paso 5: Remata con Jaque Mate en f7 con tu Caballo.",
             "solution": {
-              "from": "c1",
-              "to": "c8"
+              "from": "g5",
+              "to": "f7"
             },
-            "hint": "Lleva la torre a a8.",
-            "feedback": "¡Mate de la coz y patrones de asfixia dominados!"
+            "hint": "Salta a f7 con el caballo.",
+            "feedback": "¡Mate de la coz y patrones de asfixia dominados al 100%!"
           }
         ]
       },
       {
-        "id": "l43_mate_morphy",
+                        "id": "l43_mate_morphy",
         "number": 43,
         "title": "El mate de Morphy",
         "category": "tactica",
         "steps": [
           {
             "type": "theory",
-            "title": "El Alfil Inmortal",
-            "text": "Paul Morphy popularizó este mate donde un Alfil corta la diagonal de escape del Rey en la esquina mientras una Torre en la columna abierta da mate.",
-            "fen": "5rk1/5p1p/8/8/2B5/8/8/4K2R w K - 0 1"
+            "title": "El Alfil y la Torre Abierta",
+            "text": "Un Alfil que controla la gran diagonal a2-g8 y una Torre que entra con fuerza por la columna g abierta para dar un mate imparable.",
+            "fen": "7k/7p/8/8/2B5/8/8/4K1R1 w - - 0 1"
           },
           {
             "id": "ex_1",
-            "fen": "5rk1/5p1p/8/8/2B5/8/8/4K2R w K - 0 1",
-            "instruction": "Paso 1: Captura en f7 con tu Alfil.",
+            "fen": "7k/7p/8/8/8/3B4/8/4K1R1 w - - 0 1",
+            "instruction": "Paso 1: Coloca tu Alfil en c4 dominando la diagonal a2-g8 hacia la casilla de mate.",
             "solution": {
-              "from": "c4",
-              "to": "f7"
+              "from": "d3",
+              "to": "c4"
             },
-            "hint": "Captura en f7 con el alfil.",
-            "feedback": "¡Ataque a la esquina rival!"
+            "hint": "Mueve el alfil a c4.",
+            "feedback": "¡Alfil controlando la diagonal a2-g8!"
           },
           {
             "id": "ex_2",
-            "fen": "5r1k/5B1p/8/8/8/8/8/4K2R w - - 0 1",
-            "instruction": "Paso 2: Lleva tu Torre a g1 dando jaque en la columna.",
+            "fen": "7k/7p/8/8/2B5/8/6R1/4K3 w - - 0 1",
+            "instruction": "Paso 2: Centraliza tu Torre en la columna abierta g llevándola a g1.",
             "solution": {
-              "from": "h1",
+              "from": "g2",
               "to": "g1"
             },
-            "hint": "Lleva tu torre a g1.",
-            "feedback": "¡Jaque por la columna abierta!"
+            "hint": "Mueve la torre a g1.",
+            "feedback": "¡Torre lista en la columna g!"
           },
           {
             "id": "ex_3",
-            "fen": "5r1k/5B1p/8/8/8/8/8/4K1R1 w - - 1 2",
-            "instruction": "Paso 3: Retira tu Alfil a e6.",
+            "fen": "7k/7p/8/8/2B5/4K3/8/6R1 w - - 1 2",
+            "instruction": "Paso 3: Acerca tu Rey a f4 para apoyar la posición.",
             "solution": {
-              "from": "f7",
-              "to": "e6"
+              "from": "e3",
+              "to": "f4"
             },
-            "hint": "Mueve el alfil a e6.",
-            "feedback": "¡Alfil cortando casillas!"
+            "hint": "Avanza el rey a f4.",
+            "feedback": "¡Rey al ataque!"
           },
           {
             "id": "ex_4",
-            "fen": "5r1k/7p/4B3/8/8/8/8/4K1R1 w - - 2 3",
-            "instruction": "Paso 4: Mueve tu Rey a e2.",
+            "fen": "7k/7p/8/8/2B2K2/8/8/6R1 w - - 2 3",
+            "instruction": "Paso 4: Asesta el Jaque Mate de Morphy llevando tu Torre a g8.",
             "solution": {
-              "from": "e1",
-              "to": "e2"
+              "from": "g1",
+              "to": "g8"
             },
-            "hint": "Avanza el rey a e2.",
-            "feedback": "¡Rey en juego!"
+            "hint": "Mueve la torre a g8 dando mate.",
+            "feedback": "¡Jaque Mate de Morphy!"
           },
           {
             "id": "ex_5",
-            "fen": "5r1k/7p/4B3/8/8/4K3/8/6R1 w - - 3 4",
+            "fen": "7k/7p/8/8/2B5/8/8/4K1R1 w - - 0 1",
             "instruction": "Paso 5: Lleva tu Torre a g8 dando Jaque Mate de Morphy.",
             "solution": {
               "from": "g1",
               "to": "g8"
             },
-            "hint": "Lleva la torre a g8.",
-            "feedback": "¡Mate de Morphy completado!"
+            "hint": "Lleva la torre a g8 dando mate.",
+            "feedback": "¡Jaque Mate de Morphy ejecutado con maestría!"
           }
         ]
       },
@@ -3170,7 +3170,7 @@ export const CURRICULUM_SECTIONS = [
         ]
       },
       {
-        "id": "l45_mate_damiano",
+                "id": "l45_mate_damiano",
         "number": 45,
         "title": "El mate de Damiano",
         "category": "tactica",
@@ -3178,63 +3178,63 @@ export const CURRICULUM_SECTIONS = [
           {
             "type": "theory",
             "title": "Peón Cuña y Dama Asesina",
-            "text": "Un peón propio en g6 o f6 clava una cuña en el enroque negro permitiendo a la Dama dar mate en h7 o g7.",
-            "fen": "6k1/5ppp/6P1/8/8/8/8/4K2R w K - 0 1"
+            "text": "Un peón propio en g6 o f6 clava una cuña en el enroque negro permitiendo a la Dama dar mate en h7 con apoyo total.",
+            "fen": "5rk1/5ppp/6P1/8/8/8/8/4K2Q w - - 0 1"
           },
           {
             "id": "ex_1",
-            "fen": "6k1/5ppp/6P1/8/8/8/8/4K2R w K - 0 1",
-            "instruction": "Paso 1: Captura en h7 con tu Torre dando Jaque Mate.",
+            "fen": "5rk1/5ppp/6P1/8/8/8/8/4K2Q w - - 0 1",
+            "instruction": "Paso 1: Asesta el Jaque Mate de Damiano capturando en h7 con tu Dama apoyada por tu peón en g6.",
             "solution": {
               "from": "h1",
               "to": "h7"
             },
-            "hint": "Captura en h7 con la torre.",
-            "feedback": "¡Jaque Mate de Damiano!"
+            "hint": "Captura en h7 con la dama dando mate.",
+            "feedback": "¡Jaque Mate de Damiano perfecto!"
           },
           {
             "id": "ex_2",
-            "fen": "6k1/5ppp/8/8/8/8/8/R3K3 w - - 0 1",
-            "instruction": "Paso 2: Da jaque mate en la 8ª fila con tu Torre.",
+            "fen": "k7/8/1K6/8/8/8/8/7R w - - 0 1",
+            "instruction": "Paso 2: Da Jaque Mate en la 8ª fila con tu Torre en h8 apoyada por el control de tu Rey en b6.",
             "solution": {
-              "from": "a1",
-              "to": "a8"
+              "from": "h1",
+              "to": "h8"
             },
             "hint": "Mueve la torre a a8.",
-            "feedback": "¡Mate del pasillo!"
+            "feedback": "¡Jaque Mate directo!"
           },
           {
             "id": "ex_3",
-            "fen": "8/k7/8/8/8/8/8/4K2R w - - 0 1",
-            "instruction": "Paso 3: Corta en la 7ª fila con tu Torre.",
+            "fen": "k7/8/8/8/8/8/8/4K2R w - - 0 1",
+            "instruction": "Paso 3: Acerca tu Rey a d2.",
             "solution": {
-              "from": "h1",
-              "to": "h7"
+              "from": "e1",
+              "to": "d2"
             },
-            "hint": "Lleva tu torre a h7.",
-            "feedback": "¡Corte de fila!"
+            "hint": "Mueve tu rey a d2.",
+            "feedback": "¡Rey en camino!"
           },
           {
             "id": "ex_4",
-            "fen": "k7/7R/8/8/8/4K3/8/8 w - - 1 2",
-            "instruction": "Paso 4: Acerca tu Rey a e4.",
+            "fen": "k7/8/8/8/8/3K4/8/7R w - - 1 2",
+            "instruction": "Paso 4: Acerca tu Rey a d4.",
             "solution": {
-              "from": "e3",
-              "to": "e4"
+              "from": "d3",
+              "to": "d4"
             },
-            "hint": "Avanza el rey a e4.",
+            "hint": "Avanza el rey a d4.",
             "feedback": "¡Rey al centro!"
           },
           {
             "id": "ex_5",
-            "fen": "k7/7R/4K3/8/8/8/8/8 w - - 2 3",
-            "instruction": "Paso 5: Da Jaque Mate en a7 con tu Torre.",
+            "fen": "k7/7R/1K6/8/8/8/8/8 w - - 0 1",
+            "instruction": "Paso 5: Da Jaque Mate en h8 con tu Torre apoyada por tu Rey en b6.",
             "solution": {
               "from": "h7",
-              "to": "a7"
+              "to": "h8"
             },
-            "hint": "Lleva la torre a a7.",
-            "feedback": "¡Patrón de Damiano asimilado!"
+            "hint": "Lleva la torre a h8.",
+            "feedback": "¡Patrón de Damiano asimilado a la perfección!"
           }
         ]
       },
@@ -3559,7 +3559,7 @@ export const CURRICULUM_SECTIONS = [
               "to": "a8",
               "promotion": "q"
             },
-            "hint": "Corona en b8.",
+            "hint": "Corona en a8.",
             "feedback": "¡Coronación triunfal con Jaque Mate!"
           },
           {
@@ -3934,7 +3934,7 @@ export const CURRICULUM_SECTIONS = [
           {
             "id": "ex_5",
             "fen": "r1bq1rk1/pp1nbppp/8/3pn3/8/2N5/PP2BPPP/R1BQ1RK1 b - - 0 3",
-            "instruction": "Paso 5: Bloquea el peón aislado con tu Caballo en f6.",
+            "instruction": "Paso 5: Defiende tu peón aislado desarrollando tu Caballo a f6.",
             "solution": {
               "from": "d7",
               "to": "f6"
@@ -4294,7 +4294,7 @@ export const CURRICULUM_SECTIONS = [
         ]
       },
       {
-        "id": "l61_torre_septima_fila",
+                "id": "l61_torre_septima_fila",
         "number": 61,
         "title": "La actividad de la Torre en la 7ª fila",
         "category": "estrategia",
@@ -4303,11 +4303,11 @@ export const CURRICULUM_SECTIONS = [
             "type": "theory",
             "title": "El Dragón en la Séptima",
             "text": "Una Torre en la 7ª fila paraliza al Rey enemigo, corta su salida y barre toda la cadena de peones contrarios.",
-            "fen": "8/5ppp/8/8/8/8/R7/4K2k w - - 0 1"
+            "fen": "5rk1/5ppp/8/8/8/8/R7/4K3 w - - 0 1"
           },
           {
             "id": "ex_1",
-            "fen": "8/5ppp/8/8/8/8/R7/4K2k w - - 0 1",
+            "fen": "5rk1/5ppp/8/8/8/8/R7/4K3 w - - 0 1",
             "instruction": "Paso 1: Infiltra tu Torre en la 7ª fila en a7.",
             "solution": {
               "from": "a2",
@@ -4318,47 +4318,47 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_2",
-            "fen": "R7/5ppp/8/8/8/8/8/4K2k w - - 0 1",
-            "instruction": "Paso 2: Captura en f8 con tu Torre.",
+            "fen": "5rk1/R4ppp/8/8/8/8/8/4K3 w - - 0 1",
+            "instruction": "Paso 2: Devora el peón indefenso en f7 con tu Torre.",
             "solution": {
-              "from": "a8",
-              "to": "f8"
-            },
-            "hint": "Captura en f8 con la torre.",
-            "feedback": "¡Captura en la 8ª fila!"
-          },
-          {
-            "id": "ex_3",
-            "fen": "5R2/5ppp/8/8/8/8/8/4K2k w - - 0 1",
-            "instruction": "Paso 3: Captura el peón en f7 con tu Torre.",
-            "solution": {
-              "from": "f8",
+              "from": "a7",
               "to": "f7"
             },
             "hint": "Captura en f7 con la torre.",
-            "feedback": "¡Peón de f7 devorado!"
+            "feedback": "¡Peón capturado en 7ª fila!"
+          },
+          {
+            "id": "ex_3",
+            "fen": "5rk1/5R1p/8/8/8/8/8/4K3 w - - 0 1",
+            "instruction": "Paso 3: Captura la Torre negra en f8 con tu Torre.",
+            "solution": {
+              "from": "f7",
+              "to": "f8"
+            },
+            "hint": "Captura en f8 con la torre.",
+            "feedback": "¡Simplificación ganadora!"
           },
           {
             "id": "ex_4",
-            "fen": "5R2/5p1p/8/8/8/8/8/4K2k w - - 0 1",
-            "instruction": "Paso 4: Da Jaque Mate en h8 con tu Torre.",
+            "fen": "5k2/7p/8/8/8/8/8/4K2R w - - 0 1",
+            "instruction": "Paso 4: Devora el peón en h7 con tu Torre.",
             "solution": {
-              "from": "f8",
-              "to": "h8"
-            },
-            "hint": "Lleva la torre a h8.",
-            "feedback": "¡Jaque Mate!"
-          },
-          {
-            "id": "ex_5",
-            "fen": "7R/5p1p/8/8/8/4K3/8/7k w - - 1 2",
-            "instruction": "Paso 5: Captura el peón en h7 con tu Torre.",
-            "solution": {
-              "from": "h8",
+              "from": "h1",
               "to": "h7"
             },
             "hint": "Captura en h7 con la torre.",
-            "feedback": "¡Torre en 7ª fila dominada!"
+            "feedback": "¡Peones barridos!"
+          },
+          {
+            "id": "ex_5",
+            "fen": "k7/7R/1K6/8/8/8/8/8 w - - 0 1",
+            "instruction": "Paso 5: Da Jaque Mate en h8 con tu Torre.",
+            "solution": {
+              "from": "h7",
+              "to": "h8"
+            },
+            "hint": "Mueve la torre a h8.",
+            "feedback": "¡Torre en 7ª y 8ª fila dominada!"
           }
         ]
       },
@@ -4427,7 +4427,7 @@ export const CURRICULUM_SECTIONS = [
               "from": "c3",
               "to": "g7"
             },
-            "hint": "Lleva tu dama a h7.",
+            "hint": "Lleva tu dama a g7 dando mate.",
             "feedback": "¡Alfiles de distinto color dominados!"
           }
         ]
@@ -4697,11 +4697,11 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_5",
-            "fen": "8/R7/1k2K3/8/8/8/8/8 w - - 1 2",
-            "instruction": "Paso 5: Da Jaque Mate en a8.",
+            "fen": "k7/7R/1K6/8/8/8/8/8 w - - 0 1",
+            "instruction": "Paso 5: Da Jaque Mate en h8 con tu Torre.",
             "solution": {
-              "from": "a7",
-              "to": "a8"
+              "from": "h7",
+              "to": "h8"
             },
             "hint": "Mueve la torre a a8.",
             "feedback": "¡Zugzwang y mates dominados!"
@@ -4767,11 +4767,11 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_5",
-            "fen": "7k/8/8/8/4Q3/8/8/4K3 w - - 1 2",
-            "instruction": "Paso 5: Da Jaque Mate en h7.",
+            "fen": "8/7k/8/8/8/2Q5/1B6/4K3 w - - 0 1",
+            "instruction": "Paso 5: Da Jaque Mate en g7 con tu Dama con apoyo de tu Alfil en b2.",
             "solution": {
-              "from": "e4",
-              "to": "h7"
+              "from": "c3",
+              "to": "g7"
             },
             "hint": "Lleva la dama a h7.",
             "feedback": "¡Fortalezas y rupturas dominadas!"
@@ -4874,7 +4874,7 @@ export const CURRICULUM_SECTIONS = [
           {
             "id": "ex_2",
             "fen": "r1bqk2r/p1pp1ppp/2p5/4p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 1",
-            "instruction": "Paso 3: Golpea el centro con d2-d4 creando el segundo frente de ataque.",
+            "instruction": "Paso 2: Golpea el centro con d2-d4 creando el segundo frente de ataque.",
             "solution": {
               "from": "d2",
               "to": "d4"
@@ -4896,7 +4896,7 @@ export const CURRICULUM_SECTIONS = [
           {
             "id": "ex_4",
             "fen": "r1bqk2r/p1pp1ppp/2p5/8/3bP3/5N2/PPP2PPP/RNBQK2R w KQkq - 0 2",
-            "instruction": "Paso 4: Recaptura el peón en d4 con tu Caballo en f3.",
+            "instruction": "Paso 4: Captura el alfil en d4 con tu Caballo en f3.",
             "solution": {
               "from": "f3",
               "to": "d4"
@@ -5045,11 +5045,11 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_5",
-            "fen": "8/4Q3/8/8/8/5K2/8/7k w - - 3 4",
-            "instruction": "Paso 5: Da Jaque Mate en g7 con tu Dama.",
+            "fen": "4k3/8/3QK3/8/8/8/8/8 w - - 0 1",
+            "instruction": "Paso 5: Da Jaque Mate en e7 con tu Dama apoyada por tu Rey en e6.",
             "solution": {
-              "from": "e7",
-              "to": "g7"
+              "from": "d6",
+              "to": "e7"
             },
             "hint": "Lleva la dama a g7.",
             "feedback": "¡Final de Damas dominado!"
@@ -5894,7 +5894,7 @@ export const CURRICULUM_SECTIONS = [
         ]
       },
       {
-        "id": "l84_septima_octava_fila",
+                "id": "l84_septima_octava_fila",
         "number": 84,
         "title": "Dominio de la 7ª y 8ª fila",
         "category": "estrategia",
@@ -5902,12 +5902,12 @@ export const CURRICULUM_SECTIONS = [
           {
             "type": "theory",
             "title": "La Masacre en la Séptima",
-            "text": "Doblar dos Torres en la 7ª fila (los \"Cerdos Ciegos\") garantiza la destrucción de todos los peones enemigos y múltiples redes de mate.",
-            "fen": "8/5ppp/8/8/8/8/R7/4K2k w - - 0 1"
+            "text": "Doblar dos Torres en la 7ª fila garantiza la destrucción de todos los peones enemigos y múltiples redes de mate.",
+            "fen": "5rk1/5ppp/8/8/8/8/R7/4K3 w - - 0 1"
           },
           {
             "id": "ex_1",
-            "fen": "8/5ppp/8/8/8/8/R7/4K2k w - - 0 1",
+            "fen": "5rk1/5ppp/8/8/8/8/R7/4K3 w - - 0 1",
             "instruction": "Paso 1: Lleva tu Torre a la 7ª fila en a7.",
             "solution": {
               "from": "a2",
@@ -5918,47 +5918,47 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_2",
-            "fen": "R7/5ppp/8/8/8/8/8/4K2k w - - 0 1",
-            "instruction": "Paso 2: Captura en f8 con tu Torre.",
+            "fen": "5rk1/R4ppp/8/8/8/8/8/4K3 w - - 0 1",
+            "instruction": "Paso 2: Devora el peón indefenso en f7 con tu Torre.",
             "solution": {
-              "from": "a8",
-              "to": "f8"
-            },
-            "hint": "Captura en f8 con la torre.",
-            "feedback": "¡Captura en 8ª fila!"
-          },
-          {
-            "id": "ex_3",
-            "fen": "5R2/5ppp/8/8/8/8/8/4K2k w - - 0 1",
-            "instruction": "Paso 3: Captura el peón en f7 con tu Torre.",
-            "solution": {
-              "from": "f8",
+              "from": "a7",
               "to": "f7"
             },
             "hint": "Captura en f7 con la torre.",
-            "feedback": "¡Peón de f7 devorado!"
+            "feedback": "¡Peón de f7 capturado!"
+          },
+          {
+            "id": "ex_3",
+            "fen": "5rk1/5R1p/8/8/8/8/8/4K3 w - - 0 1",
+            "instruction": "Paso 3: Captura la Torre en f8 con tu Torre.",
+            "solution": {
+              "from": "f7",
+              "to": "f8"
+            },
+            "hint": "Captura en f8 con la torre.",
+            "feedback": "¡Torre enemiga capturada!"
           },
           {
             "id": "ex_4",
-            "fen": "5R2/5p1p/8/8/8/8/8/4K2k w - - 0 1",
-            "instruction": "Paso 4: Da Jaque Mate en h8.",
+            "fen": "5k2/7p/8/8/8/8/8/4K2R w - - 0 1",
+            "instruction": "Paso 4: Devora el peón retrasado en h7 con tu Torre.",
             "solution": {
-              "from": "f8",
-              "to": "h8"
-            },
-            "hint": "Lleva la torre a h8.",
-            "feedback": "¡Jaque Mate!"
-          },
-          {
-            "id": "ex_5",
-            "fen": "7R/5p1p/8/8/8/4K3/8/7k w - - 1 2",
-            "instruction": "Paso 5: Captura el peón en h7.",
-            "solution": {
-              "from": "h8",
+              "from": "h1",
               "to": "h7"
             },
             "hint": "Captura en h7 con la torre.",
-            "feedback": "¡Filas 7ª y 8ª dominadas!"
+            "feedback": "¡Ventaja aplastante!"
+          },
+          {
+            "id": "ex_5",
+            "fen": "k7/7R/1K6/8/8/8/8/8 w - - 0 1",
+            "instruction": "Paso 5: Asesta el Jaque Mate en h8 con tu Torre apoyada por tu Rey en b6.",
+            "solution": {
+              "from": "h7",
+              "to": "h8"
+            },
+            "hint": "Lleva la torre a h8.",
+            "feedback": "¡Dominio de 7ª y 8ª fila completado!"
           }
         ]
       },
@@ -7343,11 +7343,11 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_5",
-            "fen": "7k/8/8/8/4Q3/8/8/4K3 w - - 1 2",
-            "instruction": "Paso 5: Da Jaque Mate en h7.",
+            "fen": "8/7k/8/8/8/2Q5/1B6/4K3 w - - 0 1",
+            "instruction": "Paso 5: Da Jaque Mate en g7 con tu Dama con apoyo de tu Alfil en b2.",
             "solution": {
-              "from": "e4",
-              "to": "h7"
+              "from": "c3",
+              "to": "g7"
             },
             "hint": "Lleva la dama a h7.",
             "feedback": "¡Conversión de ventajas mínimas dominada!"
@@ -7735,8 +7735,8 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_3",
-            "fen": "5r1k/5p1p/5N2/8/8/8/8/4K1R1 w - - 0 1",
-            "instruction": "Paso 3 (Prueba de Coordinación): Da Jaque Mate Árabe en g8.",
+            "fen": "7k/5p1p/5N2/8/8/8/8/4K1R1 w - - 0 1",
+            "instruction": "Paso 3 (Prueba de Coordinación): Da Jaque Mate Árabe en g8 con apoyo del caballo en f6.",
             "solution": {
               "from": "g1",
               "to": "g8"
@@ -7758,13 +7758,13 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_5",
-            "fen": "4k3/8/3Q4/4K3/8/8/8/8 w - - 0 1",
+            "fen": "4k3/8/3QK3/8/8/8/8/8 w - - 0 1",
             "instruction": "Paso 5 (Graduación Absoluta): Asesta el Jaque Mate definitivo con tu Dama en e7 con apoyo de tu Rey.",
             "solution": {
               "from": "d6",
               "to": "e7"
             },
-            "hint": "Da mate con tu dama en d7.",
+            "hint": "Da mate con tu dama en e7.",
             "feedback": "¡¡FELICITACIONES GRAN MAESTRO JUNVILL!! Has completado al 100% las 110 lecciones interactivas de la academia."
           }
         ]
