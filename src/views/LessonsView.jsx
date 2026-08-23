@@ -31,14 +31,16 @@ const LessonIcon = ({ category = 'tactica', className = "lesson-icon-svg" }) => 
   );
 };
 
-export const LessonsView = ({ onSelectLesson }) => {
+export const LessonsView = ({ onSelectLesson, onStartLesson, onOpenBugReport }) => {
   const { currentUser } = useUser();
   const [activeLesson, setActiveLesson] = useState(null);
   const [isOpeningsModalOpen, setIsOpeningsModalOpen] = useState(false);
 
+  const handleLessonStarter = onSelectLesson || onStartLesson;
+
   const handleOpenLesson = (lesson) => {
-    if (onSelectLesson) {
-      onSelectLesson(lesson);
+    if (handleLessonStarter) {
+      handleLessonStarter(lesson);
     } else {
       setActiveLesson(lesson);
     }
@@ -399,10 +401,11 @@ export const LessonsView = ({ onSelectLesson }) => {
         )}
 
         {/* Modal Reproductor de Lección Fallback */}
-        {activeLesson && !onSelectLesson && (
+        {activeLesson && !handleLessonStarter && (
           <LessonPlayerModal
             lesson={activeLesson}
             onClose={() => setActiveLesson(null)}
+            onOpenBugReport={onOpenBugReport}
           />
         )}
 

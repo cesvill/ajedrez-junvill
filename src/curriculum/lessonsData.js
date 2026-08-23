@@ -2607,7 +2607,7 @@ export const CURRICULUM_SECTIONS = [
           {
             "id": "ex_5",
             "fen": "k7/7R/1K6/8/8/8/8/8 w - - 0 1",
-            "instruction": "Paso 5: Asesta el Jaque Mate definitivo en h8 con tu Torre apoyada por tu Rey en b6.",
+            "instruction": "Paso 5: Mueve tu Torre de h7 a h8 dando Jaque Mate definitivo con apoyo de tu Rey en b6.",
             "solution": {
               "from": "h7",
               "to": "h8"
@@ -3228,7 +3228,7 @@ export const CURRICULUM_SECTIONS = [
           {
             "id": "ex_5",
             "fen": "k7/7R/1K6/8/8/8/8/8 w - - 0 1",
-            "instruction": "Paso 5: Da Jaque Mate en h8 con tu Torre apoyada por tu Rey en b6.",
+            "instruction": "Paso 5: Mueve tu Torre de h7 a h8 dando Jaque Mate con apoyo de tu Rey en b6.",
             "solution": {
               "from": "h7",
               "to": "h8"
@@ -4352,7 +4352,7 @@ export const CURRICULUM_SECTIONS = [
           {
             "id": "ex_5",
             "fen": "k7/7R/1K6/8/8/8/8/8 w - - 0 1",
-            "instruction": "Paso 5: Da Jaque Mate en h8 con tu Torre.",
+            "instruction": "Paso 5: Mueve tu Torre de h7 a h8 dando Jaque Mate con apoyo de tu Rey en b6.",
             "solution": {
               "from": "h7",
               "to": "h8"
@@ -4698,7 +4698,7 @@ export const CURRICULUM_SECTIONS = [
           {
             "id": "ex_5",
             "fen": "k7/7R/1K6/8/8/8/8/8 w - - 0 1",
-            "instruction": "Paso 5: Da Jaque Mate en h8 con tu Torre.",
+            "instruction": "Paso 5: Mueve tu Torre de h7 a h8 dando Jaque Mate con apoyo de tu Rey en b6.",
             "solution": {
               "from": "h7",
               "to": "h8"
@@ -5952,7 +5952,7 @@ export const CURRICULUM_SECTIONS = [
           {
             "id": "ex_5",
             "fen": "k7/7R/1K6/8/8/8/8/8 w - - 0 1",
-            "instruction": "Paso 5: Asesta el Jaque Mate en h8 con tu Torre apoyada por tu Rey en b6.",
+            "instruction": "Paso 5: Mueve tu Torre de h7 a h8 dando Jaque Mate apoyada por tu Rey en b6.",
             "solution": {
               "from": "h7",
               "to": "h8"

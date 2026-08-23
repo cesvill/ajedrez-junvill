@@ -20,6 +20,24 @@ import {
 
 export const PREDEFINED_BUG_TEMPLATES = [
   {
+    id: 'casilla_pieza_incoherente',
+    category: 'movimiento_invalido',
+    label: '📍 Texto dice una casilla o pieza incorrecta (ej: dice h8 y está en h7)',
+    description: 'La instrucción o pista menciona una casilla o pieza diferente a la que está en el tablero.'
+  },
+  {
+    id: 'jaque_previo_ilegal',
+    category: 'movimiento_invalido',
+    label: '⚠️ El rey rival ya estaba en jaque antes de mi turno (Posición ilegal)',
+    description: 'La posición del ejercicio comenzó con una jugada previa imposible según las reglas del ajedrez.'
+  },
+  {
+    id: 'jaque_mate_falso',
+    category: 'movimiento_invalido',
+    label: '👑 Dice Jaque Mate pero el rey tiene escapatoria o defensa',
+    description: 'La posición no cumple con la definición técnica de Jaque Mate.'
+  },
+  {
     id: 'pieza_invisible',
     category: 'movimiento_invalido',
     label: '♟️ La pieza no aparece o no se ve en el tablero',
