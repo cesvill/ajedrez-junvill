@@ -88,11 +88,8 @@ class CloudSyncService {
         }
       });
 
-      // Calcular puntos totales acumulados
-      let totalLessonPts = 0;
-      Object.values(mergedLessonProgress).forEach(p => {
-        totalLessonPts += (p.stars || 0);
-      });
+      // Calcular puntos totales acumulados (1 punto por leccion completada hasta 110)
+      const totalLessonPts = Object.values(mergedLessonProgress).filter(p => p.completed || p.stars >= 5).length;
 
       // Fusionar estadísticas y victorias contra bots
       const mergedBotVictories = {
@@ -238,7 +235,7 @@ class CloudSyncService {
   }
 
   // Iniciar sincronización periódica automática
-  startPeriodicSync(getActiveGroup, onCloudUpdate, intervalMs = 10000) {
+  startPeriodicSync(getActiveGroup, onCloudUpdate, intervalMs = 4000) {
     if (this.syncInterval) clearInterval(this.syncInterval);
 
     const performSync = async () => {
@@ -248,8 +245,10 @@ class CloudSyncService {
 
         // 1. Descargar estado de la nube
         const cloudGroup = await this.fetchCloudGroup(currentGroup.id);
+        let groupToPush = currentGroup;
+
         if (cloudGroup && cloudGroup.users && Array.isArray(cloudGroup.users)) {
-          // Fusionar usuarios
+          // Fusionar usuarios (CRDT)
           const mergedUsers = this.mergeUsers(currentGroup.users, cloudGroup.users);
           const hasChanges = JSON.stringify(mergedUsers) !== JSON.stringify(currentGroup.users);
 
@@ -260,13 +259,14 @@ class CloudSyncService {
               users: mergedUsers,
               updatedAt: Date.now()
             };
+            groupToPush = updatedGroup;
             if (onCloudUpdate) onCloudUpdate(updatedGroup);
             this.notifyListeners(updatedGroup);
           }
         }
 
-        // 2. Subir estado local actualizado a la nube
-        await this.pushGroupToCloud(currentGroup, currentGroup.id);
+        // 2. Subir estado fusionado y enriquecido a la nube
+        await this.pushGroupToCloud(groupToPush, currentGroup.id);
       } catch (err) {
         // Silencioso en caso de desconexión momentánea
       }

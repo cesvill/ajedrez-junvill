@@ -265,11 +265,11 @@ export const DEFAULT_JUNVILL_USERS = [
       background: 'cyber_grid'
     },
     title: 'Campeón Junior',
-    elo: 500,
-    puzzleRating: 450,
-    stars: 50,
-    gems: 15,
-    totalPoints: 10,
+    elo: 880,
+    puzzleRating: 650,
+    stars: 155,
+    gems: 62,
+    totalPoints: 31,
     theme: 'modern_dark',
     boardTheme: 'board_emerald',
     pieceTheme: 'staunton',
@@ -282,10 +282,132 @@ export const DEFAULT_JUNVILL_USERS = [
       highlightLastMove: true,
       moveMethod: 'drag_click'
     },
-    unlockedItems: ['board_emerald', 'board_wood', 'shirt_blue'],
+    unlockedItems: ['board_emerald', 'board_wood', 'shirt_blue', 'shirt_green'],
     lessonProgress: {
-      'l01_piezas': { stars: 5, completed: true },
-      'l02_capturas': { stars: 5, completed: true }
+          "l01_piezas": {
+                "stars": 5,
+                "completed": true
+          },
+          "l02_capturas": {
+                "stars": 5,
+                "completed": true
+          },
+          "l03_desprotegidas": {
+                "stars": 5,
+                "completed": true
+          },
+          "l04_valor_piezas": {
+                "stars": 5,
+                "completed": true
+          },
+          "l05_coronacion": {
+                "stars": 5,
+                "completed": true
+          },
+          "l06_jaque": {
+                "stars": 5,
+                "completed": true
+          },
+          "l07_escapar_jaque": {
+                "stars": 5,
+                "completed": true
+          },
+          "l08_mate_1": {
+                "stars": 5,
+                "completed": true
+          },
+          "l09_rey_ahogado": {
+                "stars": 5,
+                "completed": true
+          },
+          "l10_enroque": {
+                "stars": 5,
+                "completed": true
+          },
+          "l11_al_paso": {
+                "stars": 5,
+                "completed": true
+          },
+          "l12_ataque_doble_peon": {
+                "stars": 5,
+                "completed": true
+          },
+          "l13_mate_pasillo": {
+                "stars": 5,
+                "completed": true
+          },
+          "l14_mate_dama_rey": {
+                "stars": 5,
+                "completed": true
+          },
+          "l15_mate_torre_rey": {
+                "stars": 5,
+                "completed": true
+          },
+          "l16_clavada_absoluta": {
+                "stars": 5,
+                "completed": true
+          },
+          "l17_clavada_relativa": {
+                "stars": 5,
+                "completed": true
+          },
+          "l18_horquilla_caballo": {
+                "stars": 5,
+                "completed": true
+          },
+          "l19_enfilada_skewer": {
+                "stars": 5,
+                "completed": true
+          },
+          "l20_ataque_descubierta": {
+                "stars": 5,
+                "completed": true
+          },
+          "l21_jaque_descubierta": {
+                "stars": 5,
+                "completed": true
+          },
+          "l22_jaque_doble": {
+                "stars": 5,
+                "completed": true
+          },
+          "l23_ataque_doble_dama": {
+                "stars": 5,
+                "completed": true
+          },
+          "l24_mate_pastor": {
+                "stars": 5,
+                "completed": true
+          },
+          "l25_sobrecarga": {
+                "stars": 5,
+                "completed": true
+          },
+          "l26_pieza_atrapada": {
+                "stars": 5,
+                "completed": true
+          },
+          "l27_despeje_casillas": {
+                "stars": 5,
+                "completed": true
+          },
+          "l28_despeje_lineas": {
+                "stars": 5,
+                "completed": true
+          },
+          "l29_intercepcion_lineas": {
+                "stars": 5,
+                "completed": true
+          },
+          "l30_rayos_x": {
+                "stars": 5,
+                "completed": true
+          },
+          "l31_jaque_perpetuo": {
+                "stars": 5,
+                "completed": true
+          }
     },
     botVictories: {
       'qwerty': 2,
@@ -348,14 +470,8 @@ export const UserProvider = ({ children }) => {
               if (!Array.isArray(g.users) || g.users.length === 0) {
                 g.users = DEFAULT_JUNVILL_USERS;
               } else {
-                // Asegurar que César, Estudiante, Leti y Martin estén presentes en Familia Junvill
-                const existingNames = g.users.map(u => (u.name || '').toLowerCase().trim());
-                DEFAULT_JUNVILL_USERS.forEach(defUser => {
-                  const defName = defUser.name.toLowerCase().trim();
-                  if (!existingNames.some(en => en === defName || en.includes(defName) || defName.includes(en))) {
-                    g.users.push(defUser);
-                  }
-                });
+                // Fusión inteligente (CRDT): siempre conserva el mayor progreso de cada usuario
+                g.users = cloudSync.mergeUsers(g.users, DEFAULT_JUNVILL_USERS);
               }
             }
             if (!Array.isArray(g.users)) g.users = [];
@@ -483,6 +599,21 @@ export const UserProvider = ({ children }) => {
             return updated;
           });
         }
+      },
+      (incomingGroupData) => {
+        if (!incomingGroupData || !incomingGroupData.users) return;
+        setGroups(prev => {
+          const targetId = incomingGroupData.id || 'group_junvill';
+          const nextGroups = prev.map(g => {
+            if (g.id === targetId) {
+              const mergedUsers = cloudSync.mergeUsers(g.users, incomingGroupData.users);
+              return { ...g, ...incomingGroupData, users: mergedUsers, updatedAt: Date.now() };
+            }
+            return g;
+          });
+          try { localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(nextGroups)); } catch (e) {}
+          return nextGroups;
+        });
       }
     );
   }, [currentUser?.id, familyInvitations]);
@@ -967,6 +1098,9 @@ export const UserProvider = ({ children }) => {
           const updatedUsers = (g.users || []).map(u => u.id === userId ? { ...u, ...updates, updatedAt: Date.now() } : u);
           const updatedG = { ...g, users: updatedUsers, updatedAt: Date.now() };
           cloudSync.pushGroupToCloud(updatedG, effectiveGroupId).catch(() => {});
+          try {
+            familySignaling.broadcastProgressUpdate(updatedG, updatedUsers.map(u => u.id));
+          } catch (e) {}
           return updatedG;
         }
         return g;
@@ -1106,10 +1240,7 @@ export const UserProvider = ({ children }) => {
       [lessonId]: { stars: newStars, completed: isCompleted }
     };
 
-    let totalPts = 0;
-    Object.values(updatedProgress).forEach(p => {
-      totalPts += (p.stars || 0);
-    });
+    const completedCount = Object.values(updatedProgress).filter(p => p.completed || p.stars >= 5).length;
 
     const newRadar = { ...(currentUser.radarSkills || {}) };
     if (category && newRadar[category] !== undefined) {
@@ -1117,7 +1248,7 @@ export const UserProvider = ({ children }) => {
     }
 
     editUser(currentUser.id, {
-      totalPoints: totalPts,
+      totalPoints: completedCount,
       elo: (currentUser.elo || 400) + (pointsDiff * 6),
       stars: (currentUser.stars || 0) + (pointsDiff * 5),
       gems: (currentUser.gems || 0) + (isCompleted ? 2 : 0),

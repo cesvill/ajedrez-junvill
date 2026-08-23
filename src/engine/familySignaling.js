@@ -14,7 +14,7 @@ class FamilySignalingService {
   }
 
   // Inicializa el receptor para el usuario actualmente conectado
-  init(userId, onReceiveInvitation, onInvitationStatusChange) {
+  init(userId, onReceiveInvitation, onInvitationStatusChange, onProgressUpdate) {
     if (this.currentUserId === userId && this.peer && !this.peer.destroyed) {
       return;
     }
@@ -41,6 +41,8 @@ class FamilySignalingService {
             onReceiveInvitation(data.invitation);
           } else if (data?.type === 'FAMILY_INVITATION_STATUS' && onInvitationStatusChange) {
             onInvitationStatusChange(data.invitationId, data.status);
+          } else if (data?.type === 'FAMILY_PROGRESS_UPDATE' && onProgressUpdate) {
+            onProgressUpdate(data.groupData);
           }
         });
       });
@@ -113,6 +115,40 @@ class FamilySignalingService {
         try { tempPeer.destroy(); } catch (e) {}
       });
     } catch (err) {}
+  }
+
+  // Transmitir actualización de progreso en tiempo real a todos los miembros de la familia
+  broadcastProgressUpdate(groupData, targetUserIds = []) {
+    if (!groupData || !targetUserIds || targetUserIds.length === 0) return;
+
+    targetUserIds.forEach(targetUserId => {
+      if (!targetUserId || targetUserId === this.currentUserId) return;
+      try {
+        const cleanTargetId = `ajedrez-junvill-user-${targetUserId.replace(/[^a-zA-Z0-9_-]/g, '')}`;
+        const tempPeer = new Peer({
+          config: {
+            iceServers: [
+              { urls: 'stun:stun.l.google.com:19302' },
+              { urls: 'stun:global.stun.twilio.com:3478' }
+            ]
+          }
+        });
+
+        tempPeer.on('open', () => {
+          const conn = tempPeer.connect(cleanTargetId);
+          conn.on('open', () => {
+            conn.send({ type: 'FAMILY_PROGRESS_UPDATE', groupData, timestamp: Date.now() });
+            setTimeout(() => {
+              try { tempPeer.destroy(); } catch (e) {}
+            }, 2000);
+          });
+        });
+
+        tempPeer.on('error', () => {
+          try { tempPeer.destroy(); } catch (e) {}
+        });
+      } catch (err) {}
+    });
   }
 
   destroy() {

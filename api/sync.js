@@ -86,11 +86,8 @@ function mergeUsers(existingUsers = [], newUsers = []) {
       }
     });
 
-    // Calcular puntos acumulados de lecciones
-    let totalLessonPts = 0;
-    Object.values(mergedLessons).forEach(p => {
-      totalLessonPts += (p.stars || 0);
-    });
+    // Calcular puntos acumulados de lecciones (1 punto por leccion completada hasta 110)
+    const totalLessonPts = Object.values(mergedLessons).filter(p => p.completed || p.stars >= 5).length;
 
     // Fusión de victorias contra bots
     const mergedBotVictories = {
