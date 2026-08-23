@@ -62,6 +62,7 @@ export function deduplicateAndMergeUsers(...userLists) {
     let theme = 'modern_dark';
     let boardTheme = 'board_emerald';
     let pieceTheme = 'staunton';
+    let maxLastActive = 0;
 
     userVariants.forEach(u => {
       if (u.elo && u.elo > maxElo) maxElo = u.elo;
@@ -74,6 +75,7 @@ export function deduplicateAndMergeUsers(...userLists) {
       if (u.theme) theme = u.theme;
       if (u.boardTheme) boardTheme = u.boardTheme;
       if (u.pieceTheme) pieceTheme = u.pieceTheme;
+      if (u.lastActiveTimestamp && u.lastActiveTimestamp > maxLastActive) maxLastActive = u.lastActiveTimestamp;
 
       // Fusionar lecciones
       Object.entries(u.lessonProgress || {}).forEach(([lid, prog]) => {
@@ -113,6 +115,7 @@ export function deduplicateAndMergeUsers(...userLists) {
     merged.push({
       id: canonicalId,
       name: canonicalName,
+      lastActiveTimestamp: maxLastActive,
       password,
       role: canonicalRole,
       avatar: 'custom_dynamic',

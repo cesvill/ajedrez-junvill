@@ -709,9 +709,8 @@ export const UserProvider = ({ children }) => {
   useEffect(() => {
     if (!currentUser?.id) return;
 
-    familySignaling.init(
-      currentUser.id,
-      (incomingInvitation) => {
+    familySignaling.init(currentUser.id, {
+      onReceiveInvitation: (incomingInvitation) => {
         if (!incomingInvitation) return;
         try { audioManager.playVictory(); } catch (e) {}
 
@@ -736,7 +735,7 @@ export const UserProvider = ({ children }) => {
           return updated;
         });
       },
-      (invitationId, status) => {
+      onInvitationStatusChange: (invitationId, status) => {
         if (status === 'accepted' || status === 'declined') {
           setFamilyInvitations(prev => {
             const updated = prev.filter(i => i.id !== invitationId);
@@ -745,7 +744,7 @@ export const UserProvider = ({ children }) => {
           });
         }
       },
-      (incomingGroupData) => {
+      onProgressUpdate: (incomingGroupData) => {
         if (!incomingGroupData || !incomingGroupData.users) return;
         setGroups(prev => {
           const targetId = incomingGroupData.id || 'group_junvill';
@@ -759,8 +758,31 @@ export const UserProvider = ({ children }) => {
           try { localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(nextGroups)); } catch (e) {}
           return nextGroups;
         });
+      },
+      onHeartbeat: (senderUserId, payload) => {
+        const now = Date.now();
+        const normKey = normalizeUserKey(senderUserId);
+        setPresenceHeartbeats(prev => ({
+          ...prev,
+          [senderUserId]: now,
+          [normKey]: now,
+          [`user_${normKey}`]: now
+        }));
+        try {
+          localStorage.setItem(`junvill_presence_${senderUserId}`, now.toString());
+          localStorage.setItem(`junvill_presence_${normKey}`, now.toString());
+        } catch (e) {}
+      },
+      onMessage: (msg) => {
+        if (!msg) return;
+        try { audioManager.playMove(); } catch (e) {}
+        setFamilyMessages(prev => {
+          const updated = [...prev, msg];
+          try { localStorage.setItem('ajedrez_junvill_family_messages_v1', JSON.stringify(updated.slice(-200))); } catch (e) {}
+          return updated;
+        });
       }
-    );
+    });
   }, [currentUser?.id, familyInvitations]);
 
   // 6. PARTIDA FAMILIAR P2P EN CURSO
@@ -809,18 +831,46 @@ export const UserProvider = ({ children }) => {
     return inv.status === 'pending' && (inv.fromUser?.id === currentUser?.id || (inv.fromUser?.name || '').toLowerCase() === (currentUser?.name || '').toLowerCase());
   });
 
-  // Helper para consultar si un familiar está conectado en tiempo real
-  const isUserOnline = useCallback((userId) => {
-    if (!userId) return false;
-    if (userId === currentUser?.id) return true;
-    const lastTime = presenceHeartbeats[userId] || 0;
+  // Helper para consultar si un familiar está conectado en tiempo real (Multi-fuente: WebRTC + LocalStorage + Cloud)
+  const isUserOnline = useCallback((userIdOrUser) => {
+    if (!userIdOrUser) return false;
+    const userId = typeof userIdOrUser === 'string' ? userIdOrUser : userIdOrUser.id;
+    const userName = typeof userIdOrUser === 'object' ? userIdOrUser.name : '';
+
+    if (userId === currentUser?.id || normalizeUserKey(userId) === normalizeUserKey(currentUser?.id)) {
+      return true;
+    }
+
+    const normKey = normalizeUserKey(userName || userId);
+    const lastHbTime = Math.max(
+      presenceHeartbeats[userId] || 0,
+      presenceHeartbeats[normKey] || 0,
+      presenceHeartbeats[`user_${normKey}`] || 0
+    );
+
     let localTime = 0;
     try {
-      localTime = parseInt(localStorage.getItem(`junvill_presence_${userId}`) || '0', 10);
+      localTime = Math.max(
+        parseInt(localStorage.getItem(`junvill_presence_${userId}`) || '0', 10),
+        parseInt(localStorage.getItem(`junvill_presence_${normKey}`) || '0', 10),
+        parseInt(localStorage.getItem(`junvill_presence_user_${normKey}`) || '0', 10)
+      );
     } catch (e) {}
-    const mostRecent = Math.max(lastTime, localTime);
-    return (Date.now() - mostRecent) < 22000;
-  }, [currentUser?.id, presenceHeartbeats]);
+
+    let cloudLastActive = 0;
+    if (typeof userIdOrUser === 'object' && userIdOrUser.lastActiveTimestamp) {
+      cloudLastActive = userIdOrUser.lastActiveTimestamp;
+    } else {
+      const found = (users || []).find(u => u.id === userId || normalizeUserKey(u.name || u.id) === normKey);
+      if (found?.lastActiveTimestamp) {
+        cloudLastActive = found.lastActiveTimestamp;
+      }
+    }
+
+    const mostRecent = Math.max(lastHbTime, localTime, cloudLastActive);
+    // Considerar en línea si se ha comunicado en los últimos 45 segundos
+    return (Date.now() - mostRecent) < 45000;
+  }, [currentUser?.id, presenceHeartbeats, users]);
 
   // Enviar Mensaje Directo a un familiar
   const sendFamilyMessage = useCallback((toUser, text, isEmote = false) => {
