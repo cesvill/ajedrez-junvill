@@ -95,6 +95,12 @@ export const AvatarBuilderModal = ({ isOpen, onClose }) => {
   const [activeSubTab, setActiveSubTab] = useState('shirt'); // 'shirt' | 'pants' | 'shoes' | 'hair' | 'eyes' | 'skin' | 'accessory' | 'heldItem' | 'bg'
   const [previewMode, setPreviewMode] = useState('fullbody'); // 'fullbody' | 'bust'
 
+  React.useEffect(() => {
+    if (isOpen && currentUser?.avatarConfig) {
+      setConfig({ ...DEFAULT_AVATAR_CONFIG, ...currentUser.avatarConfig });
+    }
+  }, [isOpen, currentUser?.avatarConfig]);
+
   if (!isOpen) return null;
 
   const handleRandomize = () => {
@@ -131,12 +137,16 @@ export const AvatarBuilderModal = ({ isOpen, onClose }) => {
   };
 
   const handleSave = () => {
+    const savedConfig = { ...config };
     updateCurrentUser({
-      avatarConfig: config,
-      avatar: 'custom_dynamic'
+      avatarConfig: savedConfig,
+      avatar: 'custom_dynamic',
+      updatedAt: Date.now()
     });
     audioManager.playVictory();
-    confetti({ particleCount: 50, spread: 60 });
+    try {
+      confetti({ particleCount: 50, spread: 60 });
+    } catch (e) {}
     onClose();
   };
 

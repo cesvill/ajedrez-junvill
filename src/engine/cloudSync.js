@@ -64,12 +64,17 @@ export function deduplicateAndMergeUsers(...userLists) {
     let pieceTheme = 'staunton';
     let maxLastActive = 0;
 
+    // Ordenar variantes para que las ediciones más recientes tengan prioridad absoluta
+    userVariants.sort((a, b) => (a.updatedAt || 0) - (b.updatedAt || 0));
+
     userVariants.forEach(u => {
       if (u.elo && u.elo > maxElo) maxElo = u.elo;
       if (u.puzzleRating && u.puzzleRating > maxPuzzleRating) maxPuzzleRating = u.puzzleRating;
       if (u.stars && u.stars > maxStars) maxStars = u.stars;
       if (u.gems && u.gems > maxGems) maxGems = u.gems;
-      if (u.avatarConfig && Object.keys(u.avatarConfig).length > 3) avatarConfig = u.avatarConfig;
+      if (u.avatarConfig && Object.keys(u.avatarConfig).length > 3) {
+        avatarConfig = { ...(avatarConfig || {}), ...u.avatarConfig };
+      }
       if (u.title && u.title !== 'Novato Promesa') title = u.title;
       if (u.password) password = u.password;
       if (u.theme) theme = u.theme;

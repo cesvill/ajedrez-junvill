@@ -650,7 +650,7 @@ export const UserProvider = ({ children }) => {
   // Derivaciones limpias y deduplicadas
   const activeGroup = groups.find(g => g.id === activeGroupId) || groups[0] || DEFAULT_FAMILY_GROUPS[0];
   const isGroupUnlocked = activeGroup ? unlockedGroupIds.includes(activeGroup.id) : false;
-  const users = activeGroup ? cloudSync.mergeUsers(activeGroup.users || [], DEFAULT_JUNVILL_USERS) : DEFAULT_JUNVILL_USERS;
+  const users = activeGroup ? cloudSync.mergeUsers(DEFAULT_JUNVILL_USERS, activeGroup.users || []) : DEFAULT_JUNVILL_USERS;
   const currentUser = users.find(u => u.id === activeUserId || normalizeUserKey(u.id || u.name) === normalizeUserKey(activeUserId)) || users[0] || DEFAULT_JUNVILL_USERS[0];
 
   // Sincronización en tiempo real de invitaciones, mensajes y presencia entre pestañas y dispositivos
@@ -1354,14 +1354,32 @@ export const UserProvider = ({ children }) => {
 
   const editUser = (userId, updates) => {
     const effectiveGroupId = activeGroupId || 'group_junvill';
+    const normKey = normalizeUserKey(userId);
+    const now = Date.now();
+
     setGroups(prev => {
       const updated = prev.map(g => {
         if (g.id === effectiveGroupId) {
-          const updatedUsers = (g.users || []).map(u => u.id === userId ? { ...u, ...updates, updatedAt: Date.now() } : u);
-          const updatedG = { ...g, users: updatedUsers, updatedAt: Date.now() };
+          let userFound = false;
+          const currentUsers = Array.isArray(g.users) && g.users.length > 0 ? g.users : DEFAULT_JUNVILL_USERS;
+          const updatedUsers = currentUsers.map(u => {
+            if (u.id === userId || normalizeUserKey(u.id || u.name) === normKey) {
+              userFound = true;
+              return { ...u, ...updates, updatedAt: now };
+            }
+            return u;
+          });
+
+          if (!userFound) {
+            const baseUser = DEFAULT_JUNVILL_USERS.find(du => du.id === userId || normalizeUserKey(du.id || du.name) === normKey) || { id: userId, name: userId };
+            updatedUsers.push({ ...baseUser, ...updates, updatedAt: now });
+          }
+
+          const deduplicated = cloudSync.deduplicateAndMergeUsers(DEFAULT_JUNVILL_USERS, updatedUsers);
+          const updatedG = { ...g, users: deduplicated, updatedAt: now };
           cloudSync.pushGroupToCloud(updatedG, effectiveGroupId).catch(() => {});
           try {
-            familySignaling.broadcastProgressUpdate(updatedG, updatedUsers.map(u => u.id));
+            familySignaling.broadcastProgressUpdate(updatedG, deduplicated.map(u => u.id));
           } catch (e) {}
           return updatedG;
         }
