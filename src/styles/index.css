@@ -353,6 +353,13 @@ body {
   font-family: var(--font-mono, monospace);
 }
 
+.currencies-stacked-column {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  justify-content: center;
+}
+
 .stars-badge {
   background: rgba(245, 158, 11, 0.15);
   border: 1px solid rgba(245, 158, 11, 0.4);
@@ -360,9 +367,9 @@ body {
 }
 
 .gems-badge {
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid rgba(239, 68, 68, 0.4);
-  color: #f87171;
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
 }
 
 .profile-button {

@@ -252,16 +252,24 @@ export const Header = ({
 
           {/* 3. BARRA RÁPIDA DE USUARIO, HERRAMIENTAS Y MANUAL */}
           <div className="user-quick-bar">
-            {/* Divisas del Jugador: Estrellas ⭐ */}
-            <div className="currency-badge stars-badge" title="Estrellas acumuladas">
-              <span>⭐</span>
-              <span className="currency-val">{currentUser?.stars || 0}</span>
-            </div>
-
-            {/* Divisas del Jugador: Gemas 💎 */}
-            <div className="currency-badge gems-badge" title="Gemas ganadas">
-              <span>💎</span>
-              <span className="currency-val">{currentUser?.gems || 0}</span>
+            {/* Divisas del Jugador: Estrellas ⭐ arriba, Diamantes 💎 abajo */}
+            <div className="currencies-stacked-column" style={{ display: 'flex', flexDirection: 'column', gap: '2px', justifyContent: 'center' }}>
+              <div 
+                className="currency-badge stars-badge" 
+                title={`Estrellas acumuladas: ${currentUser?.stars || 0}`}
+                style={{ padding: '1px 6px', fontSize: '0.68rem', height: '15px', display: 'flex', alignItems: 'center', gap: '3px', borderRadius: '4px' }}
+              >
+                <span style={{ fontSize: '0.70rem' }}>⭐</span>
+                <span className="currency-val" style={{ fontWeight: '800' }}>{currentUser?.stars || 0}</span>
+              </div>
+              <div 
+                className="currency-badge gems-badge" 
+                title={`Diamantes ganados: ${currentUser?.gems || 0}`}
+                style={{ padding: '1px 6px', fontSize: '0.68rem', height: '15px', display: 'flex', alignItems: 'center', gap: '3px', borderRadius: '4px', background: 'rgba(56, 189, 248, 0.15)', borderColor: 'rgba(56, 189, 248, 0.4)', color: '#38bdf8' }}
+              >
+                <span style={{ fontSize: '0.70rem' }}>💎</span>
+                <span className="currency-val" style={{ fontWeight: '800' }}>{currentUser?.gems || 0}</span>
+              </div>
             </div>
 
             {/* BOTÓN DE CHAT FAMILIAR */}
