@@ -418,7 +418,11 @@ body {
   }
 }
 
-@media (min-width: 1140px) {
+.desktop-nav-tabs {
+  display: none;
+}
+
+@media (min-width: 1024px) {
   .desktop-nav-tabs {
     display: flex;
   }
@@ -432,20 +436,29 @@ body {
   width: 100%;
   max-width: var(--max-content-width);
   margin: 0 auto;
-  padding: 16px 16px 84px;
+  padding: 16px 16px 84px !important;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1024px) {
   .main-content {
-    padding: 20px 20px 40px;
+    padding: 20px 20px 40px !important;
   }
   .bottom-nav {
     display: none !important;
   }
 }
 
+@media (max-width: 1023px) {
+  .desktop-nav-tabs {
+    display: none !important;
+  }
+  .bottom-nav {
+    display: grid !important;
+  }
+}
+
 /* =========================================================
-   BARRA INFERIOR (MÓVIL PEQUEÑO)
+   BARRA INFERIOR (MÓVILES Y TABLETS)
    ========================================================= */
 .bottom-nav {
   position: fixed;

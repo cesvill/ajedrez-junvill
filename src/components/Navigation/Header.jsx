@@ -156,7 +156,54 @@ export const Header = ({
                 }}>
                 <div style={{
                   fontSize: '0.68rem',
-                  fontWeight: '900',
+                  fontWeight: '800',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.6px',
+                  color: 'var(--color-gold-dark)',
+                  padding: '4px 8px 6px',
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                  marginBottom: '2px'
+                }}>
+                  Secciones de la App
+                </div>
+
+                {/* Accesos rápidos a secciones */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '4px', padding: '4px', marginBottom: '6px' }}>
+                  {tabs.map(t => {
+                    const TabIcon = t.icon;
+                    const isTabActive = activeTab === t.id;
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => {
+                          setIsToolsMenuOpen(false);
+                          onTabChange(t.id);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '6px 8px',
+                          borderRadius: '6px',
+                          border: isTabActive ? '1px solid var(--color-gold)' : '1px solid rgba(255,255,255,0.06)',
+                          background: isTabActive ? 'rgba(234, 179, 8, 0.15)' : 'rgba(255,255,255,0.03)',
+                          color: isTabActive ? 'var(--color-gold)' : 'var(--text-parchment-main)',
+                          fontSize: '0.78rem',
+                          fontWeight: '700',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <TabIcon size={14} />
+                        <span>{t.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div style={{
+                  fontSize: '0.68rem',
+                  fontWeight: '800',
                   textTransform: 'uppercase',
                   letterSpacing: '0.6px',
                   color: 'var(--color-gold-dark)',

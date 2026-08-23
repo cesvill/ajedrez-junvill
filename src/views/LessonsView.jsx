@@ -56,8 +56,8 @@ export const LessonsView = ({ onSelectLesson, onStartLesson, onOpenBugReport }) 
   };
 
   const totalLessons = CURRICULUM_SECTIONS.reduce((acc, s) => acc + s.lessons.length, 0);
-  const completedLessonsCount = Object.values(currentUser.lessonProgress || {}).filter(p => p.completed || p.stars >= 5).length;
-  const progressPercentage = Math.round((currentUser.totalPoints / 110) * 100);
+  const completedLessonsCount = Object.values(currentUser?.lessonProgress || {}).filter(p => p.completed || p.stars >= 5).length;
+  const progressPercentage = Math.min(100, Math.round((completedLessonsCount / 110) * 100));
 
   const filteredSections = selectedStageId === 'all'
     ? CURRICULUM_SECTIONS
@@ -70,7 +70,7 @@ export const LessonsView = ({ onSelectLesson, onStartLesson, onOpenBugReport }) 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
           <div>
             <h2 className="points-summary-text" style={{ margin: 0, textAlign: 'left' }}>
-              Has ganado {currentUser.totalPoints || 0} de 110 puntos acumulados
+              Has ganado {completedLessonsCount} de 110 puntos acumulados
             </h2>
             <p style={{ fontSize: '0.82rem', color: 'var(--text-parchment-muted)', margin: '4px 0 0' }}>
               {completedLessonsCount} de {totalLessons} lecciones completadas con maestría (5⭐)
