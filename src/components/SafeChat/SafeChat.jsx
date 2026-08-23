@@ -81,7 +81,12 @@ export const SafeChat = ({ onSendMessage, messages = [], activeReaction = null }
           {QUICK_EMOTES.map((emoji, idx) => (
             <button
               key={idx}
-              onClick={() => onSendMessage({ text: emoji, isEmote: true, emoji })}
+              type="button"
+              onClick={() => {
+                if (onSendMessage) {
+                  onSendMessage(emoji, true);
+                }
+              }}
               style={{
                 background: 'var(--bg-parchment)',
                 border: '1px solid var(--bg-parchment-border)',
@@ -116,28 +121,35 @@ export const SafeChat = ({ onSendMessage, messages = [], activeReaction = null }
             Los mensajes deportivos aparecerán aquí. ¡Sé el primero en saludar!
           </div>
         ) : (
-          messages.map((msg, i) => (
-            <div
-              key={i}
-              style={{
-                alignSelf: msg.isMe ? 'flex-end' : 'flex-start',
-                background: msg.isMe ? 'var(--color-primary)' : 'var(--bg-parchment-card)',
-                color: msg.isMe ? 'white' : 'var(--text-parchment-main)',
-                border: msg.isMe ? 'none' : '1px solid var(--bg-parchment-border)',
-                borderRadius: '12px',
-                padding: '6px 12px',
-                fontSize: msg.isEmote ? '1.4rem' : '0.82rem',
-                fontWeight: '600',
-                maxWidth: '85%',
-                boxShadow: 'var(--shadow-sm)'
-              }}
-            >
-              <div style={{ fontSize: '0.65rem', opacity: 0.75, marginBottom: '2px', fontWeight: '800' }}>
-                {msg.senderName} {msg.isMe ? '(Tú)' : ''}
+          messages.map((msg, i) => {
+            const rawText = msg?.text;
+            const displayText = typeof rawText === 'object' && rawText !== null
+              ? (rawText.text || rawText.emoji || '')
+              : String(rawText || '');
+
+            return (
+              <div
+                key={i}
+                style={{
+                  alignSelf: msg.isMe ? 'flex-end' : 'flex-start',
+                  background: msg.isMe ? 'var(--color-primary)' : 'var(--bg-parchment-card)',
+                  color: msg.isMe ? 'white' : 'var(--text-parchment-main)',
+                  border: msg.isMe ? 'none' : '1px solid var(--bg-parchment-border)',
+                  borderRadius: '12px',
+                  padding: '6px 12px',
+                  fontSize: msg.isEmote ? '1.4rem' : '0.82rem',
+                  fontWeight: '600',
+                  maxWidth: '85%',
+                  boxShadow: 'var(--shadow-sm)'
+                }}
+              >
+                <div style={{ fontSize: '0.65rem', opacity: 0.75, marginBottom: '2px', fontWeight: '800' }}>
+                  {msg.senderName} {msg.isMe ? '(Tú)' : ''}
+                </div>
+                {displayText}
               </div>
-              {msg.text}
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
@@ -146,6 +158,7 @@ export const SafeChat = ({ onSendMessage, messages = [], activeReaction = null }
         {SAFE_MESSAGES.map((cat, idx) => (
           <button
             key={idx}
+            type="button"
             onClick={() => setSelectedCategory(idx)}
             style={{
               background: selectedCategory === idx ? 'var(--color-primary)' : 'var(--bg-parchment)',
@@ -169,7 +182,12 @@ export const SafeChat = ({ onSendMessage, messages = [], activeReaction = null }
         {SAFE_MESSAGES[selectedCategory].messages.map((m) => (
           <button
             key={m.id}
-            onClick={() => onSendMessage({ text: m.text, isEmote: false })}
+            type="button"
+            onClick={() => {
+              if (onSendMessage) {
+                onSendMessage(m.text, false);
+              }
+            }}
             style={{
               background: 'var(--bg-parchment)',
               border: '1px solid var(--bg-parchment-border)',

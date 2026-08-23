@@ -295,10 +295,16 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
       triggerCheerAnimation(data.emoji, data.fromName);
     } else if (data.type === 'SAFE_CHAT') {
       audioManager.playHint();
+      let safeText = data.text;
+      let isEmote = !!data.isEmote;
+      if (typeof safeText === 'object' && safeText !== null) {
+        safeText = safeText.text || safeText.emoji || '';
+        if (safeText.isEmote !== undefined) isEmote = safeText.isEmote;
+      }
       setChatMessages(prev => [...prev, {
-        senderName: opponentProfile.name,
-        text: data.text,
-        isEmote: data.isEmote,
+        senderName: opponentProfile?.name || 'Rival',
+        text: String(safeText || ''),
+        isEmote,
         isMe: false
       }]);
     } else if (data.type === 'RESIGN') {
@@ -470,13 +476,22 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
   };
 
   // Enviar mensaje de chat seguro
-  const handleSendSafeChat = (text, isEmote = false) => {
+  const handleSendSafeChat = (rawMessage, isEmote = false) => {
     if (!p2pRef.current) return;
-    p2pRef.current.sendSafeChat(text, isEmote);
+    let text = rawMessage;
+    let emote = isEmote;
+    if (typeof rawMessage === 'object' && rawMessage !== null) {
+      text = rawMessage.text || rawMessage.emoji || '';
+      if (rawMessage.isEmote !== undefined) emote = rawMessage.isEmote;
+    }
+    const safeText = String(text || '');
+    if (!safeText) return;
+
+    p2pRef.current.sendSafeChat(safeText, emote);
     setChatMessages(prev => [...prev, {
       senderName: currentUser?.name || 'Tú',
-      text,
-      isEmote,
+      text: safeText,
+      isEmote: emote,
       isMe: true
     }]);
   };
@@ -1532,8 +1547,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
               <div style={{ flex: 1, minHeight: '160px', maxHeight: '240px', display: 'flex', flexDirection: 'column' }}>
                 <SafeChat
                   messages={chatMessages}
-                  onSendMessage={(t) => handleSendSafeChat(t, false)}
-                  onSendEmote={(e) => handleSendSafeChat(e, true)}
+                  onSendMessage={handleSendSafeChat}
                   opponentName={opponentProfile?.name || 'Rival'}
                 />
               </div>
