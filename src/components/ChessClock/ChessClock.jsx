@@ -15,6 +15,9 @@ export const ChessClock = ({
   activeTurn = 'w', // 'w' | 'b'
   isGameRunning = true,
   onTimeout = null,
+  onTimeUpdate = null,
+  initialWhiteSeconds = null,
+  initialBlackSeconds = null,
   playerColor = 'white',
   whiteName = 'Blancas',
   blackName = 'Negras'
@@ -25,15 +28,26 @@ export const ChessClock = ({
     return null;
   }
 
-  const [whiteTime, setWhiteTime] = useState(selectedConfig.initialSeconds);
-  const [blackTime, setBlackTime] = useState(selectedConfig.initialSeconds);
+  const [whiteTime, setWhiteTime] = useState(() => (typeof initialWhiteSeconds === 'number' && initialWhiteSeconds >= 0) ? initialWhiteSeconds : selectedConfig.initialSeconds);
+  const [blackTime, setBlackTime] = useState(() => (typeof initialBlackSeconds === 'number' && initialBlackSeconds >= 0) ? initialBlackSeconds : selectedConfig.initialSeconds);
   const lastTickTurnRef = useRef(activeTurn);
 
-  // Reiniciar tiempos al cambiar configuración
+  // Reiniciar tiempos al cambiar configuración sólo si no se proporcionaron segundos iniciales específicos
   useEffect(() => {
-    setWhiteTime(selectedConfig.initialSeconds);
-    setBlackTime(selectedConfig.initialSeconds);
-  }, [timeControl, selectedConfig.initialSeconds]);
+    if (typeof initialWhiteSeconds !== 'number') {
+      setWhiteTime(selectedConfig.initialSeconds);
+    }
+    if (typeof initialBlackSeconds !== 'number') {
+      setBlackTime(selectedConfig.initialSeconds);
+    }
+  }, [timeControl, selectedConfig.initialSeconds, initialWhiteSeconds, initialBlackSeconds]);
+
+  // Notificar al componente padre de las actualizaciones de tiempo
+  useEffect(() => {
+    if (onTimeUpdate) {
+      onTimeUpdate(whiteTime, blackTime);
+    }
+  }, [whiteTime, blackTime, onTimeUpdate]);
 
   // Manejar incremento tras cada cambio de turno
   useEffect(() => {

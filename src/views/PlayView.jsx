@@ -83,14 +83,17 @@ export const PlayView = ({
     }
   };
 
-  const savedGameRef = useRef(loadSavedGame());
-  const initialSaved = savedGameRef.current;
   const targetBotProp = activeBot || initialBotMatch;
+  const [savedGame, setSavedGame] = useState(() => loadSavedGame());
+  const initialSaved = savedGame;
 
-  // Si hay una partida guardada válida y no se eligió expresamente un bot distinto, restaurarla
+  // Si se pasó un bot específico, entramos directo a jugar contra ese bot
+  // Si no, mostramos el Hub no flotante donde aparece la partida en curso (si existe) o el selector
+  const [isPlayingMatch, setIsPlayingMatch] = useState(() => Boolean(targetBotProp));
+
   const isResumingSaved = Boolean(initialSaved && (!targetBotProp || targetBotProp.id === initialSaved.botId));
 
-  const initialBot = (isResumingSaved && initialSaved.botId)
+  const initialBot = (isResumingSaved && initialSaved?.botId)
     ? (BOT_ROSTER.find(b => b.id === initialSaved.botId) || BOT_ROSTER[0])
     : (targetBotProp || BOT_ROSTER[0]);
 
@@ -141,6 +144,8 @@ export const PlayView = ({
 
   // Reloj de Ajedrez & Tarjeta de Victoria (Fase 5)
   const [timeControl, setTimeControl] = useState(() => (isResumingSaved && initialSaved?.timeControl) || 'unlimited');
+  const currentWhiteSecondsRef = useRef((isResumingSaved && initialSaved?.whiteTime) ?? null);
+  const currentBlackSecondsRef = useRef((isResumingSaved && initialSaved?.blackTime) ?? null);
   const [isVictoryCardOpen, setIsVictoryCardOpen] = useState(false);
 
   const handleTimeout = (timedOutColor) => {
@@ -835,15 +840,79 @@ export const PlayView = ({
     });
   };
 
-  const handleOpenModalidad = () => {
-    if (moveHistory.length > 0 && !isGameOver) {
-      if (window.confirm('Hay una partida en curso. Cambiar de modalidad cancelará esta partida e iniciará una nueva. ¿Deseas continuar?')) {
-        try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
-        setIsModeModalOpen(true);
+  const handleResumeSavedGame = () => {
+    const saved = loadSavedGame();
+    if (saved) {
+      setSavedGame(saved);
+      if (saved.botId) {
+        const found = BOT_ROSTER.find(b => b.id === saved.botId) || BOT_ROSTER[0];
+        setCurrentBot(found);
+        setBotLevel(found.difficultyLevel || 1);
       }
-    } else {
-      setIsModeModalOpen(true);
+      if (saved.fen) {
+        setGame(createChessGame(saved.fen));
+      }
+      if (saved.fenHistory) setFenHistory(saved.fenHistory);
+      if (saved.moveHistory) setMoveHistory(saved.moveHistory);
+      if (saved.lastMove) setLastMove(saved.lastMove);
+      if (saved.gameMode) setGameMode(saved.gameMode);
+      if (saved.gameVariant) setGameVariant(saved.gameVariant);
+      if (saved.playerColor) setPlayerColor(saved.playerColor);
+      if (saved.timeControl) setTimeControl(saved.timeControl);
+      if (saved.handicapConfig) setHandicapConfig(saved.handicapConfig);
+      if (saved.usedHintsCount) setUsedHintsCount(saved.usedHintsCount);
+      if (saved.usedTakebacksCount) setUsedTakebacksCount(saved.usedTakebacksCount);
+      if (typeof saved.whiteTime === 'number') currentWhiteSecondsRef.current = saved.whiteTime;
+      if (typeof saved.blackTime === 'number') currentBlackSecondsRef.current = saved.blackTime;
+      setIsGameOver(false);
+      setIsGameOverModalOpen(false);
+      setIsPlayingMatch(true);
     }
+  };
+
+  const handleDiscardSavedGame = () => {
+    if (window.confirm('¿Seguro que deseas descartar la partida en curso? Se perderá el avance actual.')) {
+      try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+      setSavedGame(null);
+      setGame(createChessGame());
+      setFenHistory(['rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1']);
+      setMoveHistory([]);
+      setLastMove(null);
+      setIsGameOver(false);
+    }
+  };
+
+  const handlePauseAndExit = () => {
+    setIsPauseMenuOpen(false);
+    if (!isGameOver && (moveHistory.length > 0 || game.fen() !== 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1')) {
+      try {
+        const payload = {
+          fen: game.fen(),
+          fenHistory,
+          moveHistory,
+          lastMove,
+          gameMode,
+          gameVariant,
+          timeControl,
+          playerColor,
+          botId: botToPlay?.id,
+          botName: gameMode === 'pass_and_play' ? '2 Jugadores' : (botToPlay?.name || 'Robot'),
+          whiteTime: currentWhiteSecondsRef.current,
+          blackTime: currentBlackSecondsRef.current,
+          handicapConfig,
+          usedHintsCount,
+          usedTakebacksCount,
+          updatedAt: Date.now()
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+        setSavedGame(payload);
+      } catch (e) {}
+    }
+    setIsPlayingMatch(false);
+  };
+
+  const handleOpenModalidad = () => {
+    handlePauseAndExit();
   };
 
   const handleSaveHandicap = (newConfig) => {
@@ -869,6 +938,7 @@ export const PlayView = ({
       setShowColorModal(true);
     } else {
       handleSelectPassAndPlay(variantId);
+      setIsPlayingMatch(true);
     }
   };
 
@@ -916,6 +986,7 @@ export const PlayView = ({
     setGameMode('bot');
     setPlayerColor(finalColor);
     setShowColorModal(false);
+    setIsPlayingMatch(true);
 
     const startingFen = getStartingFenForVariant(gameVariant, handicapConfig);
     const newG = createChessGame(startingFen);
@@ -1096,15 +1167,32 @@ export const PlayView = ({
           <ReactionFloatingBubble reaction={opponentReaction} position="top" />
 
           <div className="game-card-left" style={{ gap: '8px' }}>
-            {/* Botón de Pausa / Salir al Menú */}
+            {/* Botón de Pausa y Salir al Menú */}
+            <button
+              onClick={handlePauseAndExit}
+              className="btn-secondary"
+              style={{
+                padding: '6px 12px',
+                fontSize: '0.78rem',
+                height: '32px',
+                gap: '5px',
+                background: 'rgba(245, 158, 11, 0.15)',
+                borderColor: 'var(--color-gold)',
+                color: 'var(--color-gold-dark)',
+                fontWeight: '900'
+              }}
+              title="Pausar la partida, detener los relojes y volver al Centro de Partidas"
+            >
+              <Pause size={14} color="#f59e0b" />
+              <span>Pausar y Salir</span>
+            </button>
             <button
               onClick={() => setIsPauseMenuOpen(true)}
               className="btn-secondary"
-              style={{ padding: '6px 10px', fontSize: '0.78rem', height: '32px', gap: '4px' }}
-              title="Pausar Partida y Opciones de Menú"
+              style={{ padding: '6px 8px', fontSize: '0.78rem', height: '32px', gap: '4px' }}
+              title="Opciones avanzadas y menú de pausa"
             >
-              <Pause size={14} color="#f59e0b" />
-              <span className="hide-mobile-compact">Menú</span>
+              <Settings size={14} />
             </button>
 
             {gameMode === 'pass_and_play' ? (
@@ -1205,6 +1293,12 @@ export const PlayView = ({
             activeTurn={game.turn()}
             isGameRunning={!isGameOver && !isPauseMenuOpen}
             onTimeout={handleTimeout}
+            onTimeUpdate={(w, b) => {
+              currentWhiteSecondsRef.current = w;
+              currentBlackSecondsRef.current = b;
+            }}
+            initialWhiteSeconds={savedGame?.whiteTime}
+            initialBlackSeconds={savedGame?.blackTime}
             playerColor={playerColor}
             whiteName={playerColor === 'white' ? (currentUser?.name || 'Jugador') : (gameMode === 'pass_and_play' ? 'Jugador 1' : (botToPlay?.name || 'Robot'))}
             blackName={playerColor === 'black' ? (currentUser?.name || 'Jugador') : (gameMode === 'pass_and_play' ? 'Jugador 2' : (botToPlay?.name || 'Robot'))}
@@ -1663,12 +1757,12 @@ export const PlayView = ({
                 className="btn-secondary"
                 onClick={() => {
                   setIsPauseMenuOpen(false);
-                  handleOpenModalidad();
+                  handlePauseAndExit();
                 }}
-                style={{ width: '100%', justifyContent: 'center', padding: '10px', fontSize: '0.86rem' }}
+                style={{ width: '100%', justifyContent: 'center', padding: '10px', fontSize: '0.86rem', background: 'rgba(245, 158, 11, 0.12)', borderColor: 'var(--color-gold)', color: 'var(--color-gold)' }}
               >
-                <Swords size={16} />
-                <span>🎮 Cambiar Modalidad (Robots / 2 Jugadores / P2P)</span>
+                <Pause size={16} color="#f59e0b" />
+                <span>⏸️ Pausar y Salir al Centro de Partidas</span>
               </button>
 
               {!isInstalled && (

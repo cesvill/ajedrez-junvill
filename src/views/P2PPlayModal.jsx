@@ -84,6 +84,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
   const [withAssistance, setWithAssistance] = useState(false); // Modo Clásico Puro sin ayudas por defecto
   const [whiteTime, setWhiteTime] = useState(300);
   const [blackTime, setBlackTime] = useState(300);
+  const [isP2PPaused, setIsP2PPaused] = useState(false);
 
   // Configuración de Hándicap
   const [handicapConfig, setHandicapConfig] = useState(DEFAULT_HANDICAP_CONFIG);
@@ -349,6 +350,14 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
       recordGameResult('draw', 5, 75);
     } else if (data.type === 'REMATCH') {
       restartP2PGame();
+    } else if (data.type === 'PAUSE_MATCH') {
+      setIsP2PPaused(true);
+      setStatusMessage(`⏸️ Partida pausada por ${data.pausedBy || 'tu rival'}. Los relojes se han detenido.`);
+      audioManager?.playHint?.();
+    } else if (data.type === 'RESUME_MATCH') {
+      setIsP2PPaused(false);
+      setStatusMessage('▶ Partida reanudada.');
+      audioManager?.playMove?.();
     } else if (data.type === 'HANDICAP_OFFER') {
       setIncomingHandicapOffer(data);
       audioManager.playHint();
@@ -373,6 +382,50 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
     }
   };
 
+  const handlePauseAndExitP2P = () => {
+    setIsP2PPaused(true);
+    try {
+      p2pRef.current?.send({
+        type: 'PAUSE_MATCH',
+        pausedBy: currentUser?.name || 'Familiar'
+      });
+      if (saveActiveP2PGame) {
+        saveActiveP2PGame({
+          type: 'p2p',
+          roomId,
+          opponent: opponentProfile,
+          fen: game.fen(),
+          assignedColor,
+          timeControl,
+          whiteTime,
+          blackTime,
+          lastMove,
+          turn: game.turn(),
+          updatedAt: Date.now()
+        });
+      }
+    } catch (e) {}
+    onClose();
+  };
+
+  const handleTogglePauseP2P = () => {
+    const nextState = !isP2PPaused;
+    setIsP2PPaused(nextState);
+    if (nextState) {
+      p2pRef.current?.send({
+        type: 'PAUSE_MATCH',
+        pausedBy: currentUser?.name || 'Familiar'
+      });
+      setStatusMessage('⏸️ Has pausado la partida. Los relojes están detenidos.');
+    } else {
+      p2pRef.current?.send({
+        type: 'RESUME_MATCH',
+        resumedBy: currentUser?.name || 'Familiar'
+      });
+      setStatusMessage('▶ Has reanudado la partida.');
+    }
+  };
+
   // Animación de Reacciones de Espectadores
   const triggerCheerAnimation = (emoji, fromName) => {
     audioManager.playMove();
@@ -385,7 +438,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
 
   // Reloj de Partida
   useEffect(() => {
-    if ((mode !== 'playing' && mode !== 'spectating') || timeControl === 0) return;
+    if ((mode !== 'playing' && mode !== 'spectating') || timeControl === 0 || isP2PPaused) return;
 
     const timer = setInterval(() => {
       const turn = game.turn();
@@ -411,7 +464,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [mode, game, timeControl]);
+  }, [mode, game, timeControl, isP2PPaused]);
 
   const handleTimeOut = (color) => {
     audioManager.playWarning();
@@ -1597,6 +1650,45 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
                   onSendMessage={handleSendSafeChat}
                   opponentName={opponentProfile?.name || 'Rival'}
                 />
+              </div>
+
+              {/* Botones de Pausa y Salida */}
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={handleTogglePauseP2P}
+                  style={{
+                    flex: 1,
+                    padding: '9px',
+                    fontSize: '0.82rem',
+                    fontWeight: '800',
+                    justifyContent: 'center',
+                    background: isP2PPaused ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.12)',
+                    borderColor: isP2PPaused ? '#10b981' : '#f59e0b',
+                    color: isP2PPaused ? '#34d399' : '#facc15'
+                  }}
+                  title={isP2PPaused ? "Reanudar la partida y los relojes" : "Pausar la partida y detener los relojes"}
+                >
+                  <span>{isP2PPaused ? '▶ Reanudar' : '⏸️ Pausar'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="btn-gold"
+                  onClick={handlePauseAndExitP2P}
+                  style={{
+                    flex: 1.2,
+                    padding: '9px',
+                    fontSize: '0.82rem',
+                    fontWeight: '900',
+                    justifyContent: 'center',
+                    gap: '5px'
+                  }}
+                  title="Pausa los relojes y guarda la partida para continuarla en cualquier momento"
+                >
+                  <span>⏸️ Pausar y Salir</span>
+                </button>
               </div>
 
               {/* Botón Salir al Lobby */}
