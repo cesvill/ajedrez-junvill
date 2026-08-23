@@ -25,6 +25,11 @@ import { voiceEngine } from '../engine/voiceEngine';
 import { useUser } from '../context/UserContext';
 import { getCapturedPieces } from '../engine/capturedPieces';
 import { CapturedPiecesBar } from '../components/ChessBoard/CapturedPiecesBar';
+import { OnlineBadge } from '../components/FamilyPresence/OnlineBadge';
+import { DynamicAvatar } from '../components/AvatarCreator/DynamicAvatar';
+import { FamilyChallengeDialog } from '../components/FamilyChallenges/FamilyChallengeDialog';
+import { normalizeUserKey } from '../engine/cloudSync';
+import { DEFAULT_JUNVILL_USERS } from '../context/UserContext';
 import confetti from 'canvas-confetti';
 import { Swords, Lightbulb, HelpCircle, RotateCcw, Play, RefreshCw, Settings, ShieldAlert, Sparkles, Trophy, CheckCircle, UserCheck, FileSearch, Globe, Volume2, VolumeX, Shuffle, Users, Bot, Maximize, Minimize, Pause, BookOpen, Puzzle, User, Home, ArrowLeft, Scale, X, Bug, Save, Trash2, Download, Shield } from 'lucide-react';
 
@@ -37,8 +42,10 @@ export const PlayView = ({
   onExitMatch,
   onOpenBugReport 
 }) => {
-  const { currentUser, updateCurrentUser, recordGameResult, recordBotWin, pendingInvitationsForMe, acceptFamilyInvitation, declineFamilyInvitation, activeP2PGame, clearActiveP2PGame } = useUser();
+  const { currentUser, users, isUserOnline, updateCurrentUser, recordGameResult, recordBotWin, pendingInvitationsForMe, acceptFamilyInvitation, declineFamilyInvitation, sendFamilyInvitation, activeP2PGame, clearActiveP2PGame } = useUser();
   const [isPauseMenuOpen, setIsPauseMenuOpen] = useState(false);
+  const [challengeOpponent, setChallengeOpponent] = useState(null);
+  const [customRoomCodeInput, setCustomRoomCodeInput] = useState('');
   const [isVariantRulesOpen, setIsVariantRulesOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isAssistanceDisabled, setIsAssistanceDisabled] = useState(false);
@@ -870,6 +877,14 @@ export const PlayView = ({
     }
   };
 
+  const handleSendChallenge = ({ opponent, timeControl: tc, withAssistance: wa, gameVariant: gv, customMessage: cm }) => {
+    const inv = sendFamilyInvitation(opponent, tc, wa, null, gv, cm);
+    setChallengeOpponent(null);
+    if (inv && onOpenP2P) {
+      onOpenP2P(inv.roomId);
+    }
+  };
+
   const handleDiscardSavedGame = () => {
     if (window.confirm('¿Seguro que deseas descartar la partida en curso? Se perderá el avance actual.')) {
       try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
@@ -1103,6 +1118,644 @@ export const PlayView = ({
   const activeHint = currentHintLevel > 0 && hints ? hints[currentHintLevel - 1] : null;
 
   const capturedPieces = useMemo(() => getCapturedPieces(game.fen()), [game]);
+
+  
+  // =========================================================================
+  // PANTALLA PRINCIPAL: ¿CON QUIÉN QUIERES JUGAR HOY? (HUB DEDICADO NO FLOTANTE)
+  // =========================================================================
+  const familyMembersToPlay = (() => {
+    const fromUsers = (users || []).filter(u => u && u.id !== currentUser?.id && normalizeUserKey(u.id || u.name) !== normalizeUserKey(currentUser?.id));
+    if (fromUsers.length > 0) return fromUsers;
+    return DEFAULT_JUNVILL_USERS.filter(u => normalizeUserKey(u.id || u.name) !== normalizeUserKey(currentUser?.name || 'martin'));
+  })();
+
+  if (!isPlayingMatch) {
+    return (
+      <div className="play-hub-screen animate-fade-in" style={{ width: '100%', maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '22px', padding: '10px 8px 50px' }}>
+        {/* CABECERA PRINCIPAL */}
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.85) 100%)',
+          border: '2px solid rgba(234, 179, 8, 0.4)',
+          borderRadius: '20px',
+          padding: '22px 26px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '16px',
+          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5), 0 0 25px rgba(234, 179, 8, 0.15)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '16px',
+              background: 'linear-gradient(135deg, #eab308 0%, #ca8a04 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1.8rem',
+              boxShadow: '0 4px 16px rgba(234, 179, 8, 0.4)',
+              flexShrink: 0
+            }}>
+              ⚔️
+            </div>
+            <div>
+              <h1 style={{ fontFamily: 'var(--font-serif, Cinzel, serif)', fontSize: '1.65rem', fontWeight: '900', color: '#fde047', margin: '0 0 4px' }}>
+                ¿Con quién quieres jugar hoy?
+              </h1>
+              <p style={{ margin: 0, fontSize: '0.86rem', color: '#94a3b8' }}>
+                Elige a un familiar en línea, desafía a un robot maestro o retoma tus partidas guardadas.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="btn-gold"
+              onClick={() => onOpenP2P && onOpenP2P()}
+              style={{ padding: '10px 18px', fontSize: '0.86rem', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Globe size={16} />
+              <span>Crear / Unirse a Sala P2P</span>
+            </button>
+          </div>
+        </div>
+
+        {/* 1. SECCIÓN: 📬 RETOS RECIBIDOS DE HUMANOS */}
+        {pendingInvitationsForMe && pendingInvitationsForMe.length > 0 && (
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.18) 0%, rgba(16, 185, 129, 0.15) 100%)',
+            border: '2px solid #eab308',
+            borderRadius: '18px',
+            padding: '20px',
+            boxShadow: '0 0 25px rgba(234, 179, 8, 0.25)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+              <span style={{ fontSize: '1.4rem' }}>📬</span>
+              <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '900', color: '#facc15' }}>
+                Retos y Desafíos Recibidos de Humanos ({pendingInvitationsForMe.length})
+              </h2>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {pendingInvitationsForMe.map(inv => (
+                <div
+                  key={inv.id}
+                  style={{
+                    background: '#0f172a',
+                    border: '1.5px solid rgba(234, 179, 8, 0.4)',
+                    borderRadius: '14px',
+                    padding: '14px 18px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: '12px'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{ width: '46px', height: '46px', borderRadius: '50%', overflow: 'hidden', border: '2px solid #eab308', flexShrink: 0 }}>
+                      {inv.fromUser?.avatarConfig ? (
+                        <DynamicAvatar config={inv.fromUser.avatarConfig} size={46} />
+                      ) : (
+                        <AvatarIcon avatarId={inv.fromUser?.avatar || 'teen_gamer'} size={46} />
+                      )}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: '900', fontSize: '1.05rem', color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span>¡{inv.fromUser?.name || 'Un familiar'} te está retando!</span>
+                        <OnlineBadge isOnline={true} size="sm" />
+                      </div>
+                      <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: '2px' }}>
+                        Modalidad: <strong style={{ color: '#38bdf8' }}>{inv.variantName || 'Ajedrez Tradicional'}</strong> • ⏱️ {Math.round((inv.timeControl || 300) / 60)}m • Sala: <code>{inv.roomId}</code>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      type="button"
+                      className="btn-gold"
+                      onClick={() => {
+                        const accepted = acceptFamilyInvitation(inv.id);
+                        if (accepted && onOpenP2P) onOpenP2P(accepted.roomId);
+                      }}
+                      style={{ padding: '9px 18px', fontSize: '0.86rem', fontWeight: '900', gap: '6px' }}
+                    >
+                      <Swords size={16} />
+                      <span>Aceptar y Jugar Ahora ⚔️</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={() => declineFamilyInvitation(inv.id)}
+                      style={{ padding: '9px 14px', fontSize: '0.82rem', color: '#ef4444' }}
+                    >
+                      Rechazar
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 2. SECCIÓN: ⏳ MIS PARTIDAS PENDIENTES Y EN CURSO */}
+        <div style={{
+          background: 'rgba(15, 23, 42, 0.75)',
+          border: '1.5px solid rgba(234, 179, 8, 0.3)',
+          borderRadius: '18px',
+          padding: '20px'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '1.3rem' }}>⏳</span>
+              <div>
+                <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '900', color: '#facc15' }}>
+                  Mis Partidas Pendientes y en Curso
+                </h2>
+                <p style={{ margin: 0, fontSize: '0.74rem', color: '#94a3b8' }}>
+                  Todas las partidas activas que ya iniciaste para retomarlas donde las dejaste.
+                </p>
+              </div>
+            </div>
+            {(savedGame || activeP2PGame) && (
+              <span style={{ fontSize: '0.78rem', background: '#eab308', color: '#0f172a', fontWeight: '900', padding: '2px 8px', borderRadius: '9999px' }}>
+                {(savedGame ? 1 : 0) + (activeP2PGame ? 1 : 0)} Partida(s) Activa(s)
+              </span>
+            )}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '14px' }}>
+            {/* A) Partida P2P Familiar en Curso */}
+            {activeP2PGame && (
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.98) 100%)',
+                border: '1.5px solid #38bdf8',
+                borderRadius: '14px',
+                padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                boxShadow: '0 4px 15px rgba(56, 189, 248, 0.2)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '1.5rem' }}>👥</span>
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '900', color: '#38bdf8' }}>
+                        Partida P2P en Red (Familiar)
+                      </h4>
+                      <p style={{ margin: '2px 0 0', fontSize: '0.76rem', color: '#94a3b8' }}>
+                        Sala: <code>{activeP2PGame.roomId}</code> • Turno: <strong style={{ color: '#facc15' }}>{activeP2PGame.turn === 'w' ? 'Blancas' : 'Negras'}</strong>
+                      </p>
+                    </div>
+                  </div>
+                  <span style={{ fontSize: '0.70rem', background: '#0284c7', color: 'white', fontWeight: '900', padding: '3px 8px', borderRadius: '6px' }}>
+                    Multijugador
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', marginTop: 'auto' }}>
+                  <button
+                    type="button"
+                    className="btn-gold"
+                    onClick={() => onOpenP2P && onOpenP2P(activeP2PGame.roomId)}
+                    style={{ flex: 1, padding: '9px', fontSize: '0.84rem', fontWeight: '900', justifyContent: 'center', gap: '6px' }}
+                  >
+                    <Play size={15} />
+                    <span>Retomar Partida</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => clearActiveP2PGame && clearActiveP2PGame()}
+                    style={{ padding: '9px 12px', fontSize: '0.80rem', color: '#ef4444' }}
+                    title="Abandonar y descartar partida P2P"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* B) Partida contra Robot o Local en Curso */}
+            {savedGame && (
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.98) 100%)',
+                border: '1.5px solid #eab308',
+                borderRadius: '14px',
+                padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                boxShadow: '0 4px 15px rgba(234, 179, 8, 0.2)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '1.5rem' }}>🤖</span>
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '900', color: '#fde047' }}>
+                        Partida vs {savedGame.botName || 'Robot'}
+                      </h4>
+                      <p style={{ margin: '2px 0 0', fontSize: '0.76rem', color: '#94a3b8' }}>
+                        {savedGame.moveHistory?.length || 0} jugadas hechas • Juegas con <strong style={{ color: '#facc15' }}>{savedGame.playerColor === 'white' ? 'Blancas' : 'Negras'}</strong>
+                      </p>
+                    </div>
+                  </div>
+                  <span style={{ fontSize: '0.70rem', background: '#d97706', color: 'white', fontWeight: '900', padding: '3px 8px', borderRadius: '6px' }}>
+                    En Pausa
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', marginTop: 'auto' }}>
+                  <button
+                    type="button"
+                    className="btn-gold"
+                    onClick={handleResumeSavedGame}
+                    style={{ flex: 1, padding: '9px', fontSize: '0.84rem', fontWeight: '900', justifyContent: 'center', gap: '6px' }}
+                  >
+                    <Play size={15} />
+                    <span>Retomar Partida</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={handleDiscardSavedGame}
+                    style={{ padding: '9px 12px', fontSize: '0.80rem', color: '#ef4444' }}
+                    title="Descartar y eliminar partida"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* C) Sin partidas pendientes */}
+            {!savedGame && !activeP2PGame && (
+              <div style={{
+                gridColumn: '1 / -1',
+                padding: '24px',
+                textAlign: 'center',
+                color: '#94a3b8',
+                fontSize: '0.88rem',
+                border: '1px dashed rgba(148, 163, 184, 0.2)',
+                borderRadius: '12px'
+              }}>
+                ☕ No tienes partidas pendientes en pausa. ¡Elige con quién jugar abajo!
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 3. SECCIÓN: 👥 JUGAR CON LA FAMILIA (RETO DIRECTO MULTIJUGADOR) */}
+        <div style={{
+          background: 'rgba(15, 23, 42, 0.75)',
+          border: '1.5px solid rgba(56, 189, 248, 0.3)',
+          borderRadius: '18px',
+          padding: '20px'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '1.3rem' }}>👥</span>
+              <div>
+                <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '900', color: '#38bdf8' }}>
+                  Miembros de la Familia en Tiempo Real
+                </h2>
+                <p style={{ margin: 0, fontSize: '0.74rem', color: '#94a3b8' }}>
+                  Reta a cualquier familiar conectado a ajedrez clásico o minijuegos.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '14px' }}>
+            {familyMembersToPlay.map(member => {
+              const online = isUserOnline(member);
+              return (
+                <div
+                  key={member.id}
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%)',
+                    border: `1.5px solid ${online ? 'rgba(16, 185, 129, 0.6)' : 'rgba(51, 65, 85, 0.6)'}`,
+                    borderRadius: '16px',
+                    padding: '16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    textAlign: 'center',
+                    gap: '10px',
+                    transition: 'all 0.2s ease',
+                    boxShadow: online ? '0 0 20px rgba(16, 185, 129, 0.2)' : 'none'
+                  }}
+                >
+                  <div style={{ position: 'relative', width: '58px', height: '58px', borderRadius: '50%', overflow: 'hidden', border: `2.5px solid ${online ? '#10b981' : '#64748b'}` }}>
+                    {member.avatarConfig ? (
+                      <DynamicAvatar config={member.avatarConfig} size={58} />
+                    ) : (
+                      <AvatarIcon avatarId={member.avatar || 'teen_gamer'} size={58} />
+                    )}
+                  </div>
+
+                  <div>
+                    <div style={{ fontWeight: '900', fontSize: '1.05rem', color: '#f8fafc' }}>
+                      {member.name}
+                    </div>
+                    <div style={{ fontSize: '0.76rem', color: '#94a3b8', margin: '2px 0 6px' }}>
+                      {member.title || 'Miembro Familiar'} • <strong style={{ color: '#facc15' }}>{member.elo || 600} Elo</strong>
+                    </div>
+                    <OnlineBadge isOnline={online} size="sm" />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '6px', width: '100%', marginTop: 'auto' }}>
+                    <button
+                      type="button"
+                      className="btn-gold"
+                      onClick={() => setChallengeOpponent(member)}
+                      style={{ flex: 1, padding: '8px 10px', fontSize: '0.80rem', fontWeight: '900', justifyContent: 'center', gap: '4px' }}
+                    >
+                      <Swords size={14} />
+                      <span>Retar ⚔️</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={() => onOpenFamilyChat && onOpenFamilyChat(member)}
+                      style={{ padding: '8px 12px', fontSize: '0.80rem', gap: '4px' }}
+                      title={`Enviar mensaje a ${member.name}`}
+                    >
+                      💬
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 4. SECCIÓN: 🤖 ROBOTS MAESTROS DE LA ACADEMIA */}
+        <div style={{
+          background: 'rgba(15, 23, 42, 0.75)',
+          border: '1.5px solid rgba(168, 85, 247, 0.3)',
+          borderRadius: '18px',
+          padding: '20px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+            <span style={{ fontSize: '1.3rem' }}>🤖</span>
+            <div>
+              <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '900', color: '#c084fc' }}>
+                Robots Maestros de la Academia (Jugar contra la IA)
+              </h2>
+              <p style={{ margin: 0, fontSize: '0.74rem', color: '#94a3b8' }}>
+                Desafía a los 6 bots con personalidades, aperturas y Elo progresivo.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
+            {BOT_ROSTER.map(bot => (
+              <div
+                key={bot.id}
+                onClick={() => {
+                  setCurrentBot(bot);
+                  setBotLevel(bot.difficultyLevel || 1);
+                  setGameMode('bot');
+                  setShowColorModal(true);
+                }}
+                style={{
+                  background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%)',
+                  border: '1.5px solid rgba(168, 85, 247, 0.35)',
+                  borderRadius: '14px',
+                  padding: '14px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  textAlign: 'center',
+                  gap: '8px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-3px)';
+                  e.currentTarget.style.borderColor = '#c084fc';
+                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(192, 132, 252, 0.25)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.35)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              >
+                <BotAvatarRenderer bot={bot} size={48} />
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: '900', color: '#f8fafc' }}>
+                    {bot.name}
+                  </h4>
+                  <span style={{ fontSize: '0.74rem', color: '#facc15', fontWeight: '800' }}>
+                    {bot.elo} Elo
+                  </span>
+                </div>
+                <p style={{ margin: 0, fontSize: '0.70rem', color: '#94a3b8', lineHeight: 1.2 }}>
+                  {bot.personality}
+                </p>
+                <button
+                  type="button"
+                  className="btn-gold"
+                  style={{ width: '100%', padding: '7px', fontSize: '0.76rem', fontWeight: '900', marginTop: 'auto' }}
+                >
+                  Jugar vs {bot.name}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 5. SECCIÓN: 🎮 MINIJUEGOS Y VARIANTES LÚDICAS */}
+        <div style={{
+          background: 'rgba(15, 23, 42, 0.75)',
+          border: '1.5px solid rgba(251, 146, 60, 0.3)',
+          borderRadius: '18px',
+          padding: '20px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+            <span style={{ fontSize: '1.3rem' }}>🎮</span>
+            <div>
+              <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '900', color: '#fb923c' }}>
+                Minijuegos y Modalidades Especiales
+              </h2>
+              <p style={{ margin: 0, fontSize: '0.74rem', color: '#94a3b8' }}>
+                Ajedrez con Dados, Sin Reyes, Hándicap o 2 Jugadores en el mismo dispositivo.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '12px' }}>
+            <div
+              onClick={() => handleSelectPassAndPlay('standard')}
+              style={{
+                background: 'rgba(30, 41, 59, 0.7)',
+                border: '1.5px solid #10b981',
+                borderRadius: '14px',
+                padding: '16px',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+            >
+              <div style={{ fontSize: '1.6rem', marginBottom: '6px' }}>👥</div>
+              <h4 style={{ margin: '0 0 4px', fontSize: '0.96rem', color: '#34d399', fontWeight: '900' }}>2 Jugadores (Pass & Play)</h4>
+              <p style={{ margin: 0, fontSize: '0.74rem', color: '#94a3b8' }}>Juega cara a cara en la misma pantalla rotando el turno.</p>
+            </div>
+
+            <div
+              onClick={() => {
+                setGameVariant('dice_chess');
+                setShowColorModal(true);
+              }}
+              style={{
+                background: 'rgba(30, 41, 59, 0.7)',
+                border: '1.5px solid #ec4899',
+                borderRadius: '14px',
+                padding: '16px',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+            >
+              <div style={{ fontSize: '1.6rem', marginBottom: '6px' }}>🎲</div>
+              <h4 style={{ margin: '0 0 4px', fontSize: '0.96rem', color: '#f472b6', fontWeight: '900' }}>Dados Mágicos</h4>
+              <p style={{ margin: 0, fontSize: '0.74rem', color: '#94a3b8' }}>El dado decide qué tipo de pieza estás obligado a mover.</p>
+            </div>
+
+            <div
+              onClick={() => {
+                setGameVariant('king_of_the_hill');
+                setShowColorModal(true);
+              }}
+              style={{
+                background: 'rgba(30, 41, 59, 0.7)',
+                border: '1.5px solid #f59e0b',
+                borderRadius: '14px',
+                padding: '16px',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+            >
+              <div style={{ fontSize: '1.6rem', marginBottom: '6px' }}>⛰️👑</div>
+              <h4 style={{ margin: '0 0 4px', fontSize: '0.96rem', color: '#facc15', fontWeight: '900' }}>Rey de la Colina</h4>
+              <p style={{ margin: 0, fontSize: '0.74rem', color: '#94a3b8' }}>Lleva tu Rey a cualquiera de las 4 casillas centrales para ganar.</p>
+            </div>
+
+            <div
+              onClick={() => {
+                setGameVariant('pawn_wars_pure');
+                setShowColorModal(true);
+              }}
+              style={{
+                background: 'rgba(30, 41, 59, 0.7)',
+                border: '1.5px solid #38bdf8',
+                borderRadius: '14px',
+                padding: '16px',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+            >
+              <div style={{ fontSize: '1.6rem', marginBottom: '6px' }}>⚔️♟️</div>
+              <h4 style={{ margin: '0 0 4px', fontSize: '0.96rem', color: '#38bdf8', fontWeight: '900' }}>Guerra de Peones Pura</h4>
+              <p style={{ margin: 0, fontSize: '0.74rem', color: '#94a3b8' }}>Sin reyes. 8 peones vs 8 peones: el primero que corone gana.</p>
+            </div>
+          </div>
+        </div>
+
+        {/* 6. SECCIÓN: 🌐 UNIRSE CON CÓDIGO DIRECTO */}
+        <div style={{
+          background: 'rgba(15, 23, 42, 0.75)',
+          border: '1.5px solid rgba(148, 163, 184, 0.25)',
+          borderRadius: '18px',
+          padding: '20px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '14px'
+        }}>
+          <div>
+            <h3 style={{ margin: '0 0 4px', fontSize: '1.05rem', fontWeight: '900', color: '#f8fafc' }}>
+              ¿Tienes un código de sala de 6 dígitos?
+            </h3>
+            <p style={{ margin: 0, fontSize: '0.76rem', color: '#94a3b8' }}>
+              Ingresa el código que te compartió tu familiar para conectarte a su partida.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <input
+              type="text"
+              value={customRoomCodeInput}
+              onChange={(e) => setCustomRoomCodeInput(e.target.value.toUpperCase())}
+              placeholder="EJ: AB12"
+              maxLength={8}
+              style={{
+                background: '#0f172a',
+                border: '1.5px solid rgba(234, 179, 8, 0.5)',
+                borderRadius: '8px',
+                padding: '8px 12px',
+                color: '#fde047',
+                fontWeight: '900',
+                fontSize: '0.95rem',
+                letterSpacing: '2px',
+                textAlign: 'center',
+                width: '120px'
+              }}
+            />
+            <button
+              type="button"
+              className="btn-gold"
+              onClick={() => {
+                if (customRoomCodeInput.trim().length >= 3 && onOpenP2P) {
+                  onOpenP2P(customRoomCodeInput.trim());
+                }
+              }}
+              disabled={customRoomCodeInput.trim().length < 3}
+              style={{ padding: '8px 16px', fontSize: '0.84rem', fontWeight: '900' }}
+            >
+              Unirme a la Sala 🔗
+            </button>
+          </div>
+        </div>
+
+        {/* Modales disponibles en el Hub */}
+        {challengeOpponent && (
+          <FamilyChallengeDialog
+            isOpen={Boolean(challengeOpponent)}
+            onClose={() => setChallengeOpponent(null)}
+            opponent={challengeOpponent}
+            isOpponentOnline={isUserOnline(challengeOpponent)}
+            onSendChallenge={handleSendChallenge}
+          />
+        )}
+
+        {showColorModal && (
+          <GameModeModal
+            isOpen={showColorModal}
+            onClose={() => setShowColorModal(false)}
+            onSelectMode={handleStartGameWithColor}
+            opponentName={gameMode === 'pass_and_play' ? 'Jugador 2' : (botToPlay?.name || 'Robot')}
+            selectedVariant={gameVariant}
+          />
+        )}
+      </div>
+    );
+  }
+
 
   return (
     <div className="game-responsive-container">

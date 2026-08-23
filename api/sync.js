@@ -137,6 +137,7 @@ function mergeUsers(existingUsers = [], newUsers = []) {
         hintsUsed: Math.max(existing.stats?.hintsUsed || 0, nUser.stats?.hintsUsed || 0),
         accuracyAvg: Math.max(existing.stats?.accuracyAvg || 0, nUser.stats?.accuracyAvg || 0)
       },
+      lastActiveTimestamp: Math.max(existing.lastActiveTimestamp || 0, nUser.lastActiveTimestamp || 0),
       updatedAt: Date.now()
     });
   });

@@ -868,8 +868,8 @@ export const UserProvider = ({ children }) => {
     }
 
     const mostRecent = Math.max(lastHbTime, localTime, cloudLastActive);
-    // Considerar en línea si se ha comunicado en los últimos 45 segundos
-    return (Date.now() - mostRecent) < 45000;
+    // Considerar en línea si se ha comunicado en los últimos 3 minutos (180s) para soportar navegación y móviles
+    return (Date.now() - mostRecent) < 180000;
   }, [currentUser?.id, presenceHeartbeats, users]);
 
   // Enviar Mensaje Directo a un familiar
@@ -1034,10 +1034,20 @@ export const UserProvider = ({ children }) => {
     } catch (e) {}
   }, [groups, activeGroupId, unlockedGroupIds, activeUserId]);
 
-  // 7. SINCRONIZACIÓN PERIÓDICA CON LA BASE DE DATOS CENTRAL EN LA NUBE
+  // 7. SINCRONIZACIÓN PERIÓDICA CON LA BASE DE DATOS CENTRAL EN LA NUBE (Latidos en vivo y presencia)
   useEffect(() => {
     const cleanup = cloudSync.startPeriodicSync(
-      () => activeGroup,
+      () => {
+        if (!activeGroup) return null;
+        const now = Date.now();
+        const updatedUsers = (activeGroup.users || []).map(u => {
+          if (currentUser && (u.id === currentUser.id || normalizeUserKey(u.name || u.id) === normalizeUserKey(currentUser.name || currentUser.id))) {
+            return { ...u, lastActiveTimestamp: now, updatedAt: Math.max(u.updatedAt || 0, now) };
+          }
+          return u;
+        });
+        return { ...activeGroup, users: updatedUsers, updatedAt: now };
+      },
       (updatedCloudGroup) => {
         if (!updatedCloudGroup || !updatedCloudGroup.id) return;
         setGroups(prev => {
@@ -1054,10 +1064,10 @@ export const UserProvider = ({ children }) => {
           return nextGroups;
         });
       },
-      12000
+      5000
     );
     return () => cleanup && cleanup();
-  }, [activeGroupId, activeGroup]);
+  }, [activeGroupId, activeGroup, currentUser]);
 
   // Actualizar usuarios dentro del grupo activo (o grupo específico) de forma atómica y síncrona
   const setUsersForActiveGroup = (updater, targetGroupId = null) => {

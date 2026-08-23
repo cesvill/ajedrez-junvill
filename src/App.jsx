@@ -244,6 +244,7 @@ export const App = () => {
             onOpenRobots={() => handleTabChange('robots')}
             onExitToMenu={() => handleTabChange('inicio')}
             onOpenBugReport={handleOpenBugReport}
+            onOpenFamilyChat={() => setIsFamilyChatOpen(true)}
           />
         )}
 
