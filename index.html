@@ -20,22 +20,47 @@
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
     
     <script>
-      // Script de auto-recuperación de caché obsoleta en caso de actualización en Vercel
-      window.addEventListener('error', function(e) {
-        if (e.message && (e.message.indexOf('chunk') !== -1 || e.message.indexOf('dynamically imported module') !== -1)) {
-          if ('caches' in window) {
-            caches.keys().then(function(names) {
-              names.forEach(function(n) { caches.delete(n); });
-            });
-          }
-          if (navigator.serviceWorker) {
-            navigator.serviceWorker.getRegistrations().then(function(regs) {
-              regs.forEach(function(r) { r.unregister(); });
-            });
-          }
-          window.location.reload(true);
+      // Script de auto-recuperación y watchdog de carga para Ajedrez Junvill
+      function forcePurgeAndReload() {
+        if ('caches' in window) {
+          caches.keys().then(function(names) {
+            return Promise.all(names.map(function(n) { return caches.delete(n); }));
+          }).then(function() {
+            if (navigator.serviceWorker) {
+              navigator.serviceWorker.getRegistrations().then(function(regs) {
+                return Promise.all(regs.map(function(r) { return r.unregister(); }));
+              }).then(function() {
+                window.location.reload();
+              });
+            } else {
+              window.location.reload();
+            }
+          }).catch(function() {
+            window.location.reload();
+          });
+        } else {
+          window.location.reload();
         }
-      });
+      }
+
+      window.addEventListener('error', function(e) {
+        console.warn('Capturado evento de error de inicio:', e);
+        var msg = (e && e.message) ? e.message : '';
+        if (msg.indexOf('chunk') !== -1 || msg.indexOf('dynamically imported module') !== -1 || e.target && e.target.tagName === 'SCRIPT') {
+          forcePurgeAndReload();
+        }
+      }, true);
+
+      // Watchdog: si React no ha montado tras 4 segundos, activar botón de reintento directo
+      setTimeout(function() {
+        var loader = document.getElementById('app-initial-loader');
+        if (loader) {
+          var sub = document.getElementById('loader-subtext');
+          if (sub) {
+            sub.innerHTML = '<div style="margin-bottom:12px;color:#fca5a5;">Sincronizando última versión...</div><button onclick="forcePurgeAndReload()" style="background:#f59e0b;color:#0f172a;border:none;padding:10px 20px;border-radius:9999px;font-weight:900;cursor:pointer;font-family:sans-serif;box-shadow:0 4px 12px rgba(245,158,11,0.4);">⚡ Recargar y Entrar</button>';
+          }
+        }
+      }, 4000);
     </script>
   </head>
   <body>
@@ -44,7 +69,7 @@
       <div id="app-initial-loader" style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0a0f1d; color: #f8fafc; font-family: 'Outfit', sans-serif; gap: 14px; text-align: center; padding: 20px;">
         <div style="font-size: 3rem; filter: drop-shadow(0 4px 12px rgba(234, 179, 8, 0.4));">👑</div>
         <div style="font-size: 1.3rem; font-weight: 900; color: #facc15; letter-spacing: 0.5px;">Ajedrez Junvill</div>
-        <div style="font-size: 0.85rem; color: #94a3b8; max-width: 300px;">Cargando tablero, robots y módulos familiares...</div>
+        <div id="loader-subtext" style="font-size: 0.85rem; color: #94a3b8; max-width: 320px;">Cargando tablero, robots y módulos familiares...</div>
       </div>
     </div>
     <script type="module" src="/src/main.jsx"></script>
