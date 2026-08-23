@@ -647,6 +647,12 @@ export const UserProvider = ({ children }) => {
     }
   });
 
+  // Derivaciones limpias y deduplicadas
+  const activeGroup = groups.find(g => g.id === activeGroupId) || groups[0] || DEFAULT_FAMILY_GROUPS[0];
+  const isGroupUnlocked = activeGroup ? unlockedGroupIds.includes(activeGroup.id) : false;
+  const users = activeGroup ? cloudSync.mergeUsers(activeGroup.users || [], DEFAULT_JUNVILL_USERS) : DEFAULT_JUNVILL_USERS;
+  const currentUser = users.find(u => u.id === activeUserId || normalizeUserKey(u.id || u.name) === normalizeUserKey(activeUserId)) || users[0] || DEFAULT_JUNVILL_USERS[0];
+
   // Sincronización en tiempo real de invitaciones, mensajes y presencia entre pestañas y dispositivos
   useEffect(() => {
     const handleStorageChange = (e) => {
@@ -698,12 +704,6 @@ export const UserProvider = ({ children }) => {
 
     return () => clearInterval(timer);
   }, [currentUser?.id, users]);
-
-  // Derivaciones limpias y deduplicadas
-  const activeGroup = groups.find(g => g.id === activeGroupId) || groups[0] || DEFAULT_FAMILY_GROUPS[0];
-  const isGroupUnlocked = activeGroup ? unlockedGroupIds.includes(activeGroup.id) : false;
-  const users = activeGroup ? cloudSync.mergeUsers(activeGroup.users || [], DEFAULT_JUNVILL_USERS) : DEFAULT_JUNVILL_USERS;
-  const currentUser = users.find(u => u.id === activeUserId || normalizeUserKey(u.id || u.name) === normalizeUserKey(activeUserId)) || users[0] || DEFAULT_JUNVILL_USERS[0];
 
   // 5. SEÑALIZACIÓN ENTRE DISPOSITIVOS EN TIEMPO REAL (PeerJS Global)
   useEffect(() => {
