@@ -340,14 +340,19 @@ export const FullBodyAvatar = ({
           {renderShoes()}
         </g>
 
-        {/* 2. Torso y Cuello Conector (Sin separación de cuello) */}
+        {/* 2. Torso y Vestimenta Superior */}
         <g className="avatar-torso">
-          {/* Cuello anatómico sólido que conecta debajo de la barbilla (y=94) hasta el interior de la camiseta (y=130) */}
-          <rect x="91" y="94" width="18" height="36" rx="4" fill={skin} stroke="#0f172a" strokeWidth="1" />
           {renderTorso()}
         </g>
 
-        {/* 3. Brazos y Objeto en Mano */}
+        {/* 3. Cabeza, Rostro, Cabello, Accesorios y Cuello Anatómico */}
+        <g className="avatar-head" transform="translate(100, 96) scale(1.35) translate(-50, -52)">
+          {renderAvatarFace(cfg)}
+          {renderAvatarHair(cfg)}
+          {renderAvatarAccessory(cfg)}
+        </g>
+
+        {/* 4. Brazos y Objeto en Mano */}
         <g className="avatar-arms">
           <path d="M 64,135 Q 40,160 55,185" fill="none" stroke={shirtColor} strokeWidth="14" strokeLinecap="round" />
           <circle cx="55" cy="185" r="8" fill={skin} />
@@ -355,13 +360,6 @@ export const FullBodyAvatar = ({
           <path d="M 136,135 Q 155,155 142,175" fill="none" stroke={shirtColor} strokeWidth="14" strokeLinecap="round" />
           <circle cx="142" cy="175" r="8" fill={skin} />
           {renderHeldItem()}
-        </g>
-
-        {/* 4. Cabeza, Rostro, Cabello y Accesorios IDÉNTICOS A BUSTO */}
-        <g className="avatar-head" transform="translate(100, 78) scale(1.3) translate(-50, -52)">
-          {renderAvatarFace(cfg)}
-          {renderAvatarHair(cfg)}
-          {renderAvatarAccessory(cfg)}
         </g>
       </svg>
     </div>

@@ -195,7 +195,7 @@ export const renderAvatarFace = (cfg) => {
   return (
     <g key="face">
       {/* Cuello y Cabeza */}
-      <rect x="45" y="65" width="10" height="14" fill={cfg.skin} />
+      <rect x="45" y="60" width="10" height="20" fill={cfg.skin} />
       <circle cx="50" cy="52" r="22" fill={cfg.skin} />
 
       {/* Expresión / Ojos */}
