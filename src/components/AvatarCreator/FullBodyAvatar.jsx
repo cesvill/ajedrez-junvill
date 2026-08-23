@@ -2,7 +2,8 @@ import React from 'react';
 
 /**
  * Renderizador de Avatares de Cuerpo Completo e Ilustraciones Enriquecidas (Full-Body Avatar Engine)
- * Renderiza personajes de cuerpo entero con poses dinámicas, pedestales de ajedrez y efectos visuales.
+ * Renderiza personajes de cuerpo entero con poses dinámicas, pedestales de ajedrez,
+ * vestimenta superior, pantalones/faldas, zapatos, accesorios y piezas de ajedrez en mano.
  */
 
 export const FullBodyAvatar = ({
@@ -53,7 +54,6 @@ export const FullBodyAvatar = ({
           <g className="avatar-legs">
             <rect x="75" y="210" width="16" height="40" rx="8" fill="#64748b" stroke="#334155" strokeWidth="2" />
             <rect x="109" y="210" width="16" height="40" rx="8" fill="#64748b" stroke="#334155" strokeWidth="2" />
-            {/* Pies / Orugas magnéticas */}
             <ellipse cx="83" cy="252" rx="14" ry="6" fill="#1e293b" stroke="#fbbf24" strokeWidth="1.5" />
             <ellipse cx="117" cy="252" rx="14" ry="6" fill="#1e293b" stroke="#fbbf24" strokeWidth="1.5" />
           </g>
@@ -61,11 +61,9 @@ export const FullBodyAvatar = ({
           {/* Torso Mecánico con Núcleo de Ajedrez */}
           <g className="avatar-torso">
             <rect x="65" y="130" width="70" height="85" rx="16" fill="url(#metalBody)" stroke="#78350f" strokeWidth="3" />
-            {/* Pantalla en el pecho con caballo de ajedrez brillante */}
             <rect x="75" y="145" width="50" height="42" rx="8" fill="#0f172a" stroke="#fbbf24" strokeWidth="2" />
             <path d="M 92,154 Q 98,150 106,154 Q 108,162 102,168 L 110,180 L 90,180 L 93,168 Z" fill="#60a5fa" />
             <circle cx="98" cy="158" r="1.5" fill="#ffffff" />
-            {/* Botones y medidores */}
             <circle cx="82" cy="198" r="4" fill="#ef4444" />
             <circle cx="100" cy="198" r="4" fill="#22c55e" />
             <circle cx="118" cy="198" r="4" fill="#3b82f6" />
@@ -73,33 +71,25 @@ export const FullBodyAvatar = ({
 
           {/* Brazos dinámicos */}
           <g className="avatar-arms">
-            {/* Brazo izquierdo sosteniendo rayo */}
             <path d="M 65,145 Q 40,165 48,190" fill="none" stroke="#64748b" strokeWidth="12" strokeLinecap="round" />
             <circle cx="48" cy="190" r="10" fill="#eab308" stroke="#78350f" strokeWidth="2" />
             <polygon points="46,182 52,188 44,192 50,198 40,198" fill="#38bdf8" />
 
-            {/* Brazo derecho saludando */}
             <path d="M 135,145 Q 160,130 156,105" fill="none" stroke="#64748b" strokeWidth="12" strokeLinecap="round" />
             <circle cx="156" cy="105" r="10" fill="#eab308" stroke="#78350f" strokeWidth="2" />
           </g>
 
-          {/* Cabeza de Robot con Antena de Relámpago */}
+          {/* Cabeza de Robot */}
           <g className="avatar-head">
-            {/* Antena */}
             <line x1="100" y1="58" x2="100" y2="40" stroke="#64748b" strokeWidth="5" />
             <polygon points="100,20 92,34 102,34 94,48 108,32 98,32" fill="#38bdf8" stroke="#0284c7" strokeWidth="1.5" />
-            {/* Cabeza cúbica redondeada */}
             <rect x="62" y="58" width="76" height="66" rx="20" fill="url(#metalBody)" stroke="#78350f" strokeWidth="3" />
-            {/* Visor digital */}
             <rect x="70" y="70" width="60" height="34" rx="10" fill="#0f172a" stroke="#38bdf8" strokeWidth="2" />
-            {/* Ojos expresivos de luz */}
             <circle cx="86" cy="86" r="7" fill="#38bdf8" />
             <circle cx="114" cy="86" r="7" fill="#38bdf8" />
             <circle cx="88" cy="84" r="2.5" fill="#ffffff" />
             <circle cx="116" cy="84" r="2.5" fill="#ffffff" />
-            {/* Sonrisa digital */}
             <path d="M 90,95 Q 100,101 110,95" fill="none" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" />
-            {/* Auriculares laterales */}
             <rect x="54" y="74" width="10" height="26" rx="4" fill="#475569" />
             <rect x="136" y="74" width="10" height="26" rx="4" fill="#475569" />
           </g>
@@ -108,90 +98,234 @@ export const FullBodyAvatar = ({
     );
   }
 
-  // Renderizado para Qwerty (Robot Retro)
-  if (characterId === 'qwerty' || characterId === 'robot_retro') {
-    return (
-      <div className={`fullbody-avatar-wrap ${interactive ? 'interactive-hover' : ''} ${className}`} style={{ width, height }}>
-        <svg viewBox="0 0 200 300" className="fullbody-svg" preserveAspectRatio="xMidYMid meet">
-          <defs>
-            <linearGradient id="qwertyBody" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#67e8f9" />
-              <stop offset="100%" stopColor="#0284c7" />
-            </linearGradient>
-          </defs>
-          {showPedestal && (
-            <ellipse cx="100" cy="268" rx="60" ry="14" fill="#334155" stroke="#38bdf8" strokeWidth="2" />
-          )}
-          {/* Cuerpo Retro */}
-          <rect x="68" y="140" width="64" height="75" rx="14" fill="url(#qwertyBody)" stroke="#0369a1" strokeWidth="3" />
-          {/* Teclado en el pecho */}
-          <rect x="76" y="155" width="48" height="30" rx="4" fill="#0f172a" />
-          <line x1="82" y1="165" x2="118" y2="165" stroke="#38bdf8" strokeWidth="2" strokeDasharray="3,2" />
-          <line x1="82" y1="175" x2="118" y2="175" stroke="#38bdf8" strokeWidth="2" strokeDasharray="3,2" />
-          {/* Orugas */}
-          <rect x="60" y="215" width="80" height="32" rx="12" fill="#334155" stroke="#0f172a" strokeWidth="3" />
-          <circle cx="76" cy="231" r="8" fill="#64748b" />
-          <circle cx="100" cy="231" r="8" fill="#64748b" />
-          <circle cx="124" cy="231" r="8" fill="#64748b" />
-          {/* Cabeza Monitor CRT */}
-          <rect x="58" y="55" width="84" height="72" rx="16" fill="url(#qwertyBody)" stroke="#0369a1" strokeWidth="3" />
-          <rect x="68" y="66" width="64" height="48" rx="8" fill="#0f172a" stroke="#22d3ee" strokeWidth="2" />
-          <text x="75" y="98" fill="#22d3ee" fontFamily="monospace" fontSize="22" fontWeight="bold">&gt; _ &lt;</text>
-          {/* Antena espiral */}
-          <path d="M 100,55 Q 90,35 105,25 Q 115,15 100,8" fill="none" stroke="#0284c7" strokeWidth="4" strokeLinecap="round" />
-          <circle cx="100" cy="8" r="6" fill="#ef4444" />
-        </svg>
-      </div>
-    );
-  }
+  // Renderizado para Avatar Personalizado de Cuerpo Completo (Modular Multicapa)
+  const cfg = config || {};
+  const skin = cfg.skin || '#fed7aa';
+  const hairColor = cfg.hairColor || '#451a03';
+  const shirtColor = cfg.shirtColor || '#2563eb';
+  const shirtStyle = cfg.shirtStyle || 'hoodie';
+  const pantsColor = cfg.pantsColor || '#1e3a8a';
+  const pantsStyle = cfg.pantsStyle || 'jeans';
+  const shoesColor = cfg.shoesColor || '#ffffff';
+  const shoesStyle = cfg.shoesStyle || 'sneakers';
+  const accessory = cfg.accessory || 'none';
+  const heldItem = cfg.heldItem || 'pawn_gold';
 
-  // Renderizado para Entrenador Don Aurelio (Cuerpo Completo de Gran Maestro Sabio)
-  if (characterId === 'coach_aurelio') {
-    return (
-      <div className={`fullbody-avatar-wrap ${interactive ? 'interactive-hover' : ''} ${className}`} style={{ width, height }}>
-        <svg viewBox="0 0 200 300" className="fullbody-svg" preserveAspectRatio="xMidYMid meet">
-          {showPedestal && (
-            <ellipse cx="100" cy="270" rx="65" ry="14" fill="#451a03" stroke="#d97706" strokeWidth="2" />
-          )}
-          {/* Túnica / Traje elegante */}
-          <path d="M 60,130 L 45,260 L 155,260 L 140,130 Z" fill="#b45309" stroke="#78350f" strokeWidth="2" />
-          <path d="M 85,130 L 95,260 L 105,260 L 115,130 Z" fill="#78350f" opacity="0.4" />
-          <polygon points="100,130 92,160 108,160" fill="#dc2626" />
-          {/* Brazos y bastón de maestro */}
-          <path d="M 60,140 Q 40,180 50,210" fill="none" stroke="#92400e" strokeWidth="14" strokeLinecap="round" />
-          <circle cx="50" cy="210" r="8" fill="#fed7aa" />
-          {/* Bastón de roble con pieza de rey arriba */}
-          <line x1="48" y1="120" x2="48" y2="265" stroke="#451a03" strokeWidth="5" strokeLinecap="round" />
-          <circle cx="48" cy="116" r="10" fill="#fbbf24" stroke="#b45309" strokeWidth="2" />
-          <path d="M 44,110 L 52,110 M 48,106 L 48,114" stroke="#78350f" strokeWidth="2" />
-          {/* Cabeza y rostro de Don Aurelio */}
-          <circle cx="100" cy="80" r="32" fill="#fed7aa" stroke="#d97706" strokeWidth="1.5" />
-          {/* Cabello canoso lateral */}
-          <path d="M 68,78 Q 65,52 85,42 Q 100,40 115,42 Q 135,52 132,78" fill="none" stroke="#cbd5e1" strokeWidth="8" strokeLinecap="round" />
-          {/* Barba canosa frondosa */}
-          <path d="M 78,85 Q 100,125 122,85 Q 100,110 78,85 Z" fill="#e2e8f0" stroke="#cbd5e1" strokeWidth="1.5" />
-          {/* Gafas doradas */}
-          <circle cx="88" cy="74" r="9" fill="none" stroke="#b45309" strokeWidth="2.5" />
-          <circle cx="112" cy="74" r="9" fill="none" stroke="#b45309" strokeWidth="2.5" />
-          <line x1="97" y1="74" x2="103" y2="74" stroke="#b45309" strokeWidth="2.5" />
-          <circle cx="88" cy="74" r="3" fill="#451a03" />
-          <circle cx="112" cy="74" r="3" fill="#451a03" />
-        </svg>
-      </div>
-    );
-  }
+  // Renderizar Pantalones / Vestimenta Inferior
+  const renderPants = () => {
+    switch (pantsStyle) {
+      case 'skirt':
+        return (
+          <g>
+            <polygon points="70,195 130,195 142,230 58,230" fill={pantsColor} stroke="#0f172a" strokeWidth="1.5" />
+            <line x1="85" y1="195" x2="80" y2="230" stroke="#ffffff" strokeWidth="1.5" opacity="0.4" />
+            <line x1="100" y1="195" x2="100" y2="230" stroke="#ffffff" strokeWidth="1.5" opacity="0.4" />
+            <line x1="115" y1="195" x2="120" y2="230" stroke="#ffffff" strokeWidth="1.5" opacity="0.4" />
+            {/* Piernas descubiertas */}
+            <rect x="76" y="230" width="16" height="26" fill={skin} />
+            <rect x="108" y="230" width="16" height="26" fill={skin} />
+          </g>
+        );
+      case 'shorts':
+        return (
+          <g>
+            <rect x="72" y="195" width="25" height="30" rx="4" fill={pantsColor} />
+            <rect x="103" y="195" width="25" height="30" rx="4" fill={pantsColor} />
+            <rect x="76" y="225" width="18" height="30" fill={skin} />
+            <rect x="106" y="225" width="18" height="30" fill={skin} />
+          </g>
+        );
+      case 'armor_legs':
+        return (
+          <g>
+            <rect x="73" y="195" width="24" height="60" rx="4" fill="#94a3b8" stroke="#334155" strokeWidth="2" />
+            <rect x="103" y="195" width="24" height="60" rx="4" fill="#94a3b8" stroke="#334155" strokeWidth="2" />
+            <circle cx="85" cy="220" r="5" fill="#cbd5e1" stroke="#334155" strokeWidth="1.5" />
+            <circle cx="115" cy="220" r="5" fill="#cbd5e1" stroke="#334155" strokeWidth="1.5" />
+          </g>
+        );
+      case 'cargo':
+        return (
+          <g>
+            <rect x="73" y="195" width="24" height="60" rx="5" fill={pantsColor} />
+            <rect x="103" y="195" width="24" height="60" rx="5" fill={pantsColor} />
+            <rect x="69" y="215" width="8" height="16" rx="2" fill={pantsColor} stroke="#0f172a" strokeWidth="1" />
+            <rect x="123" y="215" width="8" height="16" rx="2" fill={pantsColor} stroke="#0f172a" strokeWidth="1" />
+          </g>
+        );
+      case 'sweatpants':
+        return (
+          <g>
+            <rect x="73" y="195" width="24" height="60" rx="6" fill={pantsColor} />
+            <rect x="103" y="195" width="24" height="60" rx="6" fill={pantsColor} />
+            <line x1="74" y1="195" x2="74" y2="255" stroke="#ffffff" strokeWidth="2.5" />
+            <line x1="126" y1="195" x2="126" y2="255" stroke="#ffffff" strokeWidth="2.5" />
+          </g>
+        );
+      case 'formal':
+      case 'jeans':
+      default:
+        return (
+          <g>
+            <rect x="73" y="195" width="24" height="60" rx="5" fill={pantsColor} />
+            <rect x="103" y="195" width="24" height="60" rx="5" fill={pantsColor} />
+            <line x1="85" y1="198" x2="85" y2="255" stroke="#ffffff" strokeWidth="1" opacity="0.3" />
+            <line x1="115" y1="198" x2="115" y2="255" stroke="#ffffff" strokeWidth="1" opacity="0.3" />
+          </g>
+        );
+    }
+  };
 
-  // Renderizado para Estudiante / Avatar Personalizado de Cuerpo Completo
-  const skin = config?.skin || '#fed7aa';
-  const shirtColor = config?.shirtColor || '#2563eb';
-  const hairColor = config?.hairColor || '#451a03';
+  // Renderizar Calzado / Zapatos
+  const renderShoes = () => {
+    switch (shoesStyle) {
+      case 'boots':
+        return (
+          <g>
+            <rect x="73" y="244" width="24" height="18" rx="4" fill={shoesColor} stroke="#0f172a" strokeWidth="1.5" />
+            <rect x="103" y="244" width="24" height="18" rx="4" fill={shoesColor} stroke="#0f172a" strokeWidth="1.5" />
+            <ellipse cx="85" cy="259" rx="14" ry="5" fill="#0f172a" />
+            <ellipse cx="115" cy="259" rx="14" ry="5" fill="#0f172a" />
+          </g>
+        );
+      case 'oxford':
+        return (
+          <g>
+            <ellipse cx="85" cy="256" rx="15" ry="6" fill={shoesColor} stroke="#0f172a" strokeWidth="1.5" />
+            <ellipse cx="115" cy="256" rx="15" ry="6" fill={shoesColor} stroke="#0f172a" strokeWidth="1.5" />
+            <rect x="78" y="253" width="6" height="3" fill="#fbbf24" />
+            <rect x="108" y="253" width="6" height="3" fill="#fbbf24" />
+          </g>
+        );
+      case 'knight_boots':
+        return (
+          <g>
+            <path d="M 72,242 L 96,242 L 98,258 L 70,258 Z" fill="#64748b" stroke="#334155" strokeWidth="1.5" />
+            <path d="M 104,242 L 128,242 L 130,258 L 102,258 Z" fill="#64748b" stroke="#334155" strokeWidth="1.5" />
+            <ellipse cx="84" cy="258" rx="15" ry="5" fill="#334155" />
+            <ellipse cx="116" cy="258" rx="15" ry="5" fill="#334155" />
+          </g>
+        );
+      case 'sneakers':
+      default:
+        return (
+          <g>
+            <ellipse cx="85" cy="254" rx="14" ry="6" fill={shoesColor} stroke="#cbd5e1" strokeWidth="1.5" />
+            <ellipse cx="115" cy="254" rx="14" ry="6" fill={shoesColor} stroke="#cbd5e1" strokeWidth="1.5" />
+            <path d="M 75,252 Q 85,248 95,252" fill="none" stroke={shirtColor} strokeWidth="3" />
+            <path d="M 105,252 Q 115,248 125,252" fill="none" stroke={shirtColor} strokeWidth="3" />
+          </g>
+        );
+    }
+  };
+
+  // Renderizar Torso / Vestimenta Superior
+  const renderTorso = () => {
+    switch (shirtStyle) {
+      case 'blazer':
+        return (
+          <g>
+            <rect x="62" y="125" width="76" height="78" rx="14" fill={shirtColor} stroke="#0f172a" strokeWidth="1.5" />
+            <polygon points="100,125 90,165 110,165" fill="#f8fafc" />
+            <polygon points="100,132 97,150 103,150" fill="#dc2626" />
+          </g>
+        );
+      case 'vest':
+        return (
+          <g>
+            <rect x="62" y="125" width="76" height="78" rx="14" fill="#334155" />
+            <polygon points="100,125 80,203 120,203" fill={shirtColor} />
+            <circle cx="100" cy="150" r="2.5" fill="#fbbf24" />
+            <circle cx="100" cy="165" r="2.5" fill="#fbbf24" />
+            <circle cx="100" cy="180" r="2.5" fill="#fbbf24" />
+          </g>
+        );
+      case 'royal_robe':
+        return (
+          <g>
+            <rect x="58" y="122" width="84" height="82" rx="16" fill={shirtColor} stroke="#d97706" strokeWidth="2.5" />
+            <circle cx="100" cy="140" r="6" fill="#f59e0b" stroke="#78350f" strokeWidth="1.5" />
+            <path d="M 75,122 L 100,160 L 125,122" fill="none" stroke="#fbbf24" strokeWidth="3" />
+          </g>
+        );
+      case 'armor':
+        return (
+          <g>
+            <rect x="60" y="124" width="80" height="80" rx="14" fill="#94a3b8" stroke="#334155" strokeWidth="2.5" />
+            <rect x="76" y="140" width="48" height="42" rx="6" fill="#cbd5e1" stroke="#334155" strokeWidth="1.5" />
+            <polygon points="100,148 94,162 106,162" fill="#d97706" />
+          </g>
+        );
+      case 'cape':
+        return (
+          <g>
+            <path d="M 50,128 L 30,240 L 170,240 L 150,128 Z" fill="#dc2626" opacity="0.9" />
+            <rect x="62" y="125" width="76" height="78" rx="14" fill={shirtColor} />
+            <circle cx="70" cy="130" r="5" fill="#fbbf24" />
+            <circle cx="130" cy="130" r="5" fill="#fbbf24" />
+          </g>
+        );
+      case 'hoodie':
+      case 'tshirt':
+      default:
+        return (
+          <g>
+            <rect x="62" y="125" width="76" height="78" rx="16" fill={shirtColor} stroke="#0f172a" strokeWidth="1.5" />
+            <path d="M 80,125 Q 100,140 120,125" fill="none" stroke="#ffffff" strokeWidth="4" opacity="0.6" />
+            <circle cx="100" cy="155" r="13" fill="#ffffff" opacity="0.9" />
+            <polygon points="100,146 95,158 105,158" fill="#fbbf24" stroke="#d97706" strokeWidth="1" />
+            <line x1="97" y1="162" x2="103" y2="162" stroke="#d97706" strokeWidth="2" />
+          </g>
+        );
+    }
+  };
+
+  // Renderizar Objeto en la Mano
+  const renderHeldItem = () => {
+    switch (heldItem) {
+      case 'knight_piece':
+        return (
+          <g>
+            <path d="M 136,155 Q 142,150 148,155 Q 150,163 144,168 L 150,178 L 134,178 Z" fill="#38bdf8" stroke="#0284c7" strokeWidth="1" />
+            <circle cx="140" cy="158" r="1.5" fill="#ffffff" />
+          </g>
+        );
+      case 'queen_piece':
+        return (
+          <g>
+            <polygon points="142,152 134,168 150,168" fill="#a855f7" stroke="#6b21a8" strokeWidth="1.5" />
+            <circle cx="137" cy="152" r="2" fill="#fde047" />
+            <circle cx="142" cy="150" r="2" fill="#fde047" />
+            <circle cx="147" cy="152" r="2" fill="#fde047" />
+          </g>
+        );
+      case 'trophy_cup':
+        return (
+          <g>
+            <polygon points="142,154 135,166 149,166" fill="#fbbf24" stroke="#b45309" strokeWidth="1.5" />
+            <rect x="139" y="166" width="6" height="8" fill="#d97706" />
+            <rect x="135" y="174" width="14" height="4" rx="1" fill="#78350f" />
+            <path d="M 134,158 Q 130,162 134,166" fill="none" stroke="#fbbf24" strokeWidth="1.5" />
+            <path d="M 150,158 Q 154,162 150,166" fill="none" stroke="#fbbf24" strokeWidth="1.5" />
+          </g>
+        );
+      case 'pawn_gold':
+      default:
+        return (
+          <g>
+            <polygon points="142,156 136,168 148,168" fill="#fbbf24" stroke="#b45309" strokeWidth="1.5" />
+            <circle cx="142" cy="154" r="3" fill="#fef08a" />
+          </g>
+        );
+    }
+  };
 
   return (
     <div className={`fullbody-avatar-wrap ${interactive ? 'interactive-hover' : ''} ${className}`} style={{ width, height }}>
       <svg viewBox="0 0 200 300" className="fullbody-svg" preserveAspectRatio="xMidYMid meet">
         <defs>
           <radialGradient id="playerGlow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor={shirtColor} stopOpacity="0.3" />
+            <stop offset="0%" stopColor={shirtColor} stopOpacity="0.35" />
             <stop offset="100%" stopColor={shirtColor} stopOpacity="0" />
           </radialGradient>
         </defs>
@@ -207,60 +341,55 @@ export const FullBodyAvatar = ({
           </g>
         )}
 
-        {/* Piernas / Pantalón y Zapatillas */}
+        {/* 1. Piernas y Pantalones */}
         <g className="avatar-legs">
-          <rect x="74" y="195" width="22" height="60" rx="6" fill="#1e293b" />
-          <rect x="104" y="195" width="22" height="60" rx="6" fill="#1e293b" />
-          {/* Zapatillas deportivas con suela blanca */}
-          <ellipse cx="85" cy="254" rx="14" ry="6" fill="#ffffff" stroke="#cbd5e1" strokeWidth="1.5" />
-          <ellipse cx="115" cy="254" rx="14" ry="6" fill="#ffffff" stroke="#cbd5e1" strokeWidth="1.5" />
-          <path d="M 75,252 Q 85,248 95,252" fill="none" stroke={shirtColor} strokeWidth="3" />
-          <path d="M 105,252 Q 115,248 125,252" fill="none" stroke={shirtColor} strokeWidth="3" />
+          {renderPants()}
+          {renderShoes()}
         </g>
 
-        {/* Torso con Sudadera Deportiva Junvill */}
+        {/* 2. Torso y Vestimenta Superior */}
         <g className="avatar-torso">
-          <rect x="62" y="125" width="76" height="78" rx="16" fill={shirtColor} stroke="#0f172a" strokeWidth="2" />
-          {/* Capucha / Cuello */}
-          <path d="M 80,125 Q 100,140 120,125" fill="none" stroke="#ffffff" strokeWidth="4" opacity="0.6" />
-          {/* Insignia / Escudo de Ajedrez en el pecho */}
-          <circle cx="100" cy="155" r="14" fill="#ffffff" opacity="0.9" />
-          <polygon points="100,146 95,158 105,158" fill="#fbbf24" stroke="#d97706" strokeWidth="1" />
-          <line x1="97" y1="162" x2="103" y2="162" stroke="#d97706" strokeWidth="2" />
+          {renderTorso()}
         </g>
 
-        {/* Brazos dinámicos sosteniendo una pieza */}
+        {/* 3. Brazos y Objeto en Mano */}
         <g className="avatar-arms">
-          {/* Brazo izquierdo en jarra */}
           <path d="M 64,135 Q 40,160 55,185" fill="none" stroke={shirtColor} strokeWidth="14" strokeLinecap="round" />
           <circle cx="55" cy="185" r="8" fill={skin} />
 
-          {/* Brazo derecho sosteniendo pieza de Dama dorada */}
           <path d="M 136,135 Q 155,155 142,175" fill="none" stroke={shirtColor} strokeWidth="14" strokeLinecap="round" />
           <circle cx="142" cy="175" r="8" fill={skin} />
-          {/* Dama dorada en la mano */}
-          <polygon points="142,156 136,168 148,168" fill="#fbbf24" stroke="#b45309" strokeWidth="1.5" />
-          <circle cx="142" cy="154" r="2.5" fill="#fef08a" />
+          {renderHeldItem()}
         </g>
 
-        {/* Cabeza y Rostro */}
+        {/* 4. Cabeza y Rostro */}
         <g className="avatar-head">
           <circle cx="100" cy="75" r="30" fill={skin} />
-          {/* Cabello estilizado */}
           <path d="M 68,70 Q 72,32 100,32 Q 128,32 132,70 Q 115,50 100,52 Q 85,50 68,70 Z" fill={hairColor} />
-          {/* Ojos grandes expresivos */}
           <ellipse cx="88" cy="72" rx="4.5" ry="6" fill="#1e293b" />
           <ellipse cx="112" cy="72" rx="4.5" ry="6" fill="#1e293b" />
           <circle cx="89.5" cy="70" r="1.8" fill="#ffffff" />
           <circle cx="113.5" cy="70" r="1.8" fill="#ffffff" />
-          {/* Cejas dinámicas */}
           <path d="M 82,63 Q 88,60 94,63" fill="none" stroke={hairColor} strokeWidth="2.5" strokeLinecap="round" />
           <path d="M 106,63 Q 112,60 118,63" fill="none" stroke={hairColor} strokeWidth="2.5" strokeLinecap="round" />
-          {/* Sonrisa alegre */}
           <path d="M 90,88 Q 100,98 110,88" fill="none" stroke="#991b1b" strokeWidth="2.5" strokeLinecap="round" />
-          {/* Rubor en las mejillas */}
           <circle cx="82" cy="82" r="4" fill="#f43f5e" opacity="0.3" />
           <circle cx="118" cy="82" r="4" fill="#f43f5e" opacity="0.3" />
+
+          {/* Accesorio en la cabeza */}
+          {accessory === 'crown' && (
+            <g>
+              <polygon points="80,48 85,28 92,38 100,24 108,38 115,28 120,48" fill="#f59e0b" stroke="#b45309" strokeWidth="2" />
+              <circle cx="100" cy="22" r="3" fill="#ef4444" />
+            </g>
+          )}
+          {accessory === 'headphones' && (
+            <g>
+              <path d="M 68,75 Q 66,35 100,35 Q 134,35 132,75" fill="none" stroke="#0f172a" strokeWidth="5" />
+              <rect x="62" y="66" width="8" height="18" rx="4" fill="#3b82f6" />
+              <rect x="130" y="66" width="8" height="18" rx="4" fill="#3b82f6" />
+            </g>
+          )}
         </g>
       </svg>
     </div>

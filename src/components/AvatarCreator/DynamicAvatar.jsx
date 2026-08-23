@@ -2,7 +2,8 @@ import React from 'react';
 
 /**
  * Renderizador Vectorial Modular Multicapa de Avatares (Dynamic Avatar Engine)
- * Permite combinaciones infinitas de piel, cabello, expresiones, ropa, accesorios y fondos.
+ * Permite combinaciones infinitas de piel, cabello, expresiones, vestimenta superior,
+ * vestimenta inferior, calzado, accesorios, objetos en mano y fondos.
  */
 
 export const SKIN_TONES = [
@@ -35,7 +36,28 @@ export const SHIRT_COLORS = [
   { id: '#9333ea', label: 'Púrpura Real' },
   { id: '#0f172a', label: 'Negro Carbón' },
   { id: '#0284c7', label: 'Cian Deportivo' },
-  { id: '#f97316', label: 'Naranja Fuego' }
+  { id: '#f97316', label: 'Naranja Fuego' },
+  { id: '#ffffff', label: 'Blanco Puro' }
+];
+
+export const PANTS_COLORS = [
+  { id: '#1e3a8a', label: 'Azul Denim / Marino' },
+  { id: '#0f172a', label: 'Negro Azabache' },
+  { id: '#475569', label: 'Gris Torneo' },
+  { id: '#b45309', label: 'Caqui / Tierra' },
+  { id: '#dc2626', label: 'Rojo Deportivo' },
+  { id: '#15803d', label: 'Verde Militar' },
+  { id: '#7e22ce', label: 'Púrpura Mágico' },
+  { id: '#f8fafc', label: 'Blanco Atlético' }
+];
+
+export const SHOES_COLORS = [
+  { id: '#ffffff', label: 'Blanco Clásico' },
+  { id: '#0f172a', label: 'Negro Carbón' },
+  { id: '#dc2626', label: 'Rojo Fuego' },
+  { id: '#2563eb', label: 'Azul Eléctrico' },
+  { id: '#d97706', label: 'Cuero Natural' },
+  { id: '#f59e0b', label: 'Dorado Campeón' }
 ];
 
 export const DEFAULT_AVATAR_CONFIG = {
@@ -45,7 +67,12 @@ export const DEFAULT_AVATAR_CONFIG = {
   eyeStyle: 'happy',
   shirtStyle: 'hoodie',
   shirtColor: '#2563eb',
+  pantsStyle: 'jeans',
+  pantsColor: '#1e3a8a',
+  shoesStyle: 'sneakers',
+  shoesColor: '#ffffff',
   accessory: 'headphones',
+  heldItem: 'pawn_gold',
   background: 'blue_sky'
 };
 
@@ -89,30 +116,30 @@ export const DynamicAvatar = ({ config = DEFAULT_AVATAR_CONFIG, size = 64, class
     }
   };
 
-  // Renderizador de Ropa
+  // Renderizador de Vestimenta Superior (Ropa)
   const renderShirt = () => {
     switch (cfg.shirtStyle) {
       case 'hoodie':
         return (
           <g>
-            <path d="M 22,94 Q 50,72 78,94 Z" fill={cfg.shirtColor} />
-            <polygon points="50,76 45,94 55,94" fill="#ffffff" opacity="0.3" />
+            <path d="M 20,95 Q 50,70 80,95 Z" fill={cfg.shirtColor} />
+            <polygon points="50,75 44,95 56,95" fill="#ffffff" opacity="0.3" />
             <path d="M 32,74 Q 50,86 68,74" fill="none" stroke="#ffffff" strokeWidth="2" opacity="0.4" />
           </g>
         );
       case 'blazer':
         return (
           <g>
-            <path d="M 22,94 Q 50,72 78,94 Z" fill={cfg.shirtColor} />
-            <polygon points="50,74 42,94 58,94" fill="#ffffff" />
-            <polygon points="50,76 47,88 53,88" fill="#dc2626" />
+            <path d="M 20,95 Q 50,70 80,95 Z" fill={cfg.shirtColor} />
+            <polygon points="50,73 40,95 60,95" fill="#ffffff" />
+            <polygon points="50,75 47,88 53,88" fill="#dc2626" />
           </g>
         );
       case 'vest':
         return (
           <g>
-            <path d="M 22,94 Q 50,72 78,94 Z" fill="#475569" />
-            <path d="M 30,94 L 42,74 L 58,74 L 70,94 Z" fill={cfg.shirtColor} />
+            <path d="M 20,95 Q 50,70 80,95 Z" fill="#334155" />
+            <path d="M 30,95 L 42,74 L 58,74 L 70,95 Z" fill={cfg.shirtColor} />
             <circle cx="50" cy="80" r="1.5" fill="#fde047" />
             <circle cx="50" cy="87" r="1.5" fill="#fde047" />
           </g>
@@ -120,23 +147,46 @@ export const DynamicAvatar = ({ config = DEFAULT_AVATAR_CONFIG, size = 64, class
       case 'royal_robe':
         return (
           <g>
-            <path d="M 20,94 Q 50,70 80,94 Z" fill={cfg.shirtColor} stroke="#d97706" strokeWidth="2" />
-            <circle cx="50" cy="78" r="3" fill="#f59e0b" />
+            <path d="M 18,95 Q 50,68 82,95 Z" fill={cfg.shirtColor} stroke="#d97706" strokeWidth="2.5" />
+            <circle cx="50" cy="77" r="3.5" fill="#f59e0b" />
           </g>
         );
       case 'armor':
         return (
           <g>
-            <path d="M 22,94 Q 50,72 78,94 Z" fill="#94a3b8" stroke="#475569" strokeWidth="2" />
-            <rect x="42" y="76" width="16" height="18" rx="2" fill="#cbd5e1" />
-            <circle cx="50" cy="84" r="2" fill="#d97706" />
+            <path d="M 20,95 Q 50,70 80,95 Z" fill="#94a3b8" stroke="#334155" strokeWidth="2.5" />
+            <rect x="40" y="75" width="20" height="20" rx="3" fill="#cbd5e1" />
+            <circle cx="50" cy="84" r="2.5" fill="#d97706" />
+          </g>
+        );
+      case 'polo':
+        return (
+          <g>
+            <path d="M 22,95 Q 50,72 78,95 Z" fill={cfg.shirtColor} />
+            <polygon points="50,72 40,79 60,79" fill="#f8fafc" />
+            <circle cx="50" cy="83" r="1.2" fill="#475569" />
+          </g>
+        );
+      case 'bomber':
+        return (
+          <g>
+            <path d="M 20,95 Q 50,69 80,95 Z" fill={cfg.shirtColor} stroke="#0f172a" strokeWidth="2" />
+            <line x1="50" y1="73" x2="50" y2="95" stroke="#f59e0b" strokeWidth="2.5" />
+          </g>
+        );
+      case 'cape':
+        return (
+          <g>
+            <path d="M 15,95 Q 50,64 85,95 Z" fill="#dc2626" />
+            <path d="M 24,95 Q 50,74 76,95 Z" fill={cfg.shirtColor} />
+            <circle cx="50" cy="76" r="3" fill="#fbbf24" />
           </g>
         );
       case 'tshirt':
       default:
         return (
           <g>
-            <path d="M 24,94 Q 50,74 76,94 Z" fill={cfg.shirtColor} />
+            <path d="M 22,95 Q 50,73 78,95 Z" fill={cfg.shirtColor} />
             <path d="M 40,75 Q 50,82 60,75" fill="none" stroke="#ffffff" strokeWidth="1.5" opacity="0.5" />
           </g>
         );
@@ -305,6 +355,14 @@ export const DynamicAvatar = ({ config = DEFAULT_AVATAR_CONFIG, size = 64, class
           <g>
             <circle cx="58" cy="50" r="7" fill="none" stroke="#d97706" strokeWidth="1.5" />
             <line x1="65" y1="50" x2="68" y2="70" stroke="#d97706" strokeWidth="1" />
+          </g>
+        );
+      case 'medal':
+        return (
+          <g>
+            <path d="M 45,74 L 50,86 L 55,74" fill="#3b82f6" />
+            <circle cx="50" cy="87" r="4.5" fill="#f59e0b" stroke="#b45309" strokeWidth="1" />
+            <circle cx="50" cy="87" r="2" fill="#fde047" />
           </g>
         );
       case 'none':

@@ -1240,24 +1240,23 @@ body {
   border-radius: var(--radius-lg);
   width: 95vw;
   max-width: 1240px;
-  height: min(880px, 92vh);
-  max-height: 94vh;
+  max-height: calc(100dvh - 16px);
   display: flex;
   flex-direction: column;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
-  padding: 18px 24px;
-  overflow: hidden;
+  padding: 14px 20px;
+  overflow-y: auto;
   box-sizing: border-box;
 }
 
 .lesson-modal-body {
   display: grid;
-  grid-template-columns: minmax(380px, 1.2fr) minmax(340px, 1fr);
-  gap: 28px;
+  grid-template-columns: minmax(320px, 1.2fr) minmax(280px, 1fr);
+  gap: 20px;
   align-items: center;
   flex: 1;
   min-height: 0;
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 .lesson-board-column {
@@ -1270,9 +1269,9 @@ body {
 
 .lesson-board-column .chessboard-container {
   width: 100%;
-  max-width: min(580px, calc(86vh - 120px));
+  max-width: min(520px, calc(100dvh - 160px));
   aspect-ratio: 1 / 1;
-  padding: 10px;
+  padding: 8px;
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
 }
 
@@ -1280,9 +1279,50 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
   height: 100%;
   min-height: 0;
+  overflow-y: auto;
+}
+
+/* TABLETS EN MODO HORIZONTAL (LANDSCAPE) */
+@media (orientation: landscape) and (max-height: 850px) {
+  .lesson-modal-card {
+    width: 98vw !important;
+    max-width: 98vw !important;
+    max-height: calc(100dvh - 10px) !important;
+    padding: 8px 14px !important;
+    overflow-y: auto !important;
+  }
+  .lesson-modal-body {
+    grid-template-columns: minmax(280px, 1fr) minmax(280px, 1.1fr) !important;
+    gap: 14px !important;
+    margin-top: 4px !important;
+    align-items: center !important;
+  }
+  .lesson-board-column .chessboard-container {
+    max-width: min(420px, calc(100dvh - 130px)) !important;
+    padding: 6px !important;
+  }
+  .lesson-info-column {
+    gap: 8px !important;
+    justify-content: space-between !important;
+  }
+  .coach-bubble {
+    padding: 10px 14px !important;
+  }
+  .coach-avatar-bubble {
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+  }
+  .coach-name {
+    font-size: 0.84rem !important;
+  }
+  .coach-speech-text {
+    font-size: 0.88rem !important;
+    line-height: 1.35 !important;
+  }
 }
 
 /* TABLETS & PANTALLAS MEDIANAS */
@@ -1290,17 +1330,17 @@ body {
   .lesson-modal-card {
     width: 96vw;
     max-width: 96vw;
-    height: auto;
-    max-height: 94vh;
-    padding: 14px 18px;
+    max-height: calc(100dvh - 16px);
+    padding: 12px 16px;
+    overflow-y: auto;
   }
   .lesson-modal-body {
-    grid-template-columns: minmax(320px, 1.1fr) minmax(280px, 1fr);
-    gap: 18px;
+    grid-template-columns: minmax(280px, 1.1fr) minmax(260px, 1fr);
+    gap: 16px;
   }
   .lesson-board-column .chessboard-container {
-    max-width: min(460px, calc(78vh - 120px));
-    padding: 8px;
+    max-width: min(440px, calc(100dvh - 150px));
+    padding: 6px;
   }
 }
 

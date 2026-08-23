@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { familySignaling } from '../engine/familySignaling';
 import { audioManager } from '../engine/audio';
+import { cloudSync } from '../engine/cloudSync';
 
 const UserContext = createContext();
 
@@ -29,7 +30,12 @@ export const DEFAULT_JUNVILL_USERS = [
       eyeStyle: 'happy',
       shirtStyle: 'hoodie',
       shirtColor: '#2563eb',
+      pantsStyle: 'jeans',
+      pantsColor: '#1e3a8a',
+      shoesStyle: 'sneakers',
+      shoesColor: '#ffffff',
       accessory: 'headphones',
+      heldItem: 'pawn_gold',
       background: 'blue_sky'
     },
     title: 'Aprendiz Promesa',
@@ -98,9 +104,14 @@ export const DEFAULT_JUNVILL_USERS = [
       hairStyle: 'messy',
       hairColor: '#27170a',
       eyeStyle: 'wink',
-      shirtStyle: 'tshirt',
+      shirtStyle: 'blazer',
       shirtColor: '#d97706',
+      pantsStyle: 'formal',
+      pantsColor: '#0f172a',
+      shoesStyle: 'oxford',
+      shoesColor: '#d97706',
       accessory: 'headphones',
+      heldItem: 'trophy_cup',
       background: 'parchment_wood'
     },
     title: 'Tutor Familiar',
@@ -173,8 +184,13 @@ export const DEFAULT_JUNVILL_USERS = [
       eyeStyle: 'happy',
       shirtStyle: 'hoodie',
       shirtColor: '#ec4899',
-      accessory: 'none',
-      background: 'parchment_wood'
+      pantsStyle: 'skirt',
+      pantsColor: '#7e22ce',
+      shoesStyle: 'sneakers',
+      shoesColor: '#ffffff',
+      accessory: 'medal',
+      heldItem: 'queen_piece',
+      background: 'royal_castle'
     },
     title: 'Tutora Familiar',
     elo: 550,
@@ -240,8 +256,13 @@ export const DEFAULT_JUNVILL_USERS = [
       eyeStyle: 'happy',
       shirtStyle: 'tshirt',
       shirtColor: '#10b981',
-      accessory: 'cap',
-      background: 'blue_sky'
+      pantsStyle: 'sweatpants',
+      pantsColor: '#0f172a',
+      shoesStyle: 'sneakers',
+      shoesColor: '#dc2626',
+      accessory: 'cap_back',
+      heldItem: 'knight_piece',
+      background: 'cyber_grid'
     },
     title: 'Campeón Junior',
     elo: 500,
@@ -620,6 +641,31 @@ export const UserProvider = ({ children }) => {
     } catch (e) {}
   }, [groups, activeGroupId, unlockedGroupIds, activeUserId]);
 
+  // 7. SINCRONIZACIÓN PERIÓDICA CON LA BASE DE DATOS CENTRAL EN LA NUBE
+  useEffect(() => {
+    const cleanup = cloudSync.startPeriodicSync(
+      () => activeGroup,
+      (updatedCloudGroup) => {
+        if (!updatedCloudGroup || !updatedCloudGroup.id) return;
+        setGroups(prev => {
+          const exists = prev.some(g => g.id === updatedCloudGroup.id);
+          let nextGroups;
+          if (exists) {
+            nextGroups = prev.map(g => g.id === updatedCloudGroup.id ? updatedCloudGroup : g);
+          } else {
+            nextGroups = [...prev, updatedCloudGroup];
+          }
+          try {
+            localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(nextGroups));
+          } catch (e) {}
+          return nextGroups;
+        });
+      },
+      12000
+    );
+    return () => cleanup && cleanup();
+  }, [activeGroupId, activeGroup]);
+
   // Actualizar usuarios dentro del grupo activo (o grupo específico) de forma atómica y síncrona
   const setUsersForActiveGroup = (updater, targetGroupId = null) => {
     const targetId = targetGroupId || activeGroupId || 'group_junvill';
@@ -628,7 +674,10 @@ export const UserProvider = ({ children }) => {
         if (g.id === targetId) {
           const currentUsers = Array.isArray(g.users) ? g.users : [];
           const nextUsers = typeof updater === 'function' ? updater(currentUsers) : updater;
-          return { ...g, users: nextUsers };
+          const updatedG = { ...g, users: nextUsers };
+          // Enviar inmediatamente a la base de datos central en la nube
+          cloudSync.pushGroupToCloud(updatedG, targetId).catch(() => {});
+          return updatedG;
         }
         return g;
       });
