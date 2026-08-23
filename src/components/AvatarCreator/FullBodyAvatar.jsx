@@ -218,16 +218,16 @@ export const FullBodyAvatar = ({
       case 'blazer':
         return (
           <g key="torso">
-            <rect x="62" y="125" width="76" height="78" rx="14" fill={shirtColor} stroke="#0f172a" strokeWidth="1.5" />
-            <polygon points="100,125 90,165 110,165" fill="#f8fafc" />
+            <rect x="62" y="122" width="76" height="80" rx="16" fill={shirtColor} stroke="#0f172a" strokeWidth="1.5" />
+            <polygon points="100,122 90,165 110,165" fill="#f8fafc" />
             <polygon points="100,132 97,150 103,150" fill="#dc2626" />
           </g>
         );
       case 'vest':
         return (
           <g key="torso">
-            <rect x="62" y="125" width="76" height="78" rx="14" fill="#334155" />
-            <polygon points="100,125 80,203 120,203" fill={shirtColor} />
+            <rect x="62" y="122" width="76" height="80" rx="16" fill="#334155" />
+            <polygon points="100,122 80,202 120,202" fill={shirtColor} />
             <circle cx="100" cy="150" r="2.5" fill="#fbbf24" />
             <circle cx="100" cy="165" r="2.5" fill="#fbbf24" />
             <circle cx="100" cy="180" r="2.5" fill="#fbbf24" />
@@ -236,15 +236,15 @@ export const FullBodyAvatar = ({
       case 'royal_robe':
         return (
           <g key="torso">
-            <rect x="58" y="122" width="84" height="82" rx="16" fill={shirtColor} stroke="#d97706" strokeWidth="2.5" />
+            <rect x="58" y="120" width="84" height="84" rx="16" fill={shirtColor} stroke="#d97706" strokeWidth="2.5" />
             <circle cx="100" cy="140" r="6" fill="#f59e0b" stroke="#78350f" strokeWidth="1.5" />
-            <path d="M 75,122 L 100,160 L 125,122" fill="none" stroke="#fbbf24" strokeWidth="3" />
+            <path d="M 75,120 L 100,160 L 125,120" fill="none" stroke="#fbbf24" strokeWidth="3" />
           </g>
         );
       case 'armor':
         return (
           <g key="torso">
-            <rect x="60" y="124" width="80" height="80" rx="14" fill="#94a3b8" stroke="#334155" strokeWidth="2.5" />
+            <rect x="60" y="122" width="80" height="80" rx="14" fill="#94a3b8" stroke="#334155" strokeWidth="2.5" />
             <rect x="76" y="140" width="48" height="42" rx="6" fill="#cbd5e1" stroke="#334155" strokeWidth="1.5" />
             <polygon points="100,148 94,162 106,162" fill="#d97706" />
           </g>
@@ -252,8 +252,8 @@ export const FullBodyAvatar = ({
       case 'cape':
         return (
           <g key="torso">
-            <path d="M 50,128 L 30,240 L 170,240 L 150,128 Z" fill="#dc2626" opacity="0.9" />
-            <rect x="62" y="125" width="76" height="78" rx="14" fill={shirtColor} />
+            <path d="M 50,126 L 30,240 L 170,240 L 150,126 Z" fill="#dc2626" opacity="0.9" />
+            <rect x="62" y="122" width="76" height="80" rx="16" fill={shirtColor} />
             <circle cx="70" cy="130" r="5" fill="#fbbf24" />
             <circle cx="130" cy="130" r="5" fill="#fbbf24" />
           </g>
@@ -263,8 +263,8 @@ export const FullBodyAvatar = ({
       default:
         return (
           <g key="torso">
-            <rect x="62" y="125" width="76" height="78" rx="16" fill={shirtColor} stroke="#0f172a" strokeWidth="1.5" />
-            <path d="M 80,125 Q 100,140 120,125" fill="none" stroke="#ffffff" strokeWidth="4" opacity="0.6" />
+            <rect x="62" y="122" width="76" height="80" rx="16" fill={shirtColor} stroke="#0f172a" strokeWidth="1.5" />
+            <path d="M 78,122 Q 100,138 122,122" fill="none" stroke="#ffffff" strokeWidth="4" opacity="0.6" />
             <circle cx="100" cy="155" r="13" fill="#ffffff" opacity="0.9" />
             <polygon points="100,146 95,158 105,158" fill="#fbbf24" stroke="#d97706" strokeWidth="1" />
             <line x1="97" y1="162" x2="103" y2="162" stroke="#d97706" strokeWidth="2" />
@@ -279,35 +279,35 @@ export const FullBodyAvatar = ({
       case 'knight_piece':
         return (
           <g key="item">
-            <path d="M 136,155 Q 142,150 148,155 Q 150,163 144,168 L 150,178 L 134,178 Z" fill="#38bdf8" stroke="#0284c7" strokeWidth="1" />
-            <circle cx="140" cy="158" r="1.5" fill="#ffffff" />
+            <path d="M 139,152 Q 145,147 151,152 Q 153,160 147,165 L 153,175 L 137,175 Z" fill="#38bdf8" stroke="#0284c7" strokeWidth="1" />
+            <circle cx="143" cy="155" r="1.5" fill="#ffffff" />
           </g>
         );
       case 'queen_piece':
         return (
           <g key="item">
-            <polygon points="142,152 134,168 150,168" fill="#a855f7" stroke="#6b21a8" strokeWidth="1.5" />
-            <circle cx="137" cy="152" r="2" fill="#fde047" />
-            <circle cx="142" cy="150" r="2" fill="#fde047" />
-            <circle cx="147" cy="152" r="2" fill="#fde047" />
+            <polygon points="142,150 134,166 150,166" fill="#a855f7" stroke="#6b21a8" strokeWidth="1.5" />
+            <circle cx="137" cy="150" r="2" fill="#fde047" />
+            <circle cx="142" cy="148" r="2" fill="#fde047" />
+            <circle cx="147" cy="150" r="2" fill="#fde047" />
           </g>
         );
       case 'trophy_cup':
         return (
           <g key="item">
-            <polygon points="142,154 135,166 149,166" fill="#fbbf24" stroke="#b45309" strokeWidth="1.5" />
-            <rect x="139" y="166" width="6" height="8" fill="#d97706" />
-            <rect x="135" y="174" width="14" height="4" rx="1" fill="#78350f" />
-            <path d="M 134,158 Q 130,162 134,166" fill="none" stroke="#fbbf24" strokeWidth="1.5" />
-            <path d="M 150,158 Q 154,162 150,166" fill="none" stroke="#fbbf24" strokeWidth="1.5" />
+            <polygon points="142,152 135,164 149,164" fill="#fbbf24" stroke="#b45309" strokeWidth="1.5" />
+            <rect x="139" y="164" width="6" height="8" fill="#d97706" />
+            <rect x="135" y="172" width="14" height="4" rx="1" fill="#78350f" />
+            <path d="M 134,156 Q 130,160 134,164" fill="none" stroke="#fbbf24" strokeWidth="1.5" />
+            <path d="M 150,156 Q 154,160 150,164" fill="none" stroke="#fbbf24" strokeWidth="1.5" />
           </g>
         );
       case 'pawn_gold':
       default:
         return (
           <g key="item">
-            <polygon points="142,156 136,168 148,168" fill="#fbbf24" stroke="#b45309" strokeWidth="1.5" />
-            <circle cx="142" cy="154" r="3" fill="#fef08a" />
+            <polygon points="142,154 136,166 148,166" fill="#fbbf24" stroke="#b45309" strokeWidth="1.5" />
+            <circle cx="142" cy="152" r="3" fill="#fef08a" />
           </g>
         );
     }
@@ -340,13 +340,15 @@ export const FullBodyAvatar = ({
           {renderShoes()}
         </g>
 
-        {/* 2. Torso y Vestimenta Superior */}
+        {/* 2. Cuello y Torso */}
         <g className="avatar-torso">
+          {/* Cuello anatómico integrado que conecta la barbilla (y=98) al interior de la camiseta (y=135) */}
+          <rect x="90" y="98" width="20" height="36" rx="5" fill={skin} />
           {renderTorso()}
         </g>
 
-        {/* 3. Cabeza, Rostro, Cabello, Accesorios y Cuello Anatómico */}
-        <g className="avatar-head" transform="translate(100, 96) scale(1.35) translate(-50, -52)">
+        {/* 3. Cabeza, Rostro, Cabello y Accesorios (Proporción y Escala Perfectas) */}
+        <g className="avatar-head" transform="translate(100, 88) scale(1.70) translate(-50, -52)">
           {renderAvatarFace(cfg)}
           {renderAvatarHair(cfg)}
           {renderAvatarAccessory(cfg)}
@@ -354,11 +356,11 @@ export const FullBodyAvatar = ({
 
         {/* 4. Brazos y Objeto en Mano */}
         <g className="avatar-arms">
-          <path d="M 64,135 Q 40,160 55,185" fill="none" stroke={shirtColor} strokeWidth="14" strokeLinecap="round" />
-          <circle cx="55" cy="185" r="8" fill={skin} />
+          <path d="M 64,132 Q 38,155 52,180" fill="none" stroke={shirtColor} strokeWidth="14" strokeLinecap="round" />
+          <circle cx="52" cy="180" r="8" fill={skin} />
 
-          <path d="M 136,135 Q 155,155 142,175" fill="none" stroke={shirtColor} strokeWidth="14" strokeLinecap="round" />
-          <circle cx="142" cy="175" r="8" fill={skin} />
+          <path d="M 136,132 Q 158,150 145,172" fill="none" stroke={shirtColor} strokeWidth="14" strokeLinecap="round" />
+          <circle cx="145" cy="172" r="8" fill={skin} />
           {renderHeldItem()}
         </g>
       </svg>
