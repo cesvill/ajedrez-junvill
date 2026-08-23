@@ -45,6 +45,13 @@ export const QUICK_EMOTES = ['👏', '🤝', '♟️', '👑', '🧠', '🏆', '
 
 export const SafeChat = ({ onSendMessage, messages = [], activeReaction = null }) => {
   const [selectedCategory, setSelectedCategory] = useState(0);
+  const messagesEndRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [messages]);
 
   return (
     <div style={{
@@ -104,7 +111,7 @@ export const SafeChat = ({ onSendMessage, messages = [], activeReaction = null }
         </div>
       </div>
 
-      {/* HISTORIAL DE MENSAJES RECIBIDOS Y ENVIADOS */}
+      {/* HISTORIAL DE MENSAJES RECIBIDOS Y ENVIADOS (CON AUTO-SCROLL AL ÚLTIMO) */}
       <div style={{
         background: 'var(--bg-parchment)',
         borderRadius: 'var(--radius-sm)',
@@ -114,7 +121,8 @@ export const SafeChat = ({ onSendMessage, messages = [], activeReaction = null }
         display: 'flex',
         flexDirection: 'column',
         gap: '6px',
-        border: '1px solid var(--bg-parchment-border)'
+        border: '1px solid var(--bg-parchment-border)',
+        scrollBehavior: 'smooth'
       }}>
         {messages.length === 0 ? (
           <div style={{ fontSize: '0.78rem', color: 'var(--text-parchment-muted)', textAlign: 'center', fontStyle: 'italic', padding: '12px 0' }}>
@@ -151,6 +159,7 @@ export const SafeChat = ({ onSendMessage, messages = [], activeReaction = null }
             );
           })
         )}
+        <div ref={messagesEndRef} style={{ height: '1px' }} />
       </div>
 
       {/* CATEGORÍAS DE FRASES PREESTABLECIDAS */}

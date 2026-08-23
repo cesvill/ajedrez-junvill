@@ -432,6 +432,21 @@ export const UserProvider = ({ children }) => {
       (incomingInvitation) => {
         if (!incomingInvitation) return;
         try { audioManager.playVictory(); } catch (e) {}
+
+        // Verificar si yo ya le había enviado un reto a ese mismo usuario (Reto mutuo simultáneo)
+        const myPendingToOpponent = familyInvitations.find(inv =>
+          inv.status === 'pending' &&
+          (inv.fromUser?.id === currentUser.id || (inv.fromUser?.name || '').toLowerCase() === (currentUser.name || '').toLowerCase()) &&
+          (inv.toUserId === incomingInvitation.fromUser?.id || (inv.toUserName || '').toLowerCase() === (incomingInvitation.fromUser?.name || '').toLowerCase())
+        );
+
+        if (myPendingToOpponent) {
+          // Ambos se retaron: notificar emparejamiento directo para iniciar la partida de inmediato
+          window.dispatchEvent(new CustomEvent('junvill_mutual_match', {
+            detail: { roomId: incomingInvitation.roomId, opponent: incomingInvitation.fromUser }
+          }));
+        }
+
         setFamilyInvitations(prev => {
           const filtered = prev.filter(i => i.id !== incomingInvitation.id && i.roomId !== incomingInvitation.roomId);
           const updated = [incomingInvitation, ...filtered];
@@ -449,7 +464,7 @@ export const UserProvider = ({ children }) => {
         }
       }
     );
-  }, [currentUser?.id]);
+  }, [currentUser?.id, familyInvitations]);
 
   // 6. PARTIDA FAMILIAR P2P EN CURSO
   const ONGOING_P2P_KEY = `junvill_ongoing_p2p_game_v1_${currentUser?.id || 'default'}`;
@@ -497,9 +512,26 @@ export const UserProvider = ({ children }) => {
     return inv.status === 'pending' && (inv.fromUser?.id === currentUser?.id || (inv.fromUser?.name || '').toLowerCase() === (currentUser?.name || '').toLowerCase());
   });
 
-  // Enviar / Crear Reto Familiar
+  // Enviar / Crear Reto Familiar (con Detección de Reto Mutuo)
   const sendFamilyInvitation = (toUser, timeControl = 300, withAssistance = true, customRoomId = null) => {
     if (!currentUser || !toUser) return null;
+
+    // 1. DETECCIÓN DE RETO MUTUO: Si el otro usuario ya te envió una invitación pendiente
+    const existingOpponentInvitation = familyInvitations.find(inv => 
+      inv.status === 'pending' && 
+      (inv.fromUser?.id === toUser.id || (inv.fromUser?.name || '').toLowerCase() === (toUser.name || '').toLowerCase()) &&
+      (inv.toUserId === currentUser.id || (inv.toUserName || '').toLowerCase() === (currentUser.name || '').toLowerCase())
+    );
+
+    if (existingOpponentInvitation) {
+      // ¡Emparejamiento mutuo inmediato! Aceptar la sala existente del rival
+      acceptFamilyInvitation(existingOpponentInvitation.id);
+      return {
+        ...existingOpponentInvitation,
+        isMutualMatch: true
+      };
+    }
+
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let randCode = '';
     for (let i = 0; i < 4; i++) {

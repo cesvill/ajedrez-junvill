@@ -80,7 +80,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
 
   // Opciones de partida
   const [timeControl, setTimeControl] = useState(300); // 300 seg (5 min)
-  const [assignedColor, setAssignedColor] = useState('white'); // 'white' | 'black'
+  const [assignedColor, setAssignedColor] = useState('random'); // 'random' (50/50 al azar por defecto) | 'white' | 'black'
   const [withAssistance, setWithAssistance] = useState(false); // Modo Clásico Puro sin ayudas por defecto
   const [whiteTime, setWhiteTime] = useState(300);
   const [blackTime, setBlackTime] = useState(300);
@@ -108,6 +108,20 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
   const [selectedFamilyOpponent, setSelectedFamilyOpponent] = useState(null);
 
   const p2pRef = useRef(null);
+
+  // Escuchar emparejamiento mutuo entre dos familiares que se retaron al tiempo
+  useEffect(() => {
+    const handleMutualMatch = (e) => {
+      if (e.detail?.roomId) {
+        setStatusMessage(`¡Reto mutuo establecido con ${e.detail.opponent?.name || 'familiar'}! Conectando partida...`);
+        setRoomId(e.detail.roomId);
+        setInputRoomId(e.detail.roomId);
+        handleJoinSubmit(e.detail.roomId);
+      }
+    };
+    window.addEventListener('junvill_mutual_match', handleMutualMatch);
+    return () => window.removeEventListener('junvill_mutual_match', handleMutualMatch);
+  }, []);
 
   // Iniciar P2P Engine
   useEffect(() => {
@@ -144,19 +158,29 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
         setStatusMessage('¡Rival conectado! Iniciando partida...');
         setMode('playing');
 
-        // Sincronizar perfiles
-        p2p.send({
-          type: 'PROFILE_SYNC',
-          profile: {
-            name: currentUser?.name || 'Jugador Junvill',
-            avatar: currentUser?.avatar || 'teen_gamer',
-            avatarConfig: currentUser?.avatarConfig,
-            elo: currentUser?.elo || 600,
-            color: isHost ? (assignedColor === 'white' ? 'black' : 'white') : assignedColor,
-            timeControl,
-            withAssistance
+        // Asignación de colores justa: Si está en 'random', sortear 50/50
+        let myFinalColor = assignedColor;
+        if (isHost) {
+          if (assignedColor === 'random' || !assignedColor) {
+            myFinalColor = Math.random() < 0.5 ? 'white' : 'black';
+            setAssignedColor(myFinalColor);
           }
-        });
+          const guestFinalColor = myFinalColor === 'white' ? 'black' : 'white';
+
+          // Sincronizar perfiles y color asignado al rival
+          p2p.send({
+            type: 'PROFILE_SYNC',
+            profile: {
+              name: currentUser?.name || 'Jugador Junvill',
+              avatar: currentUser?.avatar || 'teen_gamer',
+              avatarConfig: currentUser?.avatarConfig,
+              elo: currentUser?.elo || 600,
+              color: guestFinalColor,
+              timeControl,
+              withAssistance
+            }
+          });
+        }
       }
     });
 
@@ -593,16 +617,21 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
     });
   };
 
-  // Reto Familiar Directo (1 Clic)
+  // Reto Familiar Directo (1 Clic con detección de Reto Mutuo)
   const handleStartFamilyChallenge = (targetUser) => {
     setSelectedFamilyOpponent(targetUser);
-    const newRoom = P2PEngine.generateRoomId();
-    setGeneratedRoomId(newRoom);
-    setRoomId(newRoom);
-    if (sendFamilyInvitation) {
-      sendFamilyInvitation(targetUser, timeControl, withAssistance, newRoom);
+    const result = sendFamilyInvitation ? sendFamilyInvitation(targetUser, timeControl, withAssistance) : null;
+    if (result && result.isMutualMatch) {
+      setStatusMessage(`¡${targetUser.name} y tú se retaron mutuamente! Conectando partida de inmediato...`);
+      setRoomId(result.roomId);
+      setInputRoomId(result.roomId);
+      handleJoinSubmit(result.roomId);
+    } else {
+      const newRoom = result?.roomId || generatedRoomId;
+      setGeneratedRoomId(newRoom);
+      setRoomId(newRoom);
+      handleCreateHost(newRoom);
     }
-    handleCreateHost(newRoom);
   };
 
   // Copiar Enlace Directo
@@ -1026,12 +1055,30 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
                   </div>
 
                   {/* Configuración de Bando y Reloj */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '8px' }}>
                     <div>
                       <label style={{ fontSize: '0.76rem', fontWeight: '800', color: '#e2e8f0', display: 'block', marginBottom: '4px' }}>
                         Juegas con:
                       </label>
-                      <div style={{ display: 'flex', gap: '4px' }}>
+                      <div style={{ display: 'flex', gap: '3px' }}>
+                        <button
+                          type="button"
+                          onClick={() => setAssignedColor('random')}
+                          disabled={isHostActive}
+                          style={{
+                            flex: 1,
+                            background: assignedColor === 'random' ? '#f59e0b' : 'rgba(255,255,255,0.06)',
+                            color: assignedColor === 'random' ? '#000' : '#fff',
+                            border: 'none',
+                            borderRadius: '6px',
+                            padding: '6px 2px',
+                            fontSize: '0.72rem',
+                            fontWeight: '800'
+                          }}
+                          title="Sortear color al azar (50% Blancas / 50% Negras)"
+                        >
+                          🎲 Azar
+                        </button>
                         <button
                           type="button"
                           onClick={() => setAssignedColor('white')}
@@ -1042,12 +1089,12 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
                             color: assignedColor === 'white' ? '#000' : '#fff',
                             border: 'none',
                             borderRadius: '6px',
-                            padding: '6px 4px',
-                            fontSize: '0.78rem',
+                            padding: '6px 2px',
+                            fontSize: '0.72rem',
                             fontWeight: '800'
                           }}
                         >
-                          ⚪ Blancas
+                          ⚪
                         </button>
                         <button
                           type="button"
@@ -1059,12 +1106,12 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
                             color: assignedColor === 'black' ? '#000' : '#fff',
                             border: 'none',
                             borderRadius: '6px',
-                            padding: '6px 4px',
-                            fontSize: '0.78rem',
+                            padding: '6px 2px',
+                            fontSize: '0.72rem',
                             fontWeight: '800'
                           }}
                         >
-                          ⚫ Negras
+                          ⚫
                         </button>
                       </div>
                     </div>
