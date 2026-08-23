@@ -941,14 +941,14 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_5",
-            "fen": "r1bqk2r/ppp2ppp/4p3/3p4/2B1N3/8/PPP2PPP/R1BQK2R b KQkq - 0 1",
-            "instruction": "Paso 5: Juegas con negras. Avanza tu peón de d5 a d4 para hacer una horquilla protegida por e6, atacando al Alfil en c4 y al Caballo en e4.",
+            "fen": "r1bqk2r/ppp2ppp/3pp3/8/2B1N3/8/PPP2PPP/R1BQK2R b KQkq - 0 1",
+            "instruction": "Paso 5: Juegas con negras. Avanza tu peón de d6 a d5 (con apoyo de e6) para hacer una horquilla al Alfil en c4 y al Caballo en e4.",
             "solution": {
-              "from": "d5",
-              "to": "d4"
+              "from": "d6",
+              "to": "d5"
             },
-            "hint": "Avanza tu peón negro a d4 para atacar ambas piezas blancas.",
-            "feedback": "¡Horquilla de peón ejecutada con negras! Has dominado el ataque doble con peones a la perfección."
+            "hint": "Avanza tu peón negro de d6 a d5 para amenazar simultáneamente al alfil en c4 y al caballo en e4.",
+            "feedback": "¡Horquilla de peón magistral con negras! El peón en d5 ataca al alfil de c4 y al caballo de e4 a la vez, y está protegido por el peón de e6."
           }
         ]
       },
@@ -1079,10 +1079,10 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_5",
-            "fen": "4k3/Q7/4K3/8/8/8/8/8 w - - 0 1",
-            "instruction": "Paso 5: Asesta el Jaque Mate definitivo (el Beso de la Muerte) con tu Dama en e7 defendida por tu Rey.",
+            "fen": "4k3/8/3QK3/8/8/8/8/8 w - - 0 1",
+            "instruction": "Paso 5: Asesta el Jaque Mate definitivo con tu Dama en e7 defendida por tu Rey en e6.",
             "solution": {
-              "from": "a7",
+              "from": "d6",
               "to": "e7"
             },
             "hint": "Mueve tu dama a e7 dando mate.",
