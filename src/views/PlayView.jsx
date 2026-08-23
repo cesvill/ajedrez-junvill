@@ -37,7 +37,7 @@ export const PlayView = ({
   onExitMatch,
   onOpenBugReport 
 }) => {
-  const { currentUser, updateCurrentUser, recordGameResult, recordBotWin, pendingInvitationsForMe, acceptFamilyInvitation, declineFamilyInvitation } = useUser();
+  const { currentUser, updateCurrentUser, recordGameResult, recordBotWin, pendingInvitationsForMe, acceptFamilyInvitation, declineFamilyInvitation, activeP2PGame, clearActiveP2PGame } = useUser();
   const [isPauseMenuOpen, setIsPauseMenuOpen] = useState(false);
   const [isVariantRulesOpen, setIsVariantRulesOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);

@@ -85,6 +85,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
   const [whiteTime, setWhiteTime] = useState(300);
   const [blackTime, setBlackTime] = useState(300);
   const [isP2PPaused, setIsP2PPaused] = useState(false);
+  const [isInterrupted, setIsInterrupted] = useState(false);
 
   // Configuración de Hándicap
   const [handicapConfig, setHandicapConfig] = useState(DEFAULT_HANDICAP_CONFIG);
@@ -159,28 +160,67 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
         setStatusMessage('¡Rival conectado! Iniciando partida...');
         setMode('playing');
 
-        // Asignación de colores justa: Si está en 'random', sortear 50/50
-        let myFinalColor = assignedColor;
-        if (isHost) {
-          if (assignedColor === 'random' || !assignedColor) {
-            myFinalColor = Math.random() < 0.5 ? 'white' : 'black';
-            setAssignedColor(myFinalColor);
-          }
-          const guestFinalColor = myFinalColor === 'white' ? 'black' : 'white';
+        setIsInterrupted(false);
+        // Verificar si es una partida en progreso que se está reanudando
+        const cleanRoom = P2PEngine.cleanRoomId(roomId || initialRoomId);
+        let savedMatch = null;
+        try {
+          const raw = localStorage.getItem(`junvill_p2p_room_${cleanRoom}`);
+          if (raw) savedMatch = JSON.parse(raw);
+        } catch (e) {}
+        if (!savedMatch && activeP2PGame && P2PEngine.cleanRoomId(activeP2PGame.roomId) === cleanRoom) {
+          savedMatch = activeP2PGame;
+        }
 
-          // Sincronizar perfiles y color asignado al rival
-          p2p.send({
-            type: 'PROFILE_SYNC',
-            profile: {
-              name: currentUser?.name || 'Jugador Junvill',
-              avatar: currentUser?.avatar || 'teen_gamer',
-              avatarConfig: currentUser?.avatarConfig,
-              elo: currentUser?.elo || 600,
-              color: guestFinalColor,
-              timeControl,
-              withAssistance
+        const isResuming = (game && game.history().length > 0) || (savedMatch && savedMatch.fen && savedMatch.fen !== 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+
+        if (isHost) {
+          if (isResuming && savedMatch) {
+            // Reanudar partida existente
+            const hostColor = savedMatch.assignedColor || assignedColor || 'white';
+            const guestColor = hostColor === 'white' ? 'black' : 'white';
+            setAssignedColor(hostColor);
+            setIsP2PPaused(true);
+            p2p.send({
+              type: 'MATCH_RESUME_SYNC',
+              profile: {
+                name: currentUser?.name || 'Jugador Junvill',
+                avatar: currentUser?.avatar || 'teen_gamer',
+                avatarConfig: currentUser?.avatarConfig,
+                elo: currentUser?.elo || 600
+              },
+              fen: savedMatch.fen || game.fen(),
+              whiteTime: savedMatch.whiteTime ?? whiteTime,
+              blackTime: savedMatch.blackTime ?? blackTime,
+              timeControl: savedMatch.timeControl || timeControl,
+              assignedColor: guestColor,
+              lastMove: savedMatch.lastMove || lastMove,
+              withAssistance: savedMatch.withAssistance !== undefined ? savedMatch.withAssistance : withAssistance,
+              isPaused: true
+            });
+            setStatusMessage('✅ ¡Rival conectado! Partida reanudada en pausa. Haz clic en "▶ Reanudar" para continuar.');
+          } else {
+            // Partida nueva
+            let myFinalColor = assignedColor;
+            if (assignedColor === 'random' || !assignedColor) {
+              myFinalColor = Math.random() < 0.5 ? 'white' : 'black';
+              setAssignedColor(myFinalColor);
             }
-          });
+            const guestFinalColor = myFinalColor === 'white' ? 'black' : 'white';
+
+            p2p.send({
+              type: 'PROFILE_SYNC',
+              profile: {
+                name: currentUser?.name || 'Jugador Junvill',
+                avatar: currentUser?.avatar || 'teen_gamer',
+                avatarConfig: currentUser?.avatarConfig,
+                elo: currentUser?.elo || 600,
+                color: guestFinalColor,
+                timeControl,
+                withAssistance
+              }
+            });
+          }
         }
       }
     });
@@ -222,8 +262,33 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
         setStatusMessage('La transmisión de la partida ha finalizado.');
         setErrorMessage('La partida que estabas viendo terminó o se desconectó.');
       } else {
-        setStatusMessage('El rival se ha desconectado.');
-        setErrorMessage('El rival ha abandonado la partida.');
+        setIsP2PPaused(true);
+        setIsInterrupted(true);
+        setStatusMessage('⚠️ Conexión pausada por corte de red o recarga. La posición y los relojes están 100% guardados.');
+        setErrorMessage('Conexión con el rival pausada. Esperando reconexión...');
+        audioManager?.playWarning?.();
+
+        // Guardar estado pausado inmediatamente
+        const cleanRoom = P2PEngine.cleanRoomId(roomId || initialRoomId || generatedRoomId);
+        const matchPayload = {
+          type: 'p2p',
+          roomId: cleanRoom,
+          opponent: opponentProfile,
+          fen: game.fen(),
+          assignedColor,
+          timeControl,
+          whiteTime,
+          blackTime,
+          lastMove,
+          turn: game.turn(),
+          isPaused: true,
+          interrupted: true,
+          updatedAt: Date.now()
+        };
+        try {
+          localStorage.setItem(`junvill_p2p_room_${cleanRoom}`, JSON.stringify(matchPayload));
+          if (saveActiveP2PGame) saveActiveP2PGame(matchPayload);
+        } catch (e) {}
       }
     });
 
@@ -248,7 +313,47 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
 
   // Manejo de datos entrantes desde el par WebRTC
   const handleIncomingData = (data) => {
-    if (data.type === 'PROFILE_SYNC') {
+    if (data.type === 'MATCH_RESUME_SYNC') {
+      try {
+        const loadedG = new Chess(data.fen);
+        setGame(loadedG);
+        setLastMove(data.lastMove || null);
+        setWhiteTime(data.whiteTime ?? data.timeControl ?? 300);
+        setBlackTime(data.blackTime ?? data.timeControl ?? 300);
+        setTimeControl(data.timeControl ?? 300);
+        setAssignedColor(data.assignedColor || 'black');
+        if (data.profile) setOpponentProfile(data.profile);
+        if (data.withAssistance !== undefined) setWithAssistance(data.withAssistance);
+        setIsP2PPaused(true);
+        setIsInterrupted(false);
+        setMode('playing');
+        setErrorMessage('');
+        setStatusMessage('✅ ¡Partida reanudada con éxito! Relojes en pausa. Presiona "▶ Reanudar" para continuar.');
+        audioManager?.playVictory?.();
+
+        const cleanRoom = P2PEngine.cleanRoomId(roomId || inputRoomId || initialRoomId);
+        const matchPayload = {
+          type: 'p2p',
+          roomId: cleanRoom,
+          opponent: data.profile || opponentProfile,
+          fen: data.fen,
+          assignedColor: data.assignedColor || 'black',
+          timeControl: data.timeControl ?? 300,
+          whiteTime: data.whiteTime,
+          blackTime: data.blackTime,
+          lastMove: data.lastMove,
+          turn: loadedG.turn(),
+          isPaused: true,
+          updatedAt: Date.now()
+        };
+        try {
+          localStorage.setItem(`junvill_p2p_room_${cleanRoom}`, JSON.stringify(matchPayload));
+          if (saveActiveP2PGame) saveActiveP2PGame(matchPayload);
+        } catch (e) {}
+      } catch (err) {
+        console.error('Error restaurando partida:', err);
+      }
+    } else if (data.type === 'PROFILE_SYNC') {
       setOpponentProfile(data.profile);
       if (data.profile.withAssistance !== undefined) {
         setWithAssistance(data.profile.withAssistance);
@@ -633,6 +738,26 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
     setErrorMessage('');
     const idToUse = targetRoom || generatedRoomId;
     const cleanId = P2PEngine.cleanRoomId(idToUse);
+    setRoomId(cleanId);
+
+    // Pre-cargar estado guardado si existe
+    try {
+      const rawSaved = localStorage.getItem(`junvill_p2p_room_${cleanId}`);
+      if (rawSaved) {
+        const parsed = JSON.parse(rawSaved);
+        if (parsed.fen) {
+          setGame(new Chess(parsed.fen));
+          if (parsed.whiteTime !== undefined) setWhiteTime(parsed.whiteTime);
+          if (parsed.blackTime !== undefined) setBlackTime(parsed.blackTime);
+          if (parsed.timeControl) setTimeControl(parsed.timeControl);
+          if (parsed.assignedColor) setAssignedColor(parsed.assignedColor);
+          if (parsed.lastMove) setLastMove(parsed.lastMove);
+          if (parsed.opponent) setOpponentProfile(parsed.opponent);
+          setIsP2PPaused(true);
+        }
+      }
+    } catch (e) {}
+
     p2pRef.current?.initHost(cleanId);
   };
 
@@ -644,6 +769,27 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
       setErrorMessage('Por favor escribe un código de sala válido.');
       return;
     }
+    setRoomId(cleanCode);
+    setInputRoomId(cleanCode);
+
+    // Pre-cargar estado guardado si existe
+    try {
+      const rawSaved = localStorage.getItem(`junvill_p2p_room_${cleanCode}`);
+      if (rawSaved) {
+        const parsed = JSON.parse(rawSaved);
+        if (parsed.fen) {
+          setGame(new Chess(parsed.fen));
+          if (parsed.whiteTime !== undefined) setWhiteTime(parsed.whiteTime);
+          if (parsed.blackTime !== undefined) setBlackTime(parsed.blackTime);
+          if (parsed.timeControl) setTimeControl(parsed.timeControl);
+          if (parsed.assignedColor) setAssignedColor(parsed.assignedColor);
+          if (parsed.lastMove) setLastMove(parsed.lastMove);
+          if (parsed.opponent) setOpponentProfile(parsed.opponent);
+          setIsP2PPaused(true);
+        }
+      }
+    } catch (e) {}
+
     setIsConnecting(true);
     setErrorMessage('');
     p2pRef.current?.joinRoom(cleanCode, {
@@ -845,6 +991,63 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
         {/* ========================================================= */}
         {mode === 'lobby' && (
           <div>
+            {/* TARJETA DE PARTIDA P2P GUARDADA / EN PAUSA */}
+            {activeP2PGame && activeP2PGame.type === 'p2p' && (
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.22) 0%, rgba(59, 130, 246, 0.18) 100%)',
+                border: '2px solid var(--color-gold)',
+                borderRadius: '12px',
+                padding: '14px 18px',
+                marginBottom: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px',
+                boxShadow: '0 4px 20px rgba(234, 179, 8, 0.25)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '2rem' }}>⏸️</span>
+                  <div>
+                    <div style={{ fontWeight: '900', fontSize: '1.05rem', color: '#facc15' }}>
+                      Partida P2P en Pausa vs {activeP2PGame.opponent?.name || 'Familiar'}
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: '#cbd5e1', marginTop: '2px' }}>
+                      Sala: <b style={{ color: '#60a5fa', fontFamily: 'monospace', letterSpacing: '1px' }}>{activeP2PGame.roomId}</b> • Relojes guardados ({Math.floor((activeP2PGame.whiteTime || 300)/60)}:{String((activeP2PGame.whiteTime || 300)%60).padStart(2, '0')} / {Math.floor((activeP2PGame.blackTime || 300)/60)}:{String((activeP2PGame.blackTime || 300)%60).padStart(2, '0')})
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    className="btn-gold"
+                    onClick={() => {
+                      setInputRoomId(activeP2PGame.roomId);
+                      setRoomId(activeP2PGame.roomId);
+                      handleJoinSubmit(activeP2PGame.roomId);
+                    }}
+                    style={{ padding: '9px 18px', fontSize: '0.88rem', fontWeight: '900', gap: '6px' }}
+                  >
+                    <Play size={16} />
+                    <span>▶ Reanudar Partida</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => {
+                      if (window.confirm('¿Deseas descartar y eliminar esta partida guardada?')) {
+                        clearActiveP2PGame();
+                      }
+                    }}
+                    style={{ padding: '9px 12px', fontSize: '0.80rem' }}
+                    title="Descartar partida"
+                  >
+                    <Trash2 size={15} />
+                    <span>Descartar</span>
+                  </button>
+                </div>
+              </div>
+            )}
             {/* SELECTOR DE PESTAÑAS DEL LOBBY */}
             <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
               <button
@@ -1364,6 +1567,69 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px', alignItems: 'start' }}>
             {/* LADO IZQUIERDO: TABLERO DE AJEDREZ */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', position: 'relative' }}>
+              {/* Banner de Pausa / Interrupción de Red */}
+              {(isInterrupted || (isP2PPaused && mode === 'playing')) && (
+                <div style={{
+                  background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.22) 0%, rgba(59, 130, 246, 0.18) 100%)',
+                  border: '2px solid var(--color-gold)',
+                  borderRadius: '10px',
+                  padding: '10px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '10px',
+                  boxShadow: '0 4px 14px rgba(0,0,0,0.3)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '1.4rem' }}>{isInterrupted ? '⚠️' : '⏸️'}</span>
+                    <div>
+                      <div style={{ fontWeight: '900', fontSize: '0.88rem', color: '#facc15' }}>
+                        {isInterrupted ? 'Partida Pausada por Interrupción de Red' : 'Partida en Pausa'}
+                      </div>
+                      <div style={{ fontSize: '0.74rem', color: '#cbd5e1' }}>
+                        {isInterrupted 
+                          ? 'Posición y relojes guardados. Haz clic en Reconectar cuando tu rival esté listo.' 
+                          : 'Los relojes están detenidos. Haz clic en Reanudar para continuar.'}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    {isInterrupted ? (
+                      <button
+                        type="button"
+                        className="btn-gold"
+                        onClick={() => {
+                          handleJoinSubmit(roomId || initialRoomId);
+                        }}
+                        style={{ padding: '6px 12px', fontSize: '0.80rem', fontWeight: '900', gap: '4px' }}
+                      >
+                        <RotateCcw size={14} />
+                        <span>🔄 Reconectar</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn-gold"
+                        onClick={handleTogglePauseP2P}
+                        style={{ padding: '6px 12px', fontSize: '0.80rem', fontWeight: '900', gap: '4px' }}
+                      >
+                        <Play size={14} />
+                        <span>▶ Reanudar</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={handlePauseAndExitP2P}
+                      style={{ padding: '6px 10px', fontSize: '0.76rem' }}
+                    >
+                      <Save size={13} />
+                      <span>Guardar y Salir</span>
+                    </button>
+                  </div>
+                </div>
+              )}
               {/* Notificación de Modo Espectador */}
               {mode === 'spectating' && (
                 <div style={{
