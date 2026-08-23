@@ -54,10 +54,15 @@ export const App = () => {
   const [isCertificatesOpen, setIsCertificatesOpen] = useState(false);
   const [isPgnOpen, setIsPgnOpen] = useState(false);
   const [isP2POpen, setIsP2POpen] = useState(false);
-  const [isBugReportOpen, setIsBugReportOpen] = useState(false);
   const [isFamilyChatOpen, setIsFamilyChatOpen] = useState(false);
+  const [chatTargetUser, setChatTargetUser] = useState(null);
   const [bugReportContext, setBugReportContext] = useState({});
   const [urlRoomId, setUrlRoomId] = useState('');
+
+  const handleOpenFamilyChat = (target = null) => {
+    setChatTargetUser(target || null);
+    setIsFamilyChatOpen(true);
+  };
 
   // Sincronizar estado inicial desde la URL (Deep Linking al cargar la página o al navegar con botones del navegador)
   const applyUrlState = useCallback(() => {
@@ -177,7 +182,7 @@ export const App = () => {
       {/* Cabecera Principal */}
       <Header
         activeTab={activeTab}
-        onOpenFamilyChat={() => setIsFamilyChatOpen(true)}
+        onOpenFamilyChat={() => handleOpenFamilyChat()}
         onTabChange={handleTabChange}
         onOpenProfile={() => setIsProfileModalOpen(true)}
         onOpenGatekeeper={() => setIsGatekeeperOpen(true)}
@@ -244,7 +249,7 @@ export const App = () => {
             onOpenRobots={() => handleTabChange('robots')}
             onExitToMenu={() => handleTabChange('inicio')}
             onOpenBugReport={handleOpenBugReport}
-            onOpenFamilyChat={() => setIsFamilyChatOpen(true)}
+            onOpenFamilyChat={(user) => handleOpenFamilyChat(user)}
           />
         )}
 
@@ -342,6 +347,23 @@ export const App = () => {
           initialRoomId={urlRoomId}
         />
       )}
+
+      {/* Drawer de Chat Familiar en Tiempo Real */}
+      <FamilyChatDrawer
+        isOpen={isFamilyChatOpen}
+        onClose={() => {
+          setIsFamilyChatOpen(false);
+          setChatTargetUser(null);
+        }}
+        targetUser={chatTargetUser}
+        onOpenChallenge={(target) => {
+          setIsFamilyChatOpen(false);
+          if (target) {
+            setUrlRoomId(null);
+            setIsP2POpen(true);
+          }
+        }}
+      />
 
       {isFamilyChallengesOpen && (
         <FamilyChallengesModal

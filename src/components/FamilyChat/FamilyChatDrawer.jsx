@@ -72,13 +72,20 @@ export const FamilyChatDrawer = ({
 
   if (!isOpen) return null;
 
-  const otherFamilyMembers = users.filter(u => u.id !== currentUser?.id);
-  const activeOpponent = users.find(u => u.id === activeChatUserId) || otherFamilyMembers[0];
+  const otherFamilyMembers = (users && users.length > 1)
+    ? users.filter(u => u.id !== currentUser?.id)
+    : [
+        { id: 'user_cesar', name: 'César', role: 'parent', title: 'Tutor Familiar', elo: 762 },
+        { id: 'user_leti', name: 'Leti', role: 'student', title: 'Campeón Junior', elo: 800 },
+        { id: 'user_martin', name: 'Martin', role: 'student', title: 'Campeón Junior', elo: 1495 }
+      ].filter(u => u.id !== currentUser?.id);
+
+  const activeOpponent = (users || []).find(u => u.id === activeChatUserId) || otherFamilyMembers.find(u => u.id === activeChatUserId) || otherFamilyMembers[0];
 
   // Filtrar mensajes entre el usuario actual y el familiar activo
   const currentChatMessages = (familyMessages || []).filter(msg => 
-    (msg.fromUser?.id === currentUser?.id && msg.toUserId === activeChatUserId) ||
-    (msg.fromUser?.id === activeChatUserId && msg.toUserId === currentUser?.id)
+    (msg.fromUser?.id === currentUser?.id && msg.toUserId === activeOpponent?.id) ||
+    (msg.fromUser?.id === activeOpponent?.id && msg.toUserId === currentUser?.id)
   );
 
   const handleSendMessage = (textToSend = null, isEmote = false) => {
@@ -91,7 +98,7 @@ export const FamilyChatDrawer = ({
     audioManager?.playMove?.();
   };
 
-  const isOpponentOnline = activeOpponent ? isUserOnline(activeOpponent.id) : false;
+  const isOpponentOnline = activeOpponent ? isUserOnline(activeOpponent) : false;
 
   return (
     <div className="modal-overlay" style={{ zIndex: 125 }} onClick={onClose}>
