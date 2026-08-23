@@ -88,7 +88,7 @@ export const Header = ({
             <div className="brand-logo-badge">
               <span style={{ fontSize: '1.2rem' }}>♟️</span>
             </div>
-            <h1 className="brand-title">Ajedrez Junvill</h1>
+            <h1 className="brand-title">JUNVILL</h1>
           </div>
 
           {/* 2. BOTÓN CENTRAL LLAMATIVO: SELECTOR / DESPLEGABLE DE SECCIONES */}
