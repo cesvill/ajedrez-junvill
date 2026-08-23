@@ -67,19 +67,32 @@ export function deduplicateAndMergeUsers(...userLists) {
     // Ordenar variantes para que las ediciones más recientes tengan prioridad absoluta
     userVariants.sort((a, b) => (a.updatedAt || 0) - (b.updatedAt || 0));
 
+    let latestAvatarConfig = null;
+    let latestCoachSettings = null;
+    let latestSystemSettings = null;
+    let maxUpdatedAt = 0;
+
     userVariants.forEach(u => {
+      const uTime = u.updatedAt || 0;
       if (u.elo && u.elo > maxElo) maxElo = u.elo;
       if (u.puzzleRating && u.puzzleRating > maxPuzzleRating) maxPuzzleRating = u.puzzleRating;
       if (u.stars && u.stars > maxStars) maxStars = u.stars;
       if (u.gems && u.gems > maxGems) maxGems = u.gems;
+      
+      // La configuración de avatar toma la versión más reciente por fecha de edición
       if (u.avatarConfig && Object.keys(u.avatarConfig).length > 3) {
-        avatarConfig = { ...(avatarConfig || {}), ...u.avatarConfig };
+        if (!latestAvatarConfig || uTime >= maxUpdatedAt) {
+          latestAvatarConfig = { ...u.avatarConfig };
+        }
       }
       if (u.title && u.title !== 'Novato Promesa') title = u.title;
       if (u.password) password = u.password;
       if (u.theme) theme = u.theme;
       if (u.boardTheme) boardTheme = u.boardTheme;
       if (u.pieceTheme) pieceTheme = u.pieceTheme;
+      if (u.coachSettings) latestCoachSettings = { ...u.coachSettings };
+      if (u.systemSettings) latestSystemSettings = { ...u.systemSettings };
+      if (uTime > maxUpdatedAt) maxUpdatedAt = uTime;
       if (u.lastActiveTimestamp && u.lastActiveTimestamp > maxLastActive) maxLastActive = u.lastActiveTimestamp;
 
       // Fusionar lecciones
@@ -124,7 +137,7 @@ export function deduplicateAndMergeUsers(...userLists) {
       password,
       role: canonicalRole,
       avatar: 'custom_dynamic',
-      avatarConfig: avatarConfig || {
+      avatarConfig: latestAvatarConfig || {
         skin: '#fed7aa',
         hairStyle: 'short',
         hairColor: '#1e293b',
@@ -147,7 +160,7 @@ export function deduplicateAndMergeUsers(...userLists) {
       theme,
       boardTheme,
       pieceTheme,
-      systemSettings: {
+      systemSettings: latestSystemSettings || {
         soundEnabled: true,
         soundVolume: 85,
         autoQueen: true,
@@ -161,8 +174,8 @@ export function deduplicateAndMergeUsers(...userLists) {
       botVictories: mergedBotVictories,
       stats: mergedStats,
       radarSkills: mergedRadar,
-      coachSettings: { assistanceLevel: 'full', botDifficulty: 1, coachAvatar: 'coach_aurelio', soundEnabled: true },
-      updatedAt: Date.now()
+      coachSettings: latestCoachSettings || { assistanceLevel: 'full', botDifficulty: 1, coachAvatar: 'coach_aurelio', soundEnabled: true },
+      updatedAt: maxUpdatedAt || Date.now()
     });
   });
 

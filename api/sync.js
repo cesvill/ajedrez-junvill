@@ -119,7 +119,11 @@ function mergeUsers(existingUsers = [], newUsers = []) {
       name: nUser.name || existing.name,
       role: nUser.role || existing.role,
       avatar: nUser.avatar || existing.avatar,
-      avatarConfig: nUser.avatarConfig || existing.avatarConfig,
+      avatarConfig: ((nUser.updatedAt || 0) >= (existing.updatedAt || 0) && nUser.avatarConfig) ? nUser.avatarConfig : (existing.avatarConfig || nUser.avatarConfig),
+      theme: ((nUser.updatedAt || 0) >= (existing.updatedAt || 0) && nUser.theme) ? nUser.theme : (existing.theme || nUser.theme),
+      boardTheme: ((nUser.updatedAt || 0) >= (existing.updatedAt || 0) && nUser.boardTheme) ? nUser.boardTheme : (existing.boardTheme || nUser.boardTheme),
+      pieceTheme: ((nUser.updatedAt || 0) >= (existing.updatedAt || 0) && nUser.pieceTheme) ? nUser.pieceTheme : (existing.pieceTheme || nUser.pieceTheme),
+      coachSettings: ((nUser.updatedAt || 0) >= (existing.updatedAt || 0) && nUser.coachSettings) ? nUser.coachSettings : (existing.coachSettings || nUser.coachSettings),
       stars: Math.max(existing.stars || 0, nUser.stars || 0),
       gems: Math.max(existing.gems || 0, nUser.gems || 0),
       totalPoints: Math.max(totalLessonPts, existing.totalPoints || 0, nUser.totalPoints || 0),
@@ -138,7 +142,7 @@ function mergeUsers(existingUsers = [], newUsers = []) {
         accuracyAvg: Math.max(existing.stats?.accuracyAvg || 0, nUser.stats?.accuracyAvg || 0)
       },
       lastActiveTimestamp: Math.max(existing.lastActiveTimestamp || 0, nUser.lastActiveTimestamp || 0),
-      updatedAt: Date.now()
+      updatedAt: Math.max(existing.updatedAt || 0, nUser.updatedAt || 0, Date.now())
     });
   });
 

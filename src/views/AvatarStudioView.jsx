@@ -96,12 +96,12 @@ export const AvatarStudioView = ({ onOpenAvatarBuilder }) => {
         <div style={{ display: 'flex', gap: '10px' }}>
           <div className="currency-badge stars-badge">
             <span>⭐</span>
-            <span>{currentUser.stars || 0} Estrellas</span>
+            <span>{currentUser?.stars || 0} Estrellas</span>
           </div>
 
           <div className="currency-badge gems-badge">
             <span>💎</span>
-            <span>{currentUser.gems || 0} Gemas</span>
+            <span>{currentUser?.gems || 0} Gemas</span>
           </div>
         </div>
 
