@@ -272,55 +272,19 @@ export const Header = ({
               </div>
             </div>
 
-            {/* BOTÓN DE CHAT FAMILIAR */}
-            <button
-              type="button"
-              onClick={onOpenFamilyChat}
-              className="btn-secondary"
-              title="Chat Familiar en Tiempo Real"
-              style={{
-                position: 'relative',
-                padding: '5px 10px',
-                fontSize: '0.78rem',
-                fontWeight: '800',
-                gap: '5px',
-                background: 'rgba(16, 185, 129, 0.15)',
-                border: '1px solid rgba(16, 185, 129, 0.3)',
-                color: '#34d399'
-              }}
-            >
-              <MessageSquare size={14} color="#34d399" />
-              <span>Chat</span>
-              {(unreadMessagesCount || 0) > 0 && (
-                <span style={{
-                  position: 'absolute',
-                  top: '-4px',
-                  right: '-4px',
-                  background: '#ef4444',
-                  color: '#ffffff',
-                  fontSize: '0.62rem',
-                  fontWeight: '900',
-                  padding: '1px 5px',
-                  borderRadius: '999px',
-                  boxShadow: '0 0 6px rgba(239, 68, 68, 0.6)'
-                }}>
-                  {unreadMessagesCount}
-                </span>
-              )}
-            </button>
-
-            {/* CONTENEDOR RELATIVO PARA EL MENÚ POPOVER */}
+            {/* CONTENEDOR RELATIVO PARA EL MENÚ POPOVER (con Chat y Herramientas) */}
             <div style={{ position: 'relative' }} ref={toolsMenuRef}>
               <button
                 type="button"
                 onClick={() => setIsToolsMenuOpen(!isToolsMenuOpen)}
                 className={`btn-secondary header-tools-toggle-btn ${isToolsMenuOpen ? 'active' : ''}`}
-                title="Abrir menú de herramientas, manual y opciones"
+                title="Abrir menú de chat familiar, herramientas y opciones"
                 style={{
-                  padding: '5px 10px',
-                  fontSize: '0.78rem',
+                  position: 'relative',
+                  padding: '5px 12px',
+                  fontSize: '0.80rem',
                   fontWeight: '800',
-                  gap: '5px',
+                  gap: '6px',
                   border: isToolsMenuOpen ? '1.5px solid var(--color-gold)' : '1px solid var(--bg-parchment-border)',
                   background: isToolsMenuOpen ? 'rgba(245, 158, 11, 0.15)' : 'var(--bg-parchment-card)',
                   color: isToolsMenuOpen ? 'var(--color-gold)' : 'var(--text-parchment-main)'
@@ -328,6 +292,22 @@ export const Header = ({
               >
                 <Settings size={14} />
                 <span>Menú ▾</span>
+                {(unreadMessagesCount || 0) > 0 && (
+                  <span style={{
+                    position: 'absolute',
+                    top: '-4px',
+                    right: '-4px',
+                    background: '#ef4444',
+                    color: '#ffffff',
+                    fontSize: '0.62rem',
+                    fontWeight: '900',
+                    padding: '1px 5px',
+                    borderRadius: '999px',
+                    boxShadow: '0 0 6px rgba(239, 68, 68, 0.6)'
+                  }}>
+                    {unreadMessagesCount}
+                  </span>
+                )}
               </button>
 
               {/* MENÚ POPOVER DESPLEGABLE FLOTANTE */}
@@ -336,7 +316,7 @@ export const Header = ({
                   position: 'absolute',
                   top: 'calc(100% + 8px)',
                   right: 0,
-                  width: '250px',
+                  width: '260px',
                   maxWidth: 'calc(100vw - 20px)',
                   background: '#0f172a',
                   border: '2px solid var(--bg-parchment-border)',
@@ -349,52 +329,33 @@ export const Header = ({
                   gap: '4px',
                   animation: 'fadeIn 0.15s ease-out'
                 }}>
-                <div style={{
-                  fontSize: '0.68rem',
-                  fontWeight: '800',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.6px',
-                  color: 'var(--color-gold-dark)',
-                  padding: '4px 8px 6px',
-                  borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-                  marginBottom: '2px'
-                }}>
-                  Secciones de la App
-                </div>
-
-                {/* Accesos rápidos a secciones */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '4px', padding: '4px', marginBottom: '6px' }}>
-                  {tabs.map(t => {
-                    const TabIcon = t.icon;
-                    const isTabActive = activeTab === t.id;
-                    return (
-                      <button
-                        key={t.id}
-                        type="button"
-                        onClick={() => {
-                          setIsToolsMenuOpen(false);
-                          onTabChange(t.id);
-                        }}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          padding: '6px 8px',
-                          borderRadius: '6px',
-                          border: isTabActive ? '1px solid var(--color-gold)' : '1px solid rgba(255,255,255,0.06)',
-                          background: isTabActive ? 'rgba(234, 179, 8, 0.15)' : 'rgba(255,255,255,0.03)',
-                          color: isTabActive ? 'var(--color-gold)' : 'var(--text-parchment-main)',
-                          fontSize: '0.78rem',
-                          fontWeight: '700',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <TabIcon size={14} />
-                        <span>{t.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+                {/* 1. Chat Familiar en Tiempo Real */}
+                <button
+                  type="button"
+                  className="header-dropdown-item"
+                  onClick={() => { setIsToolsMenuOpen(false); if (onOpenFamilyChat) onOpenFamilyChat(); }}
+                  style={{ background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.35)', marginBottom: '4px' }}
+                >
+                  <MessageSquare size={16} color="#34d399" />
+                  <div className="item-text" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                    <div>
+                      <span className="item-title" style={{ color: '#34d399' }}>💬 Chat Familiar</span>
+                      <span className="item-sub">Mensajes y emojis en vivo</span>
+                    </div>
+                    {(unreadMessagesCount || 0) > 0 && (
+                      <span style={{
+                        background: '#ef4444',
+                        color: '#ffffff',
+                        fontSize: '0.62rem',
+                        fontWeight: '900',
+                        padding: '1px 6px',
+                        borderRadius: '999px'
+                      }}>
+                        {unreadMessagesCount}
+                      </span>
+                    )}
+                  </div>
+                </button>
 
                 <div style={{
                   fontSize: '0.68rem',
@@ -406,7 +367,7 @@ export const Header = ({
                   borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
                   marginBottom: '2px'
                 }}>
-                  Herramientas & Grupo
+                  Herramientas & Opciones
                 </div>
 
                 {/* 0. Cambiar de Grupo Familiar */}
