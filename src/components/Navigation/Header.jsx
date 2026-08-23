@@ -5,7 +5,7 @@ import { usePWAInstall } from '../../hooks/usePWAInstall';
 import { PWAInstallModal } from '../PWA/PWAInstallModal';
 import { 
   Home, Swords, Bot, Puzzle, BookOpen, User, Trophy, 
-  Settings, Maximize, Minimize, Bug, FileText, Award, Flame, Download, Smartphone, Users, DoorOpen, Globe
+  Settings, Maximize, Minimize, Bug, FileText, Award, Flame, Download, Smartphone, Users, DoorOpen, Globe, MessageSquare
 } from 'lucide-react';
 
 export const Header = ({ 

@@ -23,7 +23,7 @@ import {
   X, Globe, Copy, Check, QrCode, Play, Users, Clock, ShieldCheck, 
   Swords, RotateCcw, Flag, Award, AlertCircle, Maximize, Minimize, 
   Scale, RefreshCw, Eye, Sparkles, Heart, Flame, ThumbsUp, Crown, 
-  MessageSquare, UserPlus 
+  MessageSquare, UserPlus, Trash2, Save
 } from 'lucide-react';
 
 const CHEER_EMOJIS = [
