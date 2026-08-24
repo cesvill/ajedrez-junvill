@@ -120,7 +120,20 @@ export const App = () => {
   useEffect(() => {
     applyUrlState();
     window.addEventListener('popstate', applyUrlState);
-    return () => window.removeEventListener('popstate', applyUrlState);
+
+    const handleGlobalMutualMatch = (e) => {
+      if (e.detail?.roomId) {
+        setUrlRoomId(e.detail.roomId);
+        setP2pInitialMode(e.detail.isHost ? 'host' : 'join');
+        setIsP2POpen(true);
+      }
+    };
+    window.addEventListener('junvill_mutual_match', handleGlobalMutualMatch);
+
+    return () => {
+      window.removeEventListener('popstate', applyUrlState);
+      window.removeEventListener('junvill_mutual_match', handleGlobalMutualMatch);
+    };
   }, [applyUrlState]);
 
   // Actualizar URL dinámicamente cuando el usuario interactúa

@@ -131,10 +131,25 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
   useEffect(() => {
     const handleMutualMatch = (e) => {
       if (e.detail?.roomId) {
-        setStatusMessage(`¡Reto mutuo establecido con ${e.detail.opponent?.name || 'familiar'}! Conectando partida...`);
-        setRoomId(e.detail.roomId);
-        setInputRoomId(e.detail.roomId);
-        handleJoinSubmit(e.detail.roomId);
+        const { roomId: targetRoom, opponent, isHost, invitation } = e.detail;
+        setStatusMessage(`¡Reto mutuo con ${opponent?.name || 'familiar'}! Conectando partida con las condiciones del primer reto...`);
+        setRoomId(targetRoom);
+        setInputRoomId(targetRoom);
+        if (invitation) {
+          if (invitation.timeControl) {
+            setTimeControl(invitation.timeControl);
+            setWhiteTime(invitation.timeControl);
+            setBlackTime(invitation.timeControl);
+          }
+          if (invitation.gameVariant) setGameVariant(invitation.gameVariant);
+          if (invitation.withAssistance !== undefined) setWithAssistance(invitation.withAssistance);
+          if (invitation.handicapConfig) setHandicapConfig(invitation.handicapConfig);
+        }
+        if (isHost) {
+          handleCreateHost(targetRoom);
+        } else {
+          handleJoinSubmit(targetRoom);
+        }
       }
     };
     window.addEventListener('junvill_mutual_match', handleMutualMatch);

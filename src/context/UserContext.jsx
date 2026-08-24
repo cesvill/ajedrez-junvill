@@ -722,9 +722,17 @@ export const UserProvider = ({ children }) => {
         );
 
         if (myPendingToOpponent) {
-          // Ambos se retaron: notificar emparejamiento directo para iniciar la partida de inmediato
+          // Ambos se retaron al tiempo: gana el reto con createdAt menor (el primero en crearse)
+          const isMyOlder = (myPendingToOpponent.createdAt || 0) <= (incomingInvitation.createdAt || Infinity);
+          const winnerInvitation = isMyOlder ? myPendingToOpponent : incomingInvitation;
+
           window.dispatchEvent(new CustomEvent('junvill_mutual_match', {
-            detail: { roomId: incomingInvitation.roomId, opponent: incomingInvitation.fromUser }
+            detail: {
+              roomId: winnerInvitation.roomId,
+              opponent: incomingInvitation.fromUser,
+              invitation: winnerInvitation,
+              isHost: isMyOlder
+            }
           }));
         }
 
@@ -935,8 +943,18 @@ export const UserProvider = ({ children }) => {
     );
 
     if (existingOpponentInvitation) {
-      // ¡Emparejamiento mutuo inmediato! Aceptar la sala existente del rival
+      // ¡Emparejamiento mutuo inmediato! Aceptar la sala y condiciones del rival que retó primero
       acceptFamilyInvitation(existingOpponentInvitation.id);
+
+      window.dispatchEvent(new CustomEvent('junvill_mutual_match', {
+        detail: {
+          roomId: existingOpponentInvitation.roomId,
+          opponent: existingOpponentInvitation.fromUser,
+          invitation: existingOpponentInvitation,
+          isHost: false
+        }
+      }));
+
       return {
         ...existingOpponentInvitation,
         isMutualMatch: true
