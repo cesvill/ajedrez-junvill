@@ -54,6 +54,7 @@ export const App = () => {
   const [isCertificatesOpen, setIsCertificatesOpen] = useState(false);
   const [isPgnOpen, setIsPgnOpen] = useState(false);
   const [isP2POpen, setIsP2POpen] = useState(false);
+  const [isBugReportOpen, setIsBugReportOpen] = useState(false);
   const [isFamilyChatOpen, setIsFamilyChatOpen] = useState(false);
   const [chatTargetUser, setChatTargetUser] = useState(null);
   const [bugReportContext, setBugReportContext] = useState({});
