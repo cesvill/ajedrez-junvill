@@ -2034,7 +2034,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
 
               {/* Botones de Control de Partida (Si es jugador) */}
               {mode === 'playing' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: 'rgba(255, 255, 255, 0.03)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '10px', padding: '10px' }}>
                   {/* Botón Rápido de Ayudas para Negociar/Desactivar */}
                   <button
                     type="button"
@@ -2046,8 +2046,8 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                     }}
                     style={{
                       width: '100%',
-                      padding: '8px 12px',
-                      fontSize: '0.80rem',
+                      padding: '7px 12px',
+                      fontSize: '0.78rem',
                       fontWeight: '800',
                       border: !withAssistance ? '1.5px solid #10b981' : '1.5px solid var(--color-gold)',
                       background: !withAssistance ? 'rgba(16, 185, 129, 0.15)' : 'rgba(234, 179, 8, 0.08)',
@@ -2059,28 +2059,63 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                     }}
                     title="Deshabilitar o habilitar todas las ayudas para ambos jugadores"
                   >
-                    {!withAssistance ? <ShieldCheck size={15} color="#10b981" /> : <Sparkles size={15} color="#eab308" />}
+                    {!withAssistance ? <ShieldCheck size={14} color="#10b981" /> : <Sparkles size={14} color="#eab308" />}
                     <span>{!withAssistance ? '🛡️ Sin Ayudas (Modo Clásico Puro)' : '💡 Ayudas Habilitadas (Clic para Desactivar)'}</span>
                   </button>
 
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
                     <button
                       type="button"
                       className="btn-secondary"
                       onClick={handleOfferDraw}
-                      style={{ flex: 1, padding: '8px', fontSize: '0.78rem', justifyContent: 'center' }}
+                      style={{ padding: '7px', fontSize: '0.76rem', justifyContent: 'center' }}
                     >
-                      <span>🤝 Ofrecer Tablas</span>
+                      <span>🤝 Tablas</span>
                     </button>
 
                     <button
                       type="button"
                       className="btn-secondary"
                       onClick={handleResign}
-                      style={{ flex: 1, padding: '8px', fontSize: '0.78rem', justifyContent: 'center', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.4)' }}
+                      style={{ padding: '7px', fontSize: '0.76rem', justifyContent: 'center', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.4)' }}
                     >
-                      <Flag size={14} color="#ef4444" />
+                      <Flag size={13} color="#ef4444" />
                       <span>Rendirse</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={handleTogglePauseP2P}
+                      style={{
+                        padding: '7px',
+                        fontSize: '0.76rem',
+                        fontWeight: '800',
+                        justifyContent: 'center',
+                        background: isP2PPaused ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.12)',
+                        borderColor: isP2PPaused ? '#10b981' : '#f59e0b',
+                        color: isP2PPaused ? '#34d399' : '#facc15'
+                      }}
+                      title={isP2PPaused ? "Reanudar la partida y los relojes" : "Pausar la partida y detener los relojes"}
+                    >
+                      <span>{isP2PPaused ? '▶ Reanudar' : '⏸️ Pausar'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn-gold"
+                      onClick={handlePauseAndExitP2P}
+                      style={{
+                        padding: '7px',
+                        fontSize: '0.76rem',
+                        fontWeight: '900',
+                        justifyContent: 'center',
+                        gap: '4px'
+                      }}
+                      title="Pausa los relojes y guarda la partida para continuarla en cualquier momento"
+                    >
+                      <Save size={13} />
+                      <span>Pausar y Salir</span>
                     </button>
                   </div>
                 </div>
@@ -2090,7 +2125,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
               {drawOffered && (
                 <div style={{
                   background: 'rgba(245, 158, 11, 0.15)',
-                  border: '1px solid #f59e0b',
+                  border: '1.5px solid #f59e0b',
                   borderRadius: '8px',
                   padding: '10px',
                   textAlign: 'center'
@@ -2110,51 +2145,12 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
               )}
 
               {/* Safe Chat */}
-              <div style={{ flex: 1, minHeight: '160px', maxHeight: '240px', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ flex: 1, width: '100%', overflow: 'hidden' }}>
                 <SafeChat
                   messages={chatMessages}
                   onSendMessage={handleSendSafeChat}
                   opponentName={opponentProfile?.name || 'Rival'}
                 />
-              </div>
-
-              {/* Botones de Pausa y Salida */}
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  onClick={handleTogglePauseP2P}
-                  style={{
-                    flex: 1,
-                    padding: '9px',
-                    fontSize: '0.82rem',
-                    fontWeight: '800',
-                    justifyContent: 'center',
-                    background: isP2PPaused ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.12)',
-                    borderColor: isP2PPaused ? '#10b981' : '#f59e0b',
-                    color: isP2PPaused ? '#34d399' : '#facc15'
-                  }}
-                  title={isP2PPaused ? "Reanudar la partida y los relojes" : "Pausar la partida y detener los relojes"}
-                >
-                  <span>{isP2PPaused ? '▶ Reanudar' : '⏸️ Pausar'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  className="btn-gold"
-                  onClick={handlePauseAndExitP2P}
-                  style={{
-                    flex: 1.2,
-                    padding: '9px',
-                    fontSize: '0.82rem',
-                    fontWeight: '900',
-                    justifyContent: 'center',
-                    gap: '5px'
-                  }}
-                  title="Pausa los relojes y guarda la partida para continuarla en cualquier momento"
-                >
-                  <span>⏸️ Pausar y Salir</span>
-                </button>
               </div>
 
               {/* Botón Salir al Lobby */}
@@ -2166,7 +2162,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                   setMode('lobby');
                   setStatusMessage('');
                 }}
-                style={{ padding: '9px', fontSize: '0.82rem', justifyContent: 'center' }}
+                style={{ padding: '8px', fontSize: '0.78rem', justifyContent: 'center' }}
               >
                 <span>⬅️ Salir al Menú de Salas</span>
               </button>

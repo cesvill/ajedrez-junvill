@@ -55,14 +55,15 @@ export const SafeChat = ({ onSendMessage, messages = [], activeReaction = null }
 
   return (
     <div style={{
-      background: 'var(--bg-parchment-card)',
-      border: '1.5px solid var(--bg-parchment-border)',
-      borderRadius: 'var(--radius-md)',
-      padding: '14px',
+      background: 'rgba(15, 23, 42, 0.6)',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      borderRadius: '10px',
+      padding: '10px 12px',
       display: 'flex',
       flexDirection: 'column',
-      gap: '12px',
-      boxShadow: 'var(--shadow-sm)'
+      gap: '8px',
+      boxSizing: 'border-box',
+      width: '100%'
     }}>
       {/* CABECERA CON SELLO DE PROTECCIÓN INFANTIL */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--bg-parchment-border)', paddingBottom: '8px' }}>
@@ -113,15 +114,15 @@ export const SafeChat = ({ onSendMessage, messages = [], activeReaction = null }
 
       {/* HISTORIAL DE MENSAJES RECIBIDOS Y ENVIADOS (CON AUTO-SCROLL AL ÚLTIMO) */}
       <div style={{
-        background: 'var(--bg-parchment)',
-        borderRadius: 'var(--radius-sm)',
-        padding: '10px',
-        maxHeight: '130px',
+        background: 'rgba(10, 15, 29, 0.7)',
+        borderRadius: '8px',
+        padding: '8px',
+        maxHeight: '90px',
         overflowY: 'auto',
         display: 'flex',
         flexDirection: 'column',
-        gap: '6px',
-        border: '1px solid var(--bg-parchment-border)',
+        gap: '4px',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
         scrollBehavior: 'smooth'
       }}>
         {messages.length === 0 ? (
