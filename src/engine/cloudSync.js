@@ -239,16 +239,13 @@ class CloudSyncService {
     return deduplicateAndMergeUsers(...userLists);
   }
 
-  // Obtener estado más reciente desde la Nube Central (con doble redundancia)
+  // Obtener estado más reciente desde la Nube Central (/api/sync)
   async fetchCloudGroup(groupId = 'group_junvill') {
-    const cleanId = String(groupId || 'group_junvill').replace(/[^a-zA-Z0-9_-]/g, '');
-
-    // 1. Intentar Vercel Serverless Endpoint
     try {
-      const response = await fetch(`/api/sync?groupId=${encodeURIComponent(groupId)}`, {
+      const response = await fetch(`/api/sync?groupId=${encodeURIComponent(groupId || 'group_junvill')}`, {
         method: 'GET',
         headers: { 'Accept': 'application/json' },
-        signal: AbortSignal.timeout(3500)
+        signal: AbortSignal.timeout(4000)
       });
 
       if (response.ok) {
@@ -258,69 +255,41 @@ class CloudSyncService {
         }
       }
     } catch (e) {
-      // Fallback a almacenamiento duradero directo
+      // Silencioso en caso de desconexión momentánea
     }
-
-    // 2. Fallback a nube duradera directa
-    try {
-      const directRes = await fetch(`${CLOUD_STORAGE_BASE}${cleanId}`, {
-        method: 'GET',
-        headers: { 'Accept': 'application/json' },
-        signal: AbortSignal.timeout(4000)
-      });
-
-      if (directRes.ok) {
-        const json = await directRes.json();
-        if (json && json.users && Array.isArray(json.users)) {
-          return json;
-        }
-      }
-    } catch (err) {
-      // Fallback offline
-    }
-
     return null;
   }
 
-  // Guardar y sincronizar estado en la Nube Central
+  // Guardar y sincronizar estado en la Nube Central (/api/sync)
   async pushGroupToCloud(groupData, groupId = 'group_junvill') {
     if (!groupData) return null;
     this.isSyncing = true;
-    const cleanId = String(groupId || 'group_junvill').replace(/[^a-zA-Z0-9_-]/g, '');
     const payload = {
-      groupId,
+      groupId: groupId || 'group_junvill',
       groupData: {
         ...groupData,
         updatedAt: Date.now()
       }
     };
 
-    // 1. Enviar a Vercel Serverless
     try {
-      fetch('/api/sync', {
+      const res = await fetch('/api/sync', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
         body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(4000)
-      }).catch(() => {});
-    } catch (e) {}
-
-    // 2. Enviar a Nube Duradera Directa
-    try {
-      const directRes = await fetch(`${CLOUD_STORAGE_BASE}${cleanId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload.groupData),
-        signal: AbortSignal.timeout(4000)
+        signal: AbortSignal.timeout(5000)
       });
-
-      if (directRes.ok) {
+      if (res.ok) {
         this.lastSyncTime = Date.now();
+        const resJson = await res.json();
+        if (resJson && resJson.data) return resJson.data;
       }
-    } catch (e) {} finally {
+    } catch (e) {
+      // Silencioso en caso de desconexión momentánea
+    } finally {
       this.isSyncing = false;
     }
 

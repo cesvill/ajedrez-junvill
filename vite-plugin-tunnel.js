@@ -148,6 +148,32 @@ export function tunnelPlugin() {
     name: 'vite-plugin-tunnel-and-db',
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
+        // --- 0. ENDPOINT DE SINCRONIZACIÓN CENTRAL /api/sync ---
+        if (req.url && req.url.startsWith('/api/sync')) {
+          const syncHandler = (await import('./api/sync.js')).default;
+          let body = '';
+          req.on('data', chunk => { body += chunk.toString(); });
+          req.on('end', async () => {
+            if (body) {
+              try { req.body = JSON.parse(body); } catch (e) { req.body = {}; }
+            }
+            const parsedUrl = new URL(req.url, 'http://localhost:3000');
+            req.query = Object.fromEntries(parsedUrl.searchParams);
+            res.status = (code) => { res.statusCode = code; return res; };
+            res.json = (data) => {
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify(data));
+            };
+            try {
+              await syncHandler(req, res);
+            } catch (errSync) {
+              res.statusCode = 500;
+              res.end(JSON.stringify({ error: errSync.message }));
+            }
+          });
+          return;
+        }
+
         // --- 1. ENDPOINTS DE BASE DE DATOS LOCAL JSON ---
         if (req.url === '/api/db/users' && req.method === 'GET') {
           res.setHeader('Content-Type', 'application/json');

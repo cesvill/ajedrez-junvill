@@ -126,51 +126,20 @@ class FamilySignalingService {
     }
   }
 
-  // Transmitir payload a los IDs de destino utilizando el peer activo o tempPeer
+  // Transmitir payload a los IDs de destino utilizando el peer activo
   _sendPayloadToTargets(targetUserId, payload) {
     if (!targetUserId || !payload) return;
+    if (!this.peer || this.peer.destroyed || !this.peer.open) return;
+
     const targetCleanIds = this.getTargetCleanIds(targetUserId);
-
     targetCleanIds.forEach(cleanTargetId => {
-      // 1. Intentar enviar con this.peer si está listo
-      if (this.peer && !this.peer.destroyed && this.peer.open) {
-        try {
-          const conn = this.peer.connect(cleanTargetId, { reliable: true });
-          conn.on('open', () => {
-            conn.send(payload);
-          });
-          conn.on('error', () => {});
-        } catch (e) {}
-      }
-
-      // 2. Transmisión paralela redundante con tempPeer para máxima confiabilidad
       try {
-        const tempPeer = new Peer({
-          config: {
-            iceServers: [
-              { urls: 'stun:stun.l.google.com:19302' },
-              { urls: 'stun:global.stun.twilio.com:3478' }
-            ]
-          }
+        const conn = this.peer.connect(cleanTargetId, { reliable: true });
+        conn.on('open', () => {
+          try { conn.send(payload); } catch (e) {}
         });
-
-        tempPeer.on('open', () => {
-          const conn = tempPeer.connect(cleanTargetId, { reliable: true });
-          conn.on('open', () => {
-            conn.send(payload);
-            setTimeout(() => {
-              try { tempPeer.destroy(); } catch (e) {}
-            }, 2500);
-          });
-          conn.on('error', () => {
-            try { tempPeer.destroy(); } catch (e) {}
-          });
-        });
-
-        tempPeer.on('error', () => {
-          try { tempPeer.destroy(); } catch (e) {}
-        });
-      } catch (err) {}
+        conn.on('error', () => {});
+      } catch (e) {}
     });
   }
 
