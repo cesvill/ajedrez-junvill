@@ -231,8 +231,12 @@ class CloudSyncService {
   }
 
   // Fusión inteligente de usuarios (Merge CRDT sin pérdidas)
-  mergeUsers(localUsers = [], cloudUsers = []) {
-    return deduplicateAndMergeUsers(localUsers, cloudUsers);
+  mergeUsers(...userLists) {
+    return deduplicateAndMergeUsers(...userLists);
+  }
+
+  deduplicateAndMergeUsers(...userLists) {
+    return deduplicateAndMergeUsers(...userLists);
   }
 
   // Obtener estado más reciente desde la Nube Central (con doble redundancia)

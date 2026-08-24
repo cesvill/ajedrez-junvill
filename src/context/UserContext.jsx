@@ -1385,7 +1385,7 @@ export const UserProvider = ({ children }) => {
             updatedUsers.push({ ...baseUser, ...updates, updatedAt: now });
           }
 
-          const deduplicated = cloudSync.deduplicateAndMergeUsers(DEFAULT_JUNVILL_USERS, updatedUsers);
+          const deduplicated = deduplicateAndMergeUsers(DEFAULT_JUNVILL_USERS, updatedUsers);
           const updatedG = { ...g, users: deduplicated, updatedAt: now };
           cloudSync.pushGroupToCloud(updatedG, effectiveGroupId).catch(() => {});
           try {
