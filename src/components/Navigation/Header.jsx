@@ -83,12 +83,11 @@ export const Header = ({
     <>
       <header className="app-header">
         <div className="header-inner">
-          {/* 1. SECCIÓN MARCA / LOGO */}
+          {/* 1. SECCIÓN MARCA / LOGO (Solo icono para ganar máximo espacio horizontal en móviles) */}
           <div className="brand-section" onClick={() => onTabChange('inicio')} style={{ cursor: 'pointer' }} title="Ir al Inicio">
             <div className="brand-logo-badge">
               <span style={{ fontSize: '1.2rem' }}>♟️</span>
             </div>
-            <h1 className="brand-title">JUNVILL</h1>
           </div>
 
           {/* 2. BOTÓN CENTRAL LLAMATIVO: SELECTOR / DESPLEGABLE DE SECCIONES */}
