@@ -77,10 +77,12 @@ export class P2PEngine {
     });
 
     this.peer.on('error', (err) => {
-      let friendlyMessage = 'Error en el servidor de conexión P2P.';
       if (err.type === 'unavailable-id') {
-        friendlyMessage = `El código de sala ${this.roomId} ya está ocupado. Intenta con otro código.`;
+        console.log(`[P2P] ID ${this.roomId} ya registrado como Host. Cambiando automáticamente a unirse como Invitado...`);
+        this.joinRoom(this.roomId);
+        return;
       }
+      let friendlyMessage = 'Error en el servidor de conexión P2P.';
       this.trigger('error', { originalError: err, message: friendlyMessage });
     });
 
@@ -110,30 +112,50 @@ export class P2PEngine {
       if (!this.conn || !this.conn.open) {
         this.trigger('error', {
           type: 'timeout',
-          message: `Tiempo de espera agotado. Verifica que tu amigo haya hecho clic en 'Crear Sala' y tenga la pantalla abierta.`
+          message: `Tiempo de espera agotado. Verifica que tu amigo tenga abierta la sala "${this.roomId}".`
         });
       }
-    }, 10000);
+    }, 12000);
 
-    this.peer.on('open', () => {
+    let retries = 0;
+    const maxRetries = 4;
+    let isConnected = false;
+
+    const attemptConnect = () => {
+      if (isConnected || this.isDestroyed || !this.peer) return;
       try {
         const connection = this.peer.connect(peerId, { 
           reliable: true,
           metadata: { role: 'player', profile: playerProfile }
         });
         this.conn = connection;
-        this.setupConnection(() => clearTimeout(connectionTimeout));
-      } catch (err) {
-        clearTimeout(connectionTimeout);
-        this.trigger('error', { originalError: err, message: 'No se pudo iniciar la conexión con el rival.' });
-      }
+        this.setupConnection(() => {
+          isConnected = true;
+          clearTimeout(connectionTimeout);
+        });
+      } catch (err) {}
+    };
+
+    this.peer.on('open', () => {
+      attemptConnect();
     });
 
     this.peer.on('error', (err) => {
+      if (err.type === 'peer-unavailable' && retries < maxRetries && !isConnected) {
+        retries++;
+        console.log(`[P2P] Sala no encontrada aún en PeerJS, reintentando intento ${retries}/${maxRetries}...`);
+        setTimeout(() => {
+          if (!isConnected && !this.isDestroyed) {
+            attemptConnect();
+          }
+        }, 1200);
+        return;
+      }
+
       clearTimeout(connectionTimeout);
       let friendlyMessage = 'No se pudo conectar a la sala.';
       if (err.type === 'peer-unavailable') {
-        friendlyMessage = `La sala "${this.roomId}" no está activa. Asegúrate de que tu amigo haya presionado "Crear Sala" primero.`;
+        friendlyMessage = `La sala "${this.roomId}" no está activa. Asegúrate de que tu compañero haya aceptado el reto y tenga la pantalla abierta.`;
       }
       this.trigger('error', { originalError: err, message: friendlyMessage });
     });

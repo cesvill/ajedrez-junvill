@@ -59,6 +59,13 @@ export const App = () => {
   const [chatTargetUser, setChatTargetUser] = useState(null);
   const [bugReportContext, setBugReportContext] = useState({});
   const [urlRoomId, setUrlRoomId] = useState('');
+  const [p2pInitialMode, setP2pInitialMode] = useState('join');
+
+  const handleOpenP2P = (customRoomId = null, mode = 'join') => {
+    setUrlRoomId(customRoomId || null);
+    setP2pInitialMode(mode || 'join');
+    setIsP2POpen(true);
+  };
 
   const handleOpenFamilyChat = (target = null) => {
     setChatTargetUser(target || null);
@@ -193,7 +200,7 @@ export const App = () => {
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenBugReport={() => handleOpenBugReport()}
         onOpenManual={() => setIsManualOpen(true)}
-        onOpenP2P={() => setIsP2POpen(true)}
+        onOpenP2P={(customRoomId, mode) => handleOpenP2P(customRoomId, mode)}
       />
 
       {/* Contenedor de Vistas */}
@@ -209,10 +216,7 @@ export const App = () => {
             onOpenManual={() => setIsManualOpen(true)}
             onOpenAvatarBuilder={() => setIsAvatarBuilderOpen(true)}
             onOpenBugReport={handleOpenBugReport}
-            onOpenP2P={(customRoomId) => {
-              setUrlRoomId(customRoomId || null);
-              setIsP2POpen(true);
-            }}
+            onOpenP2P={(customRoomId, mode) => handleOpenP2P(customRoomId, mode)}
             onStartLesson={handleStartLesson}
             onStartBotGame={handleStartBotMatch}
           />
@@ -243,10 +247,7 @@ export const App = () => {
           <PlayView
             initialBotMatch={activeBotMatch}
             onExitMatch={() => setActiveBotMatch(null)}
-            onOpenP2P={(customRoomId) => {
-              setUrlRoomId(customRoomId || null);
-              setIsP2POpen(true);
-            }}
+            onOpenP2P={(customRoomId, mode) => handleOpenP2P(customRoomId, mode)}
             onOpenRobots={() => handleTabChange('robots')}
             onExitToMenu={() => handleTabChange('inicio')}
             onOpenBugReport={handleOpenBugReport}
@@ -344,8 +345,13 @@ export const App = () => {
       {isP2POpen && (
         <P2PPlayModal
           isOpen={isP2POpen}
-          onClose={() => setIsP2POpen(false)}
+          onClose={() => {
+            setIsP2POpen(false);
+            setUrlRoomId(null);
+            setP2pInitialMode('join');
+          }}
           initialRoomId={urlRoomId}
+          initialMode={p2pInitialMode}
         />
       )}
 
@@ -360,8 +366,7 @@ export const App = () => {
         onOpenChallenge={(target) => {
           setIsFamilyChatOpen(false);
           if (target) {
-            setUrlRoomId(null);
-            setIsP2POpen(true);
+            handleOpenP2P(null, 'host');
           }
         }}
       />

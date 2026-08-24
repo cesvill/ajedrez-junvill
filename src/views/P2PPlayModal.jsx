@@ -35,7 +35,7 @@ const CHEER_EMOJIS = [
   { emoji: '🛡️', label: '¡Buena defensa!' }
 ];
 
-export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
+export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMode = 'join' }) => {
   const { 
     currentUser, 
     activeGroup, 
@@ -319,13 +319,20 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null }) => {
     });
 
     if (initialRoomId) {
-      handleJoinSubmit(initialRoomId);
+      const clean = P2PEngine.cleanRoomId(initialRoomId);
+      setRoomId(clean);
+      setInputRoomId(clean);
+      if (initialMode === 'host') {
+        handleCreateHost(clean);
+      } else {
+        handleJoinSubmit(clean);
+      }
     }
 
     return () => {
       p2p.destroy();
     };
-  }, [isOpen, initialRoomId]);
+  }, [isOpen, initialRoomId, initialMode]);
 
   // Manejo de datos entrantes desde el par WebRTC
   const handleIncomingData = (data) => {

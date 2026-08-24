@@ -881,7 +881,7 @@ export const PlayView = ({
     const inv = sendFamilyInvitation(opponent, tc, wa, null, gv, cm);
     setChallengeOpponent(null);
     if (inv && onOpenP2P) {
-      onOpenP2P(inv.roomId);
+      onOpenP2P(inv.roomId, inv.isMutualMatch ? 'join' : 'host');
     }
   };
 
@@ -1240,7 +1240,7 @@ export const PlayView = ({
                       className="btn-gold"
                       onClick={() => {
                         const accepted = acceptFamilyInvitation(inv.id);
-                        if (accepted && onOpenP2P) onOpenP2P(accepted.roomId);
+                        if (accepted && onOpenP2P) onOpenP2P(accepted.roomId, 'join');
                       }}
                       style={{ padding: '9px 18px', fontSize: '0.86rem', fontWeight: '900', gap: '6px' }}
                     >
@@ -1721,7 +1721,7 @@ export const PlayView = ({
               className="btn-gold"
               onClick={() => {
                 if (customRoomCodeInput.trim().length >= 3 && onOpenP2P) {
-                  onOpenP2P(customRoomCodeInput.trim());
+                  onOpenP2P(customRoomCodeInput.trim(), 'join');
                 }
               }}
               disabled={customRoomCodeInput.trim().length < 3}
@@ -1758,30 +1758,28 @@ export const PlayView = ({
 
 
   return (
-    <div className="game-responsive-container">
-      {/* 0. BANNER DE RETO FAMILIAR ENTRANTE SI EXISTE */}
-      {pendingInvitationsForMe && pendingInvitationsForMe.length > 0 && (
+    <div className="game-container" style={{ position: 'relative' }}>
+      {/* Banner flotante de reto pendiente entrante mientras se juega */}
+      {pendingInvitationsForMe.length > 0 && !isPlayingMatch && (
         <div style={{
-          gridColumn: '1 / -1',
-          background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.25) 0%, rgba(16, 185, 129, 0.20) 100%)',
-          border: '2px solid var(--color-gold)',
-          borderRadius: 'var(--radius-lg, 16px)',
-          padding: '12px 18px',
-          boxShadow: '0 6px 20px rgba(245, 158, 11, 0.25)',
+          background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.25) 0%, rgba(15, 23, 42, 0.95) 100%)',
+          border: '1.5px solid #eab308',
+          borderRadius: '12px',
+          padding: '10px 16px',
           display: 'flex',
-          alignItems: 'center',
           justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '12px',
-          marginBottom: '10px'
+          alignItems: 'center',
+          marginBottom: '16px',
+          boxShadow: '0 4px 20px rgba(234, 179, 8, 0.3)',
+          animation: 'pulseGlow 2s infinite ease-in-out'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span style={{ fontSize: '1.4rem' }}>⚔️</span>
             <div>
-              <div style={{ fontWeight: '900', fontSize: '0.96rem', color: 'var(--text-parchment-main)' }}>
-                ¡{pendingInvitationsForMe[0].fromUser?.name || 'Un familiar'} te está retando en línea!
+              <div style={{ fontWeight: '900', color: '#facc15', fontSize: '0.90rem' }}>
+                ¡{pendingInvitationsForMe[0].fromUser?.name || 'Un familiar'} te ha retado a una partida!
               </div>
-              <div style={{ fontSize: '0.74rem', color: 'var(--text-parchment-muted)' }}>
+              <div style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
                 ⏱️ {Math.round((pendingInvitationsForMe[0].timeControl || 300) / 60)}m • Sala: {pendingInvitationsForMe[0].roomId}
               </div>
             </div>
@@ -1793,7 +1791,7 @@ export const PlayView = ({
               className="btn-gold"
               onClick={() => {
                 const inv = acceptFamilyInvitation(pendingInvitationsForMe[0].id);
-                if (inv && onOpenP2P) onOpenP2P(inv.roomId);
+                if (inv && onOpenP2P) onOpenP2P(inv.roomId, 'join');
               }}
               style={{ padding: '7px 14px', fontSize: '0.82rem', fontWeight: '900', gap: '5px' }}
             >
