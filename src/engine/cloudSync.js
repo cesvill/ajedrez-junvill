@@ -328,7 +328,7 @@ class CloudSyncService {
   }
 
   // Iniciar sincronización periódica automática
-  startPeriodicSync(getActiveGroup, onCloudUpdate, intervalMs = 4000) {
+  startPeriodicSync(getActiveGroup, onCloudUpdate, intervalMs = 3000) {
     if (this.syncInterval) clearInterval(this.syncInterval);
 
     const performSync = async () => {
@@ -336,26 +336,49 @@ class CloudSyncService {
         const currentGroup = getActiveGroup();
         if (!currentGroup) return;
 
-        // 1. Descargar estado de la nube
+        // 1. Descargar estado más reciente de la nube
         const cloudGroup = await this.fetchCloudGroup(currentGroup.id);
         let groupToPush = currentGroup;
 
-        if (cloudGroup && cloudGroup.users && Array.isArray(cloudGroup.users)) {
+        if (cloudGroup) {
           // Fusionar usuarios (CRDT)
-          const mergedUsers = this.mergeUsers(currentGroup.users, cloudGroup.users);
-          const hasChanges = JSON.stringify(mergedUsers) !== JSON.stringify(currentGroup.users);
+          const mergedUsers = (cloudGroup.users && Array.isArray(cloudGroup.users))
+            ? this.mergeUsers(currentGroup.users, cloudGroup.users)
+            : (currentGroup.users || []);
 
-          if (hasChanges) {
-            const updatedGroup = {
-              ...currentGroup,
-              ...cloudGroup,
-              users: mergedUsers,
-              updatedAt: Date.now()
-            };
-            groupToPush = updatedGroup;
-            if (onCloudUpdate) onCloudUpdate(updatedGroup);
-            this.notifyListeners(updatedGroup);
-          }
+          // Fusionar retos familiares activos
+          const existingInvs = Array.isArray(currentGroup.activeInvitations) ? currentGroup.activeInvitations : [];
+          const cloudInvs = Array.isArray(cloudGroup.activeInvitations) ? cloudGroup.activeInvitations : [];
+          const now = Date.now();
+          const combinedInvs = [...cloudInvs, ...existingInvs].filter(i => (now - (i.createdAt || 0)) < 600000);
+          const invMap = new Map();
+          combinedInvs.forEach(i => { if (i && i.id) invMap.set(i.id, i); });
+          const mergedInvs = Array.from(invMap.values());
+
+          // Fusionar partidas activas / asíncronas
+          const existingMatches = Array.isArray(currentGroup.activeMatches) ? currentGroup.activeMatches : [];
+          const cloudMatches = Array.isArray(cloudGroup.activeMatches) ? cloudGroup.activeMatches : [];
+          const matchMap = new Map();
+          [...cloudMatches, ...existingMatches].forEach(m => {
+            if (m && m.roomId) {
+              const prev = matchMap.get(m.roomId);
+              if (!prev || (m.updatedAt || 0) >= (prev.updatedAt || 0)) matchMap.set(m.roomId, m);
+            }
+          });
+          const mergedMatches = Array.from(matchMap.values()).filter(m => !m.isGameOver && (now - (m.updatedAt || 0)) < 86400000 * 7);
+
+          const updatedGroup = {
+            ...currentGroup,
+            ...cloudGroup,
+            users: mergedUsers,
+            activeInvitations: mergedInvs,
+            activeMatches: mergedMatches,
+            updatedAt: Math.max(currentGroup.updatedAt || 0, cloudGroup.updatedAt || 0, Date.now())
+          };
+
+          groupToPush = updatedGroup;
+          if (onCloudUpdate) onCloudUpdate(updatedGroup);
+          this.notifyListeners(updatedGroup);
         }
 
         // 2. Subir estado fusionado y enriquecido a la nube
