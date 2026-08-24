@@ -346,8 +346,17 @@ class CloudSyncService {
           };
 
           groupToPush = updatedGroup;
-          if (onCloudUpdate) onCloudUpdate(updatedGroup);
-          this.notifyListeners(updatedGroup);
+
+          // Solo notificar si hay cambios reales en usuarios, retos o partidas
+          const hasChanged = 
+            JSON.stringify(mergedUsers) !== JSON.stringify(currentGroup.users || []) ||
+            JSON.stringify(mergedInvs) !== JSON.stringify(currentGroup.activeInvitations || []) ||
+            JSON.stringify(mergedMatches) !== JSON.stringify(currentGroup.activeMatches || []);
+
+          if (hasChanged) {
+            if (onCloudUpdate) onCloudUpdate(updatedGroup);
+            this.notifyListeners(updatedGroup);
+          }
         }
 
         // 2. Subir estado fusionado y enriquecido a la nube

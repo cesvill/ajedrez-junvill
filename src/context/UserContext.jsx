@@ -1140,23 +1140,38 @@ export const UserProvider = ({ children }) => {
     } catch (e) {}
   }, [groups, activeGroupId, unlockedGroupIds, activeUserId]);
 
+  // Refs para sincronización estable sin bucles infinitos de re-render
+  const activeGroupRef = useRef(activeGroup);
+  activeGroupRef.current = activeGroup;
+  const currentUserRef = useRef(currentUser);
+  currentUserRef.current = currentUser;
+  const familyInvitationsRef = useRef(familyInvitations);
+  familyInvitationsRef.current = familyInvitations;
+  const activeP2PGameRef = useRef(activeP2PGame);
+  activeP2PGameRef.current = activeP2PGame;
+
   // 7. SINCRONIZACIÓN PERIÓDICA CON LA BASE DE DATOS CENTRAL EN LA NUBE (Latidos en vivo y presencia)
   useEffect(() => {
     const cleanup = cloudSync.startPeriodicSync(
       () => {
-        if (!activeGroup) return null;
+        const curGroup = activeGroupRef.current;
+        if (!curGroup) return null;
         const now = Date.now();
-        const updatedUsers = (activeGroup.users || []).map(u => {
-          if (currentUser && (u.id === currentUser.id || normalizeUserKey(u.name || u.id) === normalizeUserKey(currentUser.name || currentUser.id))) {
+        const curUser = currentUserRef.current;
+        const curInvs = familyInvitationsRef.current || [];
+        const curP2P = activeP2PGameRef.current;
+
+        const updatedUsers = (curGroup.users || []).map(u => {
+          if (curUser && (u.id === curUser.id || normalizeUserKey(u.name || u.id) === normalizeUserKey(curUser.name || curUser.id))) {
             return { ...u, lastActiveTimestamp: now, updatedAt: Math.max(u.updatedAt || 0, now) };
           }
           return u;
         });
         return { 
-          ...activeGroup, 
+          ...curGroup, 
           users: updatedUsers, 
-          activeInvitations: familyInvitations.filter(inv => (now - (inv.createdAt || 0)) < 600000),
-          activeMatches: activeP2PGame ? [activeP2PGame] : (activeGroup.activeMatches || []),
+          activeInvitations: curInvs.filter(inv => (now - (inv.createdAt || 0)) < 600000),
+          activeMatches: curP2P ? [curP2P] : (curGroup.activeMatches || []),
           updatedAt: now 
         };
       },
@@ -1179,18 +1194,20 @@ export const UserProvider = ({ children }) => {
         }
 
         // Sincronizar partidas activas / asíncronas
-        if (Array.isArray(updatedCloudGroup.activeMatches) && currentUser) {
-          const myKey = normalizeUserKey(currentUser.name || currentUser.id);
+        const curUser = currentUserRef.current;
+        if (Array.isArray(updatedCloudGroup.activeMatches) && curUser) {
+          const myKey = normalizeUserKey(curUser.name || curUser.id);
           const myMatch = updatedCloudGroup.activeMatches.find(m => {
             const oppKey = normalizeUserKey(m.opponent?.name || m.opponent?.id || '');
             const whiteKey = normalizeUserKey(m.playerWhite?.name || m.playerWhite?.id || '');
             const blackKey = normalizeUserKey(m.playerBlack?.name || m.playerBlack?.id || '');
-            return (whiteKey === myKey || blackKey === myKey || oppKey === myKey || m.userId === currentUser.id);
+            return (whiteKey === myKey || blackKey === myKey || oppKey === myKey || m.userId === curUser.id);
           });
-          if (myMatch && (!activeP2PGame || (myMatch.updatedAt || 0) > (activeP2PGame.updatedAt || 0))) {
+          const curP2P = activeP2PGameRef.current;
+          if (myMatch && (!curP2P || (myMatch.updatedAt || 0) > (curP2P.updatedAt || 0))) {
             setActiveP2PGame(myMatch);
             try {
-              localStorage.setItem(`junvill_ongoing_p2p_game_v1_${currentUser.id}`, JSON.stringify(myMatch));
+              localStorage.setItem(`junvill_ongoing_p2p_game_v1_${curUser.id}`, JSON.stringify(myMatch));
             } catch (e) {}
           }
         }
@@ -1209,9 +1226,11 @@ export const UserProvider = ({ children }) => {
           return nextGroups;
         });
       },
-      3000
+      3500
     );
-  }, [activeGroupId, activeGroup, currentUser, familyInvitations]);
+
+    return cleanup;
+  }, [activeGroupId]);
 
   // Actualizar usuarios dentro del grupo activo (o grupo específico) de forma atómica y síncrona
   const setUsersForActiveGroup = (updater, targetGroupId = null) => {
