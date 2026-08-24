@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { familySignaling } from '../engine/familySignaling';
 import { audioManager } from '../engine/audio';
 import { cloudSync, normalizeUserKey, deduplicateAndMergeUsers } from '../engine/cloudSync';
@@ -648,10 +648,10 @@ export const UserProvider = ({ children }) => {
   });
 
   // Derivaciones limpias y deduplicadas
-  const activeGroup = groups.find(g => g.id === activeGroupId) || groups[0] || DEFAULT_FAMILY_GROUPS[0];
+  const activeGroup = useMemo(() => groups.find(g => g.id === activeGroupId) || groups[0] || DEFAULT_FAMILY_GROUPS[0], [groups, activeGroupId]);
   const isGroupUnlocked = activeGroup ? unlockedGroupIds.includes(activeGroup.id) : false;
-  const users = activeGroup ? cloudSync.mergeUsers(DEFAULT_JUNVILL_USERS, activeGroup.users || []) : DEFAULT_JUNVILL_USERS;
-  const currentUser = users.find(u => u.id === activeUserId || normalizeUserKey(u.id || u.name) === normalizeUserKey(activeUserId)) || users[0] || DEFAULT_JUNVILL_USERS[0];
+  const users = useMemo(() => activeGroup ? cloudSync.mergeUsers(DEFAULT_JUNVILL_USERS, activeGroup.users || []) : DEFAULT_JUNVILL_USERS, [activeGroup]);
+  const currentUser = useMemo(() => users.find(u => u.id === activeUserId || normalizeUserKey(u.id || u.name) === normalizeUserKey(activeUserId)) || users[0] || DEFAULT_JUNVILL_USERS[0], [users, activeUserId]);
 
   // Sincronización en tiempo real de invitaciones, mensajes y presencia entre pestañas y dispositivos
   useEffect(() => {

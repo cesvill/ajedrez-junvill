@@ -67,6 +67,23 @@ export class ErrorBoundary extends React.Component {
             No te preocupes, tus datos y progreso están a salvo. Puedes reanudar inmediatamente.
           </p>
 
+          {this.state.error && (
+            <div style={{
+              background: 'rgba(0, 0, 0, 0.4)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              borderRadius: '8px',
+              padding: '8px 12px',
+              fontSize: '0.72rem',
+              color: '#fca5a5',
+              fontFamily: 'monospace',
+              maxWidth: '90%',
+              wordBreak: 'break-word',
+              textAlign: 'left'
+            }}>
+              {this.state.error.message || String(this.state.error)}
+            </div>
+          )}
+
           <div style={{ display: 'flex', gap: '10px', marginTop: '6px', flexWrap: 'wrap', justifyContent: 'center' }}>
             <button
               type="button"

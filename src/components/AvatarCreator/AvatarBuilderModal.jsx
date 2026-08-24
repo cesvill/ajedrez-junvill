@@ -96,10 +96,10 @@ export const AvatarBuilderModal = ({ isOpen, onClose }) => {
   const [previewMode, setPreviewMode] = useState('fullbody'); // 'fullbody' | 'bust'
 
   React.useEffect(() => {
-    if (isOpen && currentUser?.avatarConfig) {
-      setConfig({ ...DEFAULT_AVATAR_CONFIG, ...currentUser.avatarConfig });
+    if (isOpen) {
+      setConfig({ ...DEFAULT_AVATAR_CONFIG, ...(currentUser?.avatarConfig || {}) });
     }
-  }, [isOpen, currentUser?.avatarConfig]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
