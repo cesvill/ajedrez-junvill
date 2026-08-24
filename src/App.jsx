@@ -29,7 +29,7 @@ import { getLessonById } from './curriculum/lessonsData';
 import { getBotById } from './assets/botRoster';
 
 export const App = () => {
-  const { currentUser, activeGroup, isGroupUnlocked } = useUser();
+  const { currentUser, activeGroup, isGroupUnlocked, pendingInvitationsForMe, acceptFamilyInvitation, declineFamilyInvitation } = useUser();
   const [activeTab, setActiveTab] = useState(() => parseUrlState()?.view || 'inicio'); // 'inicio' | 'aprender' | 'problemas' | 'robots' | 'jugar' | 'torneos' | 'yo'
   const [activeLesson, setActiveLesson] = useState(null);
   const [activeBotMatch, setActiveBotMatch] = useState(null);
@@ -215,6 +215,59 @@ export const App = () => {
         onOpenManual={() => setIsManualOpen(true)}
         onOpenP2P={(customRoomId, mode) => handleOpenP2P(customRoomId, mode)}
       />
+
+      {/* 0. BANNER FLOTANTE GLOBAL DE RETO ENTRANTE */}
+      {pendingInvitationsForMe && pendingInvitationsForMe.length > 0 && !isP2POpen && (
+        <div style={{
+          position: 'sticky',
+          top: '56px',
+          zIndex: 999,
+          background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.98) 0%, rgba(15, 23, 42, 0.98) 100%)',
+          borderBottom: '2px solid #eab308',
+          boxShadow: '0 6px 25px rgba(234, 179, 8, 0.45)',
+          padding: '10px 20px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '12px',
+          animation: 'pulseGlow 2s infinite ease-in-out'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '1.6rem' }}>⚔️</span>
+            <div>
+              <div style={{ fontWeight: '900', color: '#fef08a', fontSize: '0.96rem' }}>
+                ¡{pendingInvitationsForMe[0].fromUser?.name || 'Un familiar'} te ha retado a una partida de Ajedrez!
+              </div>
+              <div style={{ fontSize: '0.78rem', color: '#e2e8f0', marginTop: '2px' }}>
+                ⏱️ {Math.round((pendingInvitationsForMe[0].timeControl || 300) / 60)} min • Modalidad: <b style={{ color: '#38bdf8' }}>{pendingInvitationsForMe[0].gameVariant || 'Ajedrez Tradicional'}</b> • Sala: <b style={{ fontFamily: 'monospace', color: '#facc15' }}>{pendingInvitationsForMe[0].roomId}</b>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button
+              type="button"
+              className="btn-gold"
+              onClick={() => {
+                const inv = acceptFamilyInvitation(pendingInvitationsForMe[0].id);
+                if (inv) handleOpenP2P(inv.roomId, 'join');
+              }}
+              style={{ padding: '8px 18px', fontSize: '0.88rem', fontWeight: '900', gap: '6px', background: '#eab308', color: '#000000', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
+            >
+              <span>Aceptar y Jugar Ahora ⚔️</span>
+            </button>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => declineFamilyInvitation(pendingInvitationsForMe[0].id)}
+              style={{ padding: '8px 14px', fontSize: '0.82rem', color: '#fca5a5', background: 'rgba(239, 68, 68, 0.2)', border: '1px solid #ef4444', borderRadius: '8px', cursor: 'pointer' }}
+            >
+              Rechazar
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Contenedor de Vistas */}
       <main className="main-content">

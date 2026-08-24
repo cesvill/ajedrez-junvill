@@ -852,17 +852,21 @@ export const UserProvider = ({ children }) => {
     } catch (e) {}
   }, [currentUser?.id, activeGroup, activeGroupId, activeP2PGame?.roomId]);
 
-  // Invitaciones dirigidas al usuario actual (Entrantes)
+  // Invitaciones dirigidas al usuario actual (Entrantes infalibles normalizadas)
   const pendingInvitationsForMe = familyInvitations.filter(inv => {
-    if (inv.status !== 'pending') return false;
-    const matchId = inv.toUserId === currentUser?.id;
-    const matchName = (inv.toUserName || '').toLowerCase().trim() === (currentUser?.name || '').toLowerCase().trim();
-    return matchId || matchName;
+    if (inv.status !== 'pending' || !currentUser) return false;
+    const myKey = normalizeUserKey(currentUser.name || currentUser.id);
+    const targetKey = normalizeUserKey(inv.toUserName || inv.toUserId);
+    const fromKey = normalizeUserKey(inv.fromUser?.name || inv.fromUser?.id);
+    return myKey === targetKey && myKey !== fromKey;
   });
 
   // Invitaciones enviadas por el usuario actual (Salientes en espera)
   const outgoingInvitationsByMe = familyInvitations.filter(inv => {
-    return inv.status === 'pending' && (inv.fromUser?.id === currentUser?.id || (inv.fromUser?.name || '').toLowerCase() === (currentUser?.name || '').toLowerCase());
+    if (inv.status !== 'pending' || !currentUser) return false;
+    const myKey = normalizeUserKey(currentUser.name || currentUser.id);
+    const fromKey = normalizeUserKey(inv.fromUser?.name || inv.fromUser?.id);
+    return myKey === fromKey;
   });
 
   // Helper para consultar si un familiar está conectado en tiempo real (Multi-fuente: WebRTC + LocalStorage + Cloud)

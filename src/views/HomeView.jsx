@@ -364,6 +364,84 @@ export const HomeView = ({
         </div>
       </div>
 
+      {/* TARJETA DE RETOS ENTRANTE RECIBIDOS */}
+      {pendingInvitationsForMe && pendingInvitationsForMe.length > 0 && (
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.22) 0%, rgba(15, 23, 42, 0.95) 100%)',
+          border: '2px solid #eab308',
+          borderRadius: 'var(--radius-lg, 16px)',
+          padding: '18px 22px',
+          boxShadow: '0 6px 25px rgba(234, 179, 8, 0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '16px',
+          animation: 'pulseGlow 2s infinite ease-in-out'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', minWidth: '280px', flex: 1 }}>
+            <div style={{ width: '56px', height: '56px', borderRadius: '50%', overflow: 'hidden', border: '3px solid #eab308', flexShrink: 0, boxShadow: '0 4px 12px rgba(234, 179, 8, 0.4)' }}>
+              {pendingInvitationsForMe[0].fromUser?.avatarConfig ? (
+                <DynamicAvatar config={pendingInvitationsForMe[0].fromUser.avatarConfig} size={56} />
+              ) : (
+                <AvatarIcon avatarId={pendingInvitationsForMe[0].fromUser?.avatar || 'knight'} size={56} />
+              )}
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '3px' }}>
+                <span style={{
+                  background: '#eab308',
+                  color: '#000000',
+                  fontSize: '0.72rem',
+                  fontWeight: '900',
+                  padding: '2px 8px',
+                  borderRadius: 'var(--radius-full)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}>
+                  ¡Reto de Ajedrez Recibido! ⚔️
+                </span>
+                <span style={{ fontSize: '0.76rem', color: '#facc15', fontWeight: '800' }}>
+                  ⏱️ {Math.round((pendingInvitationsForMe[0].timeControl || 300) / 60)} min
+                </span>
+              </div>
+
+              <h3 style={{ margin: '0 0 3px', fontSize: '1.2rem', color: '#fef08a', fontWeight: '900' }}>
+                ¡{pendingInvitationsForMe[0].fromUser?.name || 'Un familiar'} te ha retado a una partida!
+              </h3>
+
+              <div style={{ fontSize: '0.84rem', color: '#cbd5e1' }}>
+                Modalidad: <strong style={{ color: '#38bdf8' }}>{pendingInvitationsForMe[0].gameVariant || 'Ajedrez Tradicional'}</strong> • Sala: <code style={{ color: '#facc15' }}>{pendingInvitationsForMe[0].roomId}</code>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <button
+              type="button"
+              className="btn-gold"
+              onClick={() => {
+                const inv = acceptFamilyInvitation(pendingInvitationsForMe[0].id);
+                if (inv && onOpenP2P) onOpenP2P(inv.roomId, 'join');
+              }}
+              style={{ padding: '10px 20px', fontSize: '0.90rem', fontWeight: '900', gap: '6px' }}
+            >
+              <Swords size={16} />
+              <span>Aceptar y Jugar Ahora ⚔️</span>
+            </button>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => declineFamilyInvitation(pendingInvitationsForMe[0].id)}
+              style={{ padding: '10px 14px', fontSize: '0.82rem', color: '#ef4444' }}
+            >
+              Rechazar
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* TARJETA DE PARTIDA EN CURSO (SI HAY UNA PARTIDA ACTIVA/SIN TERMINAR) */}
       {ongoingGame && (
         <div style={{

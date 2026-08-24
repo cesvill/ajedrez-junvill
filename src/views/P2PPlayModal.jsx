@@ -49,7 +49,10 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
     familyMessages,
     sendFamilyMessage,
     refreshInvitationsNow,
-    isRefreshingInvitations
+    isRefreshingInvitations,
+    pendingInvitationsForMe,
+    acceptFamilyInvitation,
+    declineFamilyInvitation
   } = useUser();
 
   const [gameVariant, setGameVariant] = useState('standard');
@@ -1046,6 +1049,62 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
         {/* ========================================================= */}
         {mode === 'lobby' && (
           <div>
+            {/* BANNER DE RETO FAMILIAR ENTRANTE RECIBIDO */}
+            {pendingInvitationsForMe && pendingInvitationsForMe.length > 0 && (
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.25) 0%, rgba(16, 185, 129, 0.20) 100%)',
+                border: '2px solid var(--color-gold, #ca8a04)',
+                borderRadius: '12px',
+                padding: '14px 18px',
+                marginBottom: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px',
+                boxShadow: '0 4px 20px rgba(234, 179, 8, 0.3)',
+                animation: 'pulseGlow 2s infinite ease-in-out'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontSize: '2rem' }}>⚔️</span>
+                  <div>
+                    <div style={{ fontWeight: '900', fontSize: '1.05rem', color: '#facc15' }}>
+                      ¡{pendingInvitationsForMe[0].fromUser?.name || 'Un familiar'} te ha retado a jugar!
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: '#cbd5e1', marginTop: '2px' }}>
+                      Modalidad: <b style={{ color: '#38bdf8' }}>{pendingInvitationsForMe[0].gameVariant || 'Ajedrez Tradicional'}</b> • Sala: <b style={{ color: '#60a5fa', fontFamily: 'monospace' }}>{pendingInvitationsForMe[0].roomId}</b> • ⏱️ {Math.round((pendingInvitationsForMe[0].timeControl || 300) / 60)} min
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    className="btn-gold"
+                    onClick={() => {
+                      const inv = acceptFamilyInvitation(pendingInvitationsForMe[0].id);
+                      if (inv) {
+                        setRoomId(inv.roomId);
+                        setInputRoomId(inv.roomId);
+                        handleJoinSubmit(inv.roomId);
+                      }
+                    }}
+                    style={{ padding: '9px 18px', fontSize: '0.88rem', fontWeight: '900', gap: '6px' }}
+                  >
+                    <Swords size={16} />
+                    <span>Aceptar y Jugar Ahora ⚔️</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => declineFamilyInvitation(pendingInvitationsForMe[0].id)}
+                    style={{ padding: '9px 12px', fontSize: '0.80rem', color: '#ef4444' }}
+                  >
+                    Rechazar
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* TARJETA DE PARTIDA P2P GUARDADA / EN PAUSA */}
             {activeP2PGame && activeP2PGame.type === 'p2p' && (
               <div style={{
