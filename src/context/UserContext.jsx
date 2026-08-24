@@ -1000,6 +1000,15 @@ export const UserProvider = ({ children }) => {
       return updated;
     });
 
+    // Enviar a la nube central para sincronización inmediata cross-device
+    if (activeGroup) {
+      cloudSync.pushGroupToCloud({
+        ...activeGroup,
+        activeInvitations: [invitation, ...familyInvitations.filter(i => !(i.fromUser?.id === currentUser.id && i.toUserId === toUser.id))],
+        updatedAt: Date.now()
+      }, activeGroupId || 'group_junvill').catch(() => {});
+    }
+
     // Notificar instantáneamente al dispositivo del rival por PeerJS
     familySignaling.sendInvitation(toUser.id, invitation);
 
@@ -1011,15 +1020,21 @@ export const UserProvider = ({ children }) => {
     const inv = familyInvitations.find(i => i.id === invitationId);
     if (!inv) return null;
 
-    setFamilyInvitations(prev => {
-      const updated = prev.filter(i => i.id !== invitationId);
-      try {
-        localStorage.setItem(INVITATIONS_STORAGE_KEY, JSON.stringify(updated));
-      } catch (e) {}
-      return updated;
-    });
+    const remainingInvs = familyInvitations.filter(i => i.id !== invitationId);
+    setFamilyInvitations(remainingInvs);
+    try {
+      localStorage.setItem(INVITATIONS_STORAGE_KEY, JSON.stringify(remainingInvs));
+    } catch (e) {}
 
-    if (inv.fromUser?.id) {
+    if (activeGroup) {
+      cloudSync.pushGroupToCloud({
+        ...activeGroup,
+        activeInvitations: remainingInvs,
+        updatedAt: Date.now()
+      }, activeGroupId || 'group_junvill').catch(() => {});
+    }
+
+    if (inv?.fromUser?.id) {
       familySignaling.sendStatus(inv.fromUser.id, invitationId, 'accepted');
     }
 
@@ -1029,13 +1044,19 @@ export const UserProvider = ({ children }) => {
   // Rechazar Reto Familiar
   const declineFamilyInvitation = (invitationId) => {
     const inv = familyInvitations.find(i => i.id === invitationId);
-    setFamilyInvitations(prev => {
-      const updated = prev.filter(i => i.id !== invitationId);
-      try {
-        localStorage.setItem(INVITATIONS_STORAGE_KEY, JSON.stringify(updated));
-      } catch (e) {}
-      return updated;
-    });
+    const remainingInvs = familyInvitations.filter(i => i.id !== invitationId);
+    setFamilyInvitations(remainingInvs);
+    try {
+      localStorage.setItem(INVITATIONS_STORAGE_KEY, JSON.stringify(remainingInvs));
+    } catch (e) {}
+
+    if (activeGroup) {
+      cloudSync.pushGroupToCloud({
+        ...activeGroup,
+        activeInvitations: remainingInvs,
+        updatedAt: Date.now()
+      }, activeGroupId || 'group_junvill').catch(() => {});
+    }
 
     if (inv?.fromUser?.id) {
       familySignaling.sendStatus(inv.fromUser.id, invitationId, 'declined');
@@ -1064,10 +1085,31 @@ export const UserProvider = ({ children }) => {
           }
           return u;
         });
-        return { ...activeGroup, users: updatedUsers, updatedAt: now };
+        return { 
+          ...activeGroup, 
+          users: updatedUsers, 
+          activeInvitations: familyInvitations.filter(inv => (now - (inv.createdAt || 0)) < 600000),
+          updatedAt: now 
+        };
       },
       (updatedCloudGroup) => {
         if (!updatedCloudGroup || !updatedCloudGroup.id) return;
+        
+        // Sincronizar retos recibidos en la nube
+        if (Array.isArray(updatedCloudGroup.activeInvitations)) {
+          const now = Date.now();
+          setFamilyInvitations(prev => {
+            const combined = [...updatedCloudGroup.activeInvitations, ...prev];
+            const map = new Map();
+            combined.forEach(inv => {
+              if (inv && inv.id) map.set(inv.id, inv);
+            });
+            const updated = Array.from(map.values()).filter(inv => (now - (inv.createdAt || 0)) < 600000);
+            try { localStorage.setItem(INVITATIONS_STORAGE_KEY, JSON.stringify(updated)); } catch (e) {}
+            return updated;
+          });
+        }
+
         setGroups(prev => {
           const exists = prev.some(g => g.id === updatedCloudGroup.id);
           let nextGroups;
@@ -1082,10 +1124,9 @@ export const UserProvider = ({ children }) => {
           return nextGroups;
         });
       },
-      5000
+      3000
     );
-    return () => cleanup && cleanup();
-  }, [activeGroupId, activeGroup, currentUser]);
+  }, [activeGroupId, activeGroup, currentUser, familyInvitations]);
 
   // Actualizar usuarios dentro del grupo activo (o grupo específico) de forma atómica y síncrona
   const setUsersForActiveGroup = (updater, targetGroupId = null) => {

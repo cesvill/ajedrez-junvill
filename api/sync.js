@@ -195,13 +195,26 @@ export default async function handler(req, res) {
       // Obtener datos existentes (de memoria o nube)
       const existing = (await fetchFromDurableCloud(groupId)) || inMemoryCloudStore[groupId] || {};
       
-      // Fusión inteligente (Smart Merge CRDT)
+      // Fusión inteligente de usuarios (Smart Merge CRDT)
       const mergedUsers = mergeUsers(existing.users, groupData.users);
+
+      // Fusión de retos familiares en la nube (TTL 10 minutos)
+      const now = Date.now();
+      const existingInvs = Array.isArray(existing.activeInvitations) ? existing.activeInvitations : [];
+      const newInvs = Array.isArray(groupData.activeInvitations) ? groupData.activeInvitations : [];
+      const combinedInvs = [...existingInvs, ...newInvs].filter(inv => (now - (inv.createdAt || 0)) < 600000);
+      
+      const invMap = new Map();
+      combinedInvs.forEach(inv => {
+        if (inv && inv.id) invMap.set(inv.id, inv);
+      });
+      const mergedInvs = Array.from(invMap.values());
 
       const mergedGroup = {
         ...existing,
         ...groupData,
         users: mergedUsers,
+        activeInvitations: mergedInvs,
         updatedAt: Date.now()
       };
 
