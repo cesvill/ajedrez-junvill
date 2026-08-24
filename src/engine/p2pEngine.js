@@ -82,8 +82,12 @@ export class P2PEngine {
         this.joinRoom(this.roomId);
         return;
       }
-      let friendlyMessage = 'Error en el servidor de conexión P2P.';
-      this.trigger('error', { originalError: err, message: friendlyMessage });
+      if (err.type === 'socket-error' || err.type === 'socket-closed' || err.type === 'network') {
+        console.log('[P2P] Reconectando socket con servidor de señalización...');
+        try { this.peer.reconnect(); } catch (e) {}
+        return;
+      }
+      console.warn('[P2P] Host error info:', err);
     });
 
     return this.roomId;

@@ -210,11 +210,26 @@ export default async function handler(req, res) {
       });
       const mergedInvs = Array.from(invMap.values());
 
+      // Fusión de partidas activas por turnos / asíncronas en la nube (TTL 7 días)
+      const existingMatches = Array.isArray(existing.activeMatches) ? existing.activeMatches : [];
+      const newMatches = Array.isArray(groupData.activeMatches) ? groupData.activeMatches : [];
+      const matchMap = new Map();
+      [...existingMatches, ...newMatches].forEach(m => {
+        if (m && m.roomId) {
+          const prev = matchMap.get(m.roomId);
+          if (!prev || (m.updatedAt || 0) >= (prev.updatedAt || 0)) {
+            matchMap.set(m.roomId, m);
+          }
+        }
+      });
+      const mergedMatches = Array.from(matchMap.values()).filter(m => !m.isGameOver && (now - (m.updatedAt || 0)) < 86400000 * 7);
+
       const mergedGroup = {
         ...existing,
         ...groupData,
         users: mergedUsers,
         activeInvitations: mergedInvs,
+        activeMatches: mergedMatches,
         updatedAt: Date.now()
       };
 

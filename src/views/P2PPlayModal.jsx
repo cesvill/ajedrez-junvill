@@ -326,13 +326,15 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
     });
 
     p2p.on('error', (err) => {
-      console.error('P2P Error:', err);
+      console.warn('P2P Notice:', err);
       setIsConnecting(false);
-      setIsHostActive(false);
-      const friendly = err.message || 'Error de conexión. Verifica el código de sala e inténtalo de nuevo.';
-      setErrorMessage(friendly);
-      setStatusMessage('');
-      audioManager.playWarning();
+      if (err.type === 'peer-unavailable') {
+        setStatusMessage(`Tu compañero aún no se ha unido a la sala. Tu partida y jugadas se guardan de inmediato en la Nube.`);
+      } else if (err.type === 'socket-error' || err.type === 'socket-closed' || err.type === 'network') {
+        setStatusMessage('🔄 Canal de juego respaldado en Nube Central.');
+      } else if (err.message) {
+        setStatusMessage(err.message);
+      }
     });
 
     if (initialRoomId) {

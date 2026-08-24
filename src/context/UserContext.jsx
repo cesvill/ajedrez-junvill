@@ -814,17 +814,43 @@ export const UserProvider = ({ children }) => {
       } else {
         localStorage.setItem(key, JSON.stringify(gameData));
         setActiveP2PGame(gameData);
+
+        // Sincronizar inmediatamente la partida activa en la nube para juego asíncrono
+        if (activeGroup) {
+          const currentMatches = Array.isArray(activeGroup.activeMatches) ? activeGroup.activeMatches : [];
+          const updatedMatches = [
+            gameData,
+            ...currentMatches.filter(m => m.roomId !== gameData.roomId)
+          ];
+          cloudSync.pushGroupToCloud({
+            ...activeGroup,
+            activeMatches: updatedMatches,
+            updatedAt: Date.now()
+          }, activeGroupId || 'group_junvill').catch(() => {});
+        }
       }
     } catch (e) {}
-  }, [currentUser?.id]);
+  }, [currentUser?.id, activeGroup, activeGroupId]);
 
-  const clearActiveP2PGame = useCallback(() => {
+  const clearActiveP2PGame = useCallback((targetRoomId = null) => {
     try {
       const key = `junvill_ongoing_p2p_game_v1_${currentUser?.id || 'default'}`;
       localStorage.removeItem(key);
       setActiveP2PGame(null);
+
+      if (activeGroup) {
+        const currentMatches = Array.isArray(activeGroup.activeMatches) ? activeGroup.activeMatches : [];
+        const filteredMatches = targetRoomId 
+          ? currentMatches.filter(m => m.roomId !== targetRoomId)
+          : currentMatches.filter(m => m.roomId !== activeP2PGame?.roomId);
+        cloudSync.pushGroupToCloud({
+          ...activeGroup,
+          activeMatches: filteredMatches,
+          updatedAt: Date.now()
+        }, activeGroupId || 'group_junvill').catch(() => {});
+      }
     } catch (e) {}
-  }, [currentUser?.id]);
+  }, [currentUser?.id, activeGroup, activeGroupId, activeP2PGame?.roomId]);
 
   // Invitaciones dirigidas al usuario actual (Entrantes)
   const pendingInvitationsForMe = familyInvitations.filter(inv => {
@@ -1126,6 +1152,7 @@ export const UserProvider = ({ children }) => {
           ...activeGroup, 
           users: updatedUsers, 
           activeInvitations: familyInvitations.filter(inv => (now - (inv.createdAt || 0)) < 600000),
+          activeMatches: activeP2PGame ? [activeP2PGame] : (activeGroup.activeMatches || []),
           updatedAt: now 
         };
       },
@@ -1145,6 +1172,23 @@ export const UserProvider = ({ children }) => {
             try { localStorage.setItem(INVITATIONS_STORAGE_KEY, JSON.stringify(updated)); } catch (e) {}
             return updated;
           });
+        }
+
+        // Sincronizar partidas activas / asíncronas
+        if (Array.isArray(updatedCloudGroup.activeMatches) && currentUser) {
+          const myKey = normalizeUserKey(currentUser.name || currentUser.id);
+          const myMatch = updatedCloudGroup.activeMatches.find(m => {
+            const oppKey = normalizeUserKey(m.opponent?.name || m.opponent?.id || '');
+            const whiteKey = normalizeUserKey(m.playerWhite?.name || m.playerWhite?.id || '');
+            const blackKey = normalizeUserKey(m.playerBlack?.name || m.playerBlack?.id || '');
+            return (whiteKey === myKey || blackKey === myKey || oppKey === myKey || m.userId === currentUser.id);
+          });
+          if (myMatch && (!activeP2PGame || (myMatch.updatedAt || 0) > (activeP2PGame.updatedAt || 0))) {
+            setActiveP2PGame(myMatch);
+            try {
+              localStorage.setItem(`junvill_ongoing_p2p_game_v1_${currentUser.id}`, JSON.stringify(myMatch));
+            } catch (e) {}
+          }
         }
 
         setGroups(prev => {
