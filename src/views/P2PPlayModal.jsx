@@ -47,7 +47,9 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
     activeP2PGame,
     isUserOnline,
     familyMessages,
-    sendFamilyMessage
+    sendFamilyMessage,
+    refreshInvitationsNow,
+    isRefreshingInvitations
   } = useUser();
 
   const [gameVariant, setGameVariant] = useState('standard');
@@ -1186,32 +1188,57 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                     </div>
                   </div>
 
-                  {/* Selector rápido de tiempo para retos */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '0.78rem', fontWeight: '800', color: '#facc15' }}>Tiempo:</span>
-                    {[
-                      { secs: 180, label: '3 min' },
-                      { secs: 300, label: '5 min' },
-                      { secs: 600, label: '10 min' }
-                    ].map(t => (
-                      <button
-                        key={t.secs}
-                        type="button"
-                        onClick={() => setTimeControl(t.secs)}
-                        style={{
-                          background: timeControl === t.secs ? 'var(--color-gold, #ca8a04)' : 'rgba(255, 255, 255, 0.08)',
-                          color: timeControl === t.secs ? '#000000' : '#f8fafc',
-                          border: 'none',
-                          borderRadius: '6px',
-                          padding: '4px 8px',
-                          fontSize: '0.74rem',
-                          fontWeight: '800',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {t.label}
-                      </button>
-                    ))}
+                  {/* Acciones de cabecera: Refrescar y selector rápido de tiempo */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={refreshInvitationsNow}
+                      disabled={isRefreshingInvitations}
+                      style={{
+                        background: 'rgba(234, 179, 8, 0.15)',
+                        border: '1.5px solid var(--color-gold, #ca8a04)',
+                        borderRadius: '6px',
+                        padding: '5px 10px',
+                        fontSize: '0.76rem',
+                        fontWeight: '800',
+                        color: '#facc15',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px'
+                      }}
+                      title="Comprobar retos pendientes en la nube inmediatamente"
+                    >
+                      <RefreshCw size={13} style={{ animation: isRefreshingInvitations ? 'spin 1s linear infinite' : 'none' }} />
+                      <span>{isRefreshingInvitations ? 'Buscando...' : 'Buscar Retos 🔍'}</span>
+                    </button>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ fontSize: '0.78rem', fontWeight: '800', color: '#facc15' }}>Tiempo:</span>
+                      {[
+                        { secs: 180, label: '3 min' },
+                        { secs: 300, label: '5 min' },
+                        { secs: 600, label: '10 min' }
+                      ].map(t => (
+                        <button
+                          key={t.secs}
+                          type="button"
+                          onClick={() => setTimeControl(t.secs)}
+                          style={{
+                            background: timeControl === t.secs ? 'var(--color-gold, #ca8a04)' : 'rgba(255, 255, 255, 0.08)',
+                            color: timeControl === t.secs ? '#000000' : '#f8fafc',
+                            border: 'none',
+                            borderRadius: '6px',
+                            padding: '4px 8px',
+                            fontSize: '0.74rem',
+                            fontWeight: '800',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 

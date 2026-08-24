@@ -42,7 +42,7 @@ export const PlayView = ({
   onExitMatch,
   onOpenBugReport 
 }) => {
-  const { currentUser, users, isUserOnline, updateCurrentUser, recordGameResult, recordBotWin, pendingInvitationsForMe, acceptFamilyInvitation, declineFamilyInvitation, sendFamilyInvitation, activeP2PGame, clearActiveP2PGame } = useUser();
+  const { currentUser, users, isUserOnline, updateCurrentUser, recordGameResult, recordBotWin, pendingInvitationsForMe, acceptFamilyInvitation, declineFamilyInvitation, sendFamilyInvitation, activeP2PGame, clearActiveP2PGame, refreshInvitationsNow, isRefreshingInvitations } = useUser();
   const [isPauseMenuOpen, setIsPauseMenuOpen] = useState(false);
   const [challengeOpponent, setChallengeOpponent] = useState(null);
   const [customRoomCodeInput, setCustomRoomCodeInput] = useState('');
@@ -1171,6 +1171,28 @@ export const PlayView = ({
           </div>
 
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={refreshInvitationsNow}
+              disabled={isRefreshingInvitations}
+              style={{
+                padding: '10px 16px',
+                fontSize: '0.86rem',
+                fontWeight: '800',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'rgba(234, 179, 8, 0.12)',
+                border: '1.5px solid rgba(234, 179, 8, 0.5)',
+                color: '#fde047'
+              }}
+              title="Buscar y comprobar retos e invitaciones de amigos y familiares de inmediato"
+            >
+              <RefreshCw size={16} className={isRefreshingInvitations ? 'spin' : ''} style={{ animation: isRefreshingInvitations ? 'spin 1s linear infinite' : 'none' }} />
+              <span>{isRefreshingInvitations ? 'Buscando Retos...' : 'Buscar Retos de Amigos 🔍'}</span>
+            </button>
+
             <button
               type="button"
               className="btn-gold"

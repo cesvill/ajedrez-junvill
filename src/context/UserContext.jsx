@@ -1063,6 +1063,43 @@ export const UserProvider = ({ children }) => {
     }
   };
 
+  const [isRefreshingInvitations, setIsRefreshingInvitations] = useState(false);
+
+  // Búsqueda Manual e Inmediata de Retos e Invitaciones (Nube + Señalización WebRTC)
+  const refreshInvitationsNow = async () => {
+    setIsRefreshingInvitations(true);
+    try {
+      // 1. Consultar Nube Central de inmediato
+      const cloudData = await cloudSync.fetchCloudGroup(activeGroupId || 'group_junvill');
+      if (cloudData && Array.isArray(cloudData.activeInvitations)) {
+        const now = Date.now();
+        setFamilyInvitations(prev => {
+          const combined = [...cloudData.activeInvitations, ...prev];
+          const map = new Map();
+          combined.forEach(inv => {
+            if (inv && inv.id) map.set(inv.id, inv);
+          });
+          const updated = Array.from(map.values()).filter(inv => (now - (inv.createdAt || 0)) < 600000);
+          try { localStorage.setItem(INVITATIONS_STORAGE_KEY, JSON.stringify(updated)); } catch (e) {}
+          return updated;
+        });
+      }
+
+      // 2. Transmitir latido de búsqueda por WebRTC
+      if (currentUser?.id && users) {
+        const otherUserIds = users.filter(u => u.id !== currentUser.id).map(u => u.id);
+        familySignaling.broadcastHeartbeat(currentUser.id, { action: 'SEARCH_INVITATIONS', timestamp: Date.now() }, otherUserIds);
+      }
+      
+      // 3. Audio de feedback sutil
+      try { audioManager.playMove(); } catch (e) {}
+    } catch (e) {
+      console.warn('Error al refrescar retos:', e);
+    } finally {
+      setTimeout(() => setIsRefreshingInvitations(false), 700);
+    }
+  };
+
   // Sincronización continua de estado con localStorage / sessionStorage
   useEffect(() => {
     try {
@@ -1755,6 +1792,8 @@ export const UserProvider = ({ children }) => {
       sendFamilyMessage,
       markMessagesAsRead,
       unreadMessagesCount,
+      refreshInvitationsNow,
+      isRefreshingInvitations,
       incomingToast,
       setIncomingToast
     }}>
