@@ -311,7 +311,10 @@ export const ChessBoard = ({
                   className={squareClasses}
                   style={{
                     backgroundColor: bgStyle,
-                    boxShadow: isQuad ? 'inset 0 0 0 3px #f59e0b' : undefined
+                    boxShadow: isQuad ? 'inset 0 0 0 3px #f59e0b' : undefined,
+                    cursor: interactive ? 'pointer' : 'default',
+                    touchAction: 'manipulation',
+                    WebkitTapHighlightColor: 'transparent'
                   }}
                   onClick={() => handleSquareClick(square)}
                   onDragOver={handleDragOver}
@@ -365,7 +368,7 @@ export const ChessBoard = ({
                       draggable={interactive && !animatingMove && (allowFreeMove || piece.color === game.turn())}
                       onDragStart={(e) => handleDragStart(e, square)}
                       className={`chess-piece ${draggedSquare === square ? 'dragging' : ''}`}
-                      style={{ position: 'relative', zIndex: 4 }}
+                      style={{ position: 'relative', zIndex: 4, pointerEvents: 'none' }}
                     >
                       <PieceIcon piece={piece.type} color={piece.color} />
                     </div>

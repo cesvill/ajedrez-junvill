@@ -2064,14 +2064,51 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                 </div>
               )}
 
+              {/* Indicador de Turno en Vivo */}
+              {mode === 'playing' && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  background: isP2PPaused ? 'rgba(59, 130, 246, 0.15)' : ((assignedColor === 'black' ? game.turn() === 'b' : game.turn() === 'w') ? 'rgba(16, 185, 129, 0.15)' : 'rgba(234, 179, 8, 0.12)'),
+                  border: `1.5px solid ${isP2PPaused ? '#3b82f6' : ((assignedColor === 'black' ? game.turn() === 'b' : game.turn() === 'w') ? '#10b981' : '#eab308')}`,
+                  borderRadius: '8px',
+                  padding: '6px 12px',
+                  marginBottom: '6px',
+                  fontSize: '0.82rem',
+                  fontWeight: '800',
+                  color: isP2PPaused ? '#60a5fa' : ((assignedColor === 'black' ? game.turn() === 'b' : game.turn() === 'w') ? '#34d399' : '#facc15')
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      background: isP2PPaused ? '#3b82f6' : ((assignedColor === 'black' ? game.turn() === 'b' : game.turn() === 'w') ? '#10b981' : '#eab308'),
+                      display: 'inline-block'
+                    }} />
+                    <span>
+                      {isP2PPaused
+                        ? '⏸️ Partida en Pausa (Pulsa Reanudar)'
+                        : (assignedColor === 'black' ? game.turn() === 'b' : game.turn() === 'w')
+                        ? `🟢 ¡Tu Turno! Mueve tus fichas (${assignedColor === 'black' ? 'Negras' : 'Blancas'})`
+                        : `⏳ Esperando a que ${opponentProfile?.name || 'tu rival'} mueva...`}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
+                    Turno: {game.turn() === 'w' ? 'Blancas' : 'Negras'}
+                  </span>
+                </div>
+              )}
+
               {/* Tablero de Ajedrez */}
               <div style={{ position: 'relative', width: '100%', maxWidth: '440px', margin: '0 auto' }}>
                 <ChessBoard
                   fen={game.fen()}
                   onMove={handlePieceMove}
-                  orientation={mode === 'spectating' ? 'white' : assignedColor}
+                  orientation={mode === 'spectating' ? 'white' : (assignedColor === 'black' ? 'black' : 'white')}
                   lastMove={lastMove}
-                  interactive={mode === 'playing' && ((assignedColor === 'white' && game.turn() === 'w') || (assignedColor === 'black' && game.turn() === 'b'))}
+                  interactive={mode === 'playing' && !isP2PPaused && !isInterrupted && (assignedColor === 'black' ? game.turn() === 'b' : game.turn() === 'w')}
                 />
 
                 {/* Burbujas flotantes de reacciones de espectadores */}
