@@ -374,22 +374,28 @@ class CloudSyncService {
           const matchMap = new Map();
           [...cloudMatches, ...existingMatches].forEach(m => {
             if (m && m.roomId) {
-              const prev = matchMap.get(m.roomId);
+              const cleanId = String(m.roomId).toUpperCase().replace(/[^A-Z0-9]/g, '');
+              const prev = matchMap.get(cleanId);
               if (!prev) {
-                matchMap.set(m.roomId, m);
+                matchMap.set(cleanId, { ...m, roomId: cleanId });
               } else {
                 const merged = {
                   ...prev,
                   ...m,
+                  roomId: cleanId,
                   hostUser: m.hostUser || prev.hostUser,
                   guestUser: m.guestUser || prev.guestUser,
                   opponent: m.opponent || prev.opponent,
                   fen: (m.updatedAt || 0) >= (prev.updatedAt || 0) ? (m.fen || prev.fen) : (prev.fen || m.fen),
                   lastMove: (m.updatedAt || 0) >= (prev.updatedAt || 0) ? (m.lastMove || prev.lastMove) : (prev.lastMove || m.lastMove),
                   turn: (m.updatedAt || 0) >= (prev.updatedAt || 0) ? (m.turn || prev.turn) : (prev.turn || m.turn),
+                  whiteTime: (m.updatedAt || 0) >= (prev.updatedAt || 0) ? (m.whiteTime ?? prev.whiteTime) : (prev.whiteTime ?? m.whiteTime),
+                  blackTime: (m.updatedAt || 0) >= (prev.updatedAt || 0) ? (m.blackTime ?? prev.blackTime) : (prev.blackTime ?? m.blackTime),
+                  status: (m.status === 'active' || prev.status === 'active') ? 'active' : (m.status || prev.status),
+                  isWaiting: Boolean(!m.guestUser && !prev.guestUser),
                   updatedAt: Math.max(prev.updatedAt || 0, m.updatedAt || 0)
                 };
-                matchMap.set(m.roomId, merged);
+                matchMap.set(cleanId, merged);
               }
             }
           });

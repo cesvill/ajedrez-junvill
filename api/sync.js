@@ -247,58 +247,41 @@ export default async function handler(req, res) {
         }
       });
 
-      // Fusión de partidas activas y detección inteligente de salas paralelas (TTL 2 horas)
+      // Fusión directa e infalible de partidas activas por roomId (TTL 2 horas)
       const existingMatches = Array.isArray(existing.activeMatches) ? existing.activeMatches : [];
       const newMatches = Array.isArray(groupData.activeMatches) ? groupData.activeMatches : [];
       const matchMap = new Map();
       [...existingMatches, ...newMatches].forEach(m => {
         if (m && m.roomId) {
-          const prev = matchMap.get(m.roomId);
+          const cleanId = String(m.roomId).toUpperCase().replace(/[^A-Z0-9]/g, '');
+          const prev = matchMap.get(cleanId);
           if (!prev) {
-            matchMap.set(m.roomId, m);
+            matchMap.set(cleanId, { ...m, roomId: cleanId });
           } else {
             const merged = {
               ...prev,
               ...m,
+              roomId: cleanId,
               hostUser: m.hostUser || prev.hostUser,
               guestUser: m.guestUser || prev.guestUser,
               opponent: m.opponent || prev.opponent,
               fen: (m.updatedAt || 0) >= (prev.updatedAt || 0) ? (m.fen || prev.fen) : (prev.fen || m.fen),
               lastMove: (m.updatedAt || 0) >= (prev.updatedAt || 0) ? (m.lastMove || prev.lastMove) : (prev.lastMove || m.lastMove),
               turn: (m.updatedAt || 0) >= (prev.updatedAt || 0) ? (m.turn || prev.turn) : (prev.turn || m.turn),
+              whiteTime: (m.updatedAt || 0) >= (prev.updatedAt || 0) ? (m.whiteTime ?? prev.whiteTime) : (prev.whiteTime ?? m.whiteTime),
+              blackTime: (m.updatedAt || 0) >= (prev.updatedAt || 0) ? (m.blackTime ?? prev.blackTime) : (prev.blackTime ?? m.blackTime),
+              status: (m.status === 'active' || prev.status === 'active') ? 'active' : (m.status || prev.status),
+              isWaiting: Boolean(!m.guestUser && !prev.guestUser),
               updatedAt: Math.max(prev.updatedAt || 0, m.updatedAt || 0)
             };
-            matchMap.set(m.roomId, merged);
+            matchMap.set(cleanId, merged);
           }
         }
       });
 
-      const roomAliases = { ...(existing.roomAliases || {}), ...(groupData.roomAliases || {}) };
-      const pairMatchMap = new Map();
-      const rawMatches = Array.from(matchMap.values()).filter(m => !m.isGameOver && (now - (m.updatedAt || 0)) < 7200000);
-      rawMatches.sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
-
-      const mergedMatches = [];
-      rawMatches.forEach(m => {
-        const u1 = m.hostUser?.id || m.hostUser?.name || '';
-        const u2 = m.opponent?.id || m.opponent?.name || m.guestUser?.id || m.guestUser?.name || '';
-        if (u1 && u2 && normalizeUserKey(u1) !== normalizeUserKey(u2)) {
-          const pairKey = [normalizeUserKey(u1), normalizeUserKey(u2)].sort().join('_');
-          if (!pairMatchMap.has(pairKey)) {
-            pairMatchMap.set(pairKey, m);
-            mergedMatches.push(m);
-          } else {
-            const canonicalMatch = pairMatchMap.get(pairKey);
-            if (m.roomId !== canonicalMatch.roomId) {
-              roomAliases[m.roomId] = canonicalMatch.roomId;
-              m.aliasOf = canonicalMatch.roomId;
-              m.status = 'merged';
-            }
-          }
-        } else {
-          mergedMatches.push(m);
-        }
-      });
+      const mergedMatches = Array.from(matchMap.values())
+        .filter(m => !m.isGameOver && (now - (m.updatedAt || 0)) < 7200000)
+        .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 
       // Fusión de reportes de bugs familiares en la nube (Hasta 200 reportes más recientes)
       const existingBugs = Array.isArray(existing.bugReports) ? existing.bugReports : [];
@@ -317,7 +300,7 @@ export default async function handler(req, res) {
         users: mergedUsers,
         activeInvitations: mergedInvs,
         activeMatches: mergedMatches,
-        roomAliases,
+        roomAliases: existing.roomAliases || groupData.roomAliases || {},
         bugReports: mergedBugs,
         updatedAt: Date.now()
       };

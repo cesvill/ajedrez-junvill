@@ -232,36 +232,36 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
             if (match) {
               const curUser = currentUserRef.current;
               const hostActive = isHostActiveRef.current;
-              const oppConnected = isOpponentConnectedRef.current;
 
               // Si soy el Host y ya se unió el invitado en la nube
-              if (hostActive && match.guestUser && match.guestUser.id !== curUser?.id) {
-                if (!oppConnected) {
-                  setOpponentProfile(match.guestUser);
-                  setIsOpponentConnected(true);
-                  setOpponentJustJoined(true);
-                  setTimeout(() => setOpponentJustJoined(false), 5000);
-                  setMode('playing');
-                  setIsConnecting(false);
-                  setIsInterrupted(false);
-                  setStatusMessage(`¡${match.guestUser.name} se ha unido a la sala! ¡Iniciando partida!`);
-                  audioManager?.playVictory?.();
-                }
+              const isGuestJoined = match.guestUser && (
+                (curUser?.id && match.guestUser.id !== curUser.id) ||
+                (curUser?.name && match.guestUser.name && match.guestUser.name.toLowerCase() !== curUser.name.toLowerCase()) ||
+                (!curUser && match.guestUser)
+              );
+
+              if (hostActive && isGuestJoined) {
+                setOpponentProfile(match.guestUser);
+                setIsOpponentConnected(true);
+                setMode('playing');
+                setIsConnecting(false);
+                setIsInterrupted(false);
+                setStatusMessage(`¡${match.guestUser.name || 'Tu rival'} se ha unido a la sala! ¡Iniciando partida!`);
               }
               // Si soy el Guest y la sala existe en la nube
-              else if (!hostActive && match.hostUser && match.hostUser.id !== curUser?.id) {
-                if (!oppConnected) {
+              else if (!hostActive && match.hostUser) {
+                const isDiffHost = (curUser?.id && match.hostUser.id !== curUser.id) ||
+                  (curUser?.name && match.hostUser.name && match.hostUser.name.toLowerCase() !== curUser.name.toLowerCase()) ||
+                  !curUser;
+                if (isDiffHost) {
                   setOpponentProfile(match.hostUser);
                   setIsOpponentConnected(true);
-                  setOpponentJustJoined(true);
                   const guestColor = match.assignedColor === 'white' ? 'black' : 'white';
                   setAssignedColor(guestColor);
-                  setTimeout(() => setOpponentJustJoined(false), 5000);
                   setMode('playing');
                   setIsConnecting(false);
                   setIsInterrupted(false);
                   setStatusMessage(`¡Conectado con ${match.hostUser.name}! ¡Iniciando partida!`);
-                  audioManager?.playVictory?.();
                 }
               }
 
