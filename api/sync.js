@@ -3,34 +3,49 @@
 
 let inMemoryCloudStore = {};
 
-const CLOUD_STORAGE_BASE = 'https://api.cl1p.net/ajedrez_junvill_cloud_sync_';
+const RESTFUL_OBJECT_ID = 'ff808181a04ccf2d01a05302af8117fb';
+const RESTFUL_API_URL = `https://api.restful-api.dev/objects/${RESTFUL_OBJECT_ID}`;
 
 async function fetchFromDurableCloud(groupId) {
   try {
-    const cleanId = String(groupId || 'group_junvill').replace(/[^a-zA-Z0-9_-]/g, '');
-    const res = await fetch(`${CLOUD_STORAGE_BASE}${cleanId}`, {
+    const res = await fetch(RESTFUL_API_URL, {
       headers: { 'Accept': 'application/json' },
       signal: AbortSignal.timeout(4000)
     });
     if (res.ok) {
-      const data = await res.json();
-      if (data && data.users && Array.isArray(data.users)) {
-        return data;
+      const json = await res.json();
+      if (json && json.data) {
+        if (json.data.rawJson) {
+          const parsed = JSON.parse(json.data.rawJson);
+          if (parsed && parsed.users && Array.isArray(parsed.users)) {
+            inMemoryCloudStore[groupId || 'group_junvill'] = parsed;
+            return parsed;
+          }
+        } else if (json.data.users && Array.isArray(json.data.users)) {
+          inMemoryCloudStore[groupId || 'group_junvill'] = json.data;
+          return json.data;
+        }
       }
     }
   } catch (e) {
     // Fallback to memory
   }
-  return inMemoryCloudStore[groupId] || null;
+  return inMemoryCloudStore[groupId || 'group_junvill'] || null;
 }
 
 async function saveToDurableCloud(groupId, data) {
   try {
-    const cleanId = String(groupId || 'group_junvill').replace(/[^a-zA-Z0-9_-]/g, '');
-    await fetch(`${CLOUD_STORAGE_BASE}${cleanId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+    const str = JSON.stringify(data);
+    await fetch(RESTFUL_API_URL, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({
+        name: 'junvill_cloud_sync_group_junvill',
+        data: {
+          rawJson: str,
+          updatedAt: Date.now()
+        }
+      }),
       signal: AbortSignal.timeout(4000)
     });
   } catch (e) {
