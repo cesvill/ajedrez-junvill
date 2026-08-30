@@ -13,53 +13,54 @@ function normalizeUserKey(raw) {
     .replace(/^(user_|usr_)/, '');
 }
 
-const RESTFUL_OBJECT_ID = 'ff808181a04ccf2d01a05302af8117fb';
-const RESTFUL_API_URL = `https://api.restful-api.dev/objects/${RESTFUL_OBJECT_ID}`;
+const CLOUD_ENDPOINTS = [
+  (gid) => `https://api.cl1p.net/junvill_sync_prod_${gid || 'group_junvill'}_v2`,
+  (gid) => `https://api.cl1p.net/ajedrez_junvill_cloud_${gid || 'group_junvill'}_v2`
+];
 
 async function fetchFromDurableCloud(groupId) {
-  try {
-    const res = await fetch(RESTFUL_API_URL, {
-      headers: { 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(4000)
-    });
-    if (res.ok) {
-      const json = await res.json();
-      if (json && json.data) {
-        if (json.data.rawJson) {
-          const parsed = JSON.parse(json.data.rawJson);
+  const gid = groupId || 'group_junvill';
+  for (const getUrl of CLOUD_ENDPOINTS) {
+    try {
+      const url = getUrl(gid);
+      const res = await fetch(url, {
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(3500)
+      });
+      if (res.ok) {
+        const text = await res.text();
+        if (text && text.trim().startsWith('{')) {
+          const parsed = JSON.parse(text);
           if (parsed && parsed.users && Array.isArray(parsed.users)) {
-            inMemoryCloudStore[groupId || 'group_junvill'] = parsed;
+            inMemoryCloudStore[gid] = parsed;
             return parsed;
           }
-        } else if (json.data.users && Array.isArray(json.data.users)) {
-          inMemoryCloudStore[groupId || 'group_junvill'] = json.data;
-          return json.data;
         }
       }
+    } catch (e) {
+      // Intentar siguiente endpoint
     }
-  } catch (e) {
-    // Fallback to memory
   }
-  return inMemoryCloudStore[groupId || 'group_junvill'] || null;
+  return inMemoryCloudStore[gid] || null;
 }
 
 async function saveToDurableCloud(groupId, data) {
-  try {
-    const str = JSON.stringify(data);
-    await fetch(RESTFUL_API_URL, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify({
-        name: 'junvill_cloud_sync_group_junvill',
-        data: {
-          rawJson: str,
-          updatedAt: Date.now()
-        }
-      }),
-      signal: AbortSignal.timeout(4000)
-    });
-  } catch (e) {
-    // Fallback to memory
+  const gid = groupId || 'group_junvill';
+  const str = JSON.stringify(data);
+  inMemoryCloudStore[gid] = data;
+
+  for (const getUrl of CLOUD_ENDPOINTS) {
+    try {
+      const url = getUrl(gid);
+      await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: str,
+        signal: AbortSignal.timeout(3500)
+      });
+    } catch (e) {
+      // Silencioso
+    }
   }
 }
 

@@ -42,7 +42,7 @@ export const PlayView = ({
   onExitMatch,
   onOpenBugReport 
 }) => {
-  const { currentUser, users, isUserOnline, updateCurrentUser, recordGameResult, recordBotWin, pendingInvitationsForMe, acceptFamilyInvitation, declineFamilyInvitation, sendFamilyInvitation, activeP2PGame, clearActiveP2PGame, refreshInvitationsNow, isRefreshingInvitations } = useUser();
+  const { currentUser, activeGroup, users, isUserOnline, updateCurrentUser, recordGameResult, recordBotWin, pendingInvitationsForMe, acceptFamilyInvitation, declineFamilyInvitation, sendFamilyInvitation, activeP2PGame, clearActiveP2PGame, refreshInvitationsNow, isRefreshingInvitations } = useUser();
   const [isPauseMenuOpen, setIsPauseMenuOpen] = useState(false);
   const [challengeOpponent, setChallengeOpponent] = useState(null);
   const [customRoomCodeInput, setCustomRoomCodeInput] = useState('');
@@ -1278,6 +1278,73 @@ export const PlayView = ({
                       Rechazar
                     </button>
                   </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 1B. SALAS ABIERTAS POR FAMILIARES */}
+        {activeGroup && Array.isArray(activeGroup.activeMatches) && activeGroup.activeMatches.filter(m => !m.isGameOver && m.hostUser && m.hostUser.id !== currentUser?.id && (Date.now() - (m.updatedAt || 0)) < 7200000).length > 0 && (
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.18) 0%, rgba(30, 41, 59, 0.9) 100%)',
+            border: '2px solid #3b82f6',
+            borderRadius: '18px',
+            padding: '20px',
+            boxShadow: '0 0 25px rgba(59, 130, 246, 0.25)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+              <span style={{ fontSize: '1.4rem' }}>🎮</span>
+              <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '900', color: '#60a5fa' }}>
+                Salas Abiertas por Familiares en la Nube
+              </h2>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {activeGroup.activeMatches.filter(m => !m.isGameOver && m.hostUser && m.hostUser.id !== currentUser?.id && (Date.now() - (m.updatedAt || 0)) < 7200000).map(m => (
+                <div
+                  key={m.roomId}
+                  style={{
+                    background: '#0f172a',
+                    border: '1.5px solid rgba(59, 130, 246, 0.4)',
+                    borderRadius: '14px',
+                    padding: '14px 18px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: '12px'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{ width: '46px', height: '46px', borderRadius: '50%', overflow: 'hidden', border: '2px solid #3b82f6', flexShrink: 0 }}>
+                      {m.hostUser?.avatarConfig ? (
+                        <DynamicAvatar config={m.hostUser.avatarConfig} size={46} />
+                      ) : (
+                        <AvatarIcon avatarId={m.hostUser?.avatar || 'teen_gamer'} size={46} />
+                      )}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: '900', fontSize: '1.05rem', color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span>Sala creada por {m.hostUser?.name || 'Familiar'}</span>
+                        <OnlineBadge isOnline={true} size="sm" />
+                      </div>
+                      <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: '2px' }}>
+                        Sala: <code style={{ color: '#fde047', fontWeight: '900' }}>{m.roomId}</code> • ⏱️ {Math.round((m.timeControl || 300) / 60)}m
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="btn-gold"
+                    onClick={() => {
+                      if (onOpenP2P) onOpenP2P(m.roomId, 'join');
+                    }}
+                    style={{ padding: '9px 18px', fontSize: '0.86rem', fontWeight: '900', gap: '6px' }}
+                  >
+                    <Swords size={16} />
+                    <span>Unirme a esta Sala ⚔️</span>
+                  </button>
                 </div>
               ))}
             </div>

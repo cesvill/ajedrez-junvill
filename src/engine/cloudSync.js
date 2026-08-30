@@ -260,6 +260,7 @@ class CloudSyncService {
 
   // Obtener estado más reciente desde la Nube Central (/api/sync)
   async fetchCloudGroup(groupId = 'group_junvill') {
+    const gid = groupId || 'group_junvill';
     try {
       const signal = createTimeoutSignal(4000);
       const fetchOpts = {
@@ -268,7 +269,7 @@ class CloudSyncService {
       };
       if (signal) fetchOpts.signal = signal;
 
-      const response = await fetch(`/api/sync?groupId=${encodeURIComponent(groupId || 'group_junvill')}`, fetchOpts);
+      const response = await fetch(`/api/sync?groupId=${encodeURIComponent(gid)}`, fetchOpts);
 
       if (response.ok) {
         const json = await response.json();
@@ -277,7 +278,7 @@ class CloudSyncService {
         }
       }
     } catch (e) {
-      // Silencioso en caso de desconexión momentánea
+      // Silencioso
     }
     return null;
   }
@@ -286,16 +287,18 @@ class CloudSyncService {
   async pushGroupToCloud(groupData, groupId = 'group_junvill') {
     if (!groupData) return null;
     this.isSyncing = true;
+    const gid = groupId || 'group_junvill';
+    const updatedPayload = {
+      ...groupData,
+      updatedAt: Date.now()
+    };
     const payload = {
-      groupId: groupId || 'group_junvill',
-      groupData: {
-        ...groupData,
-        updatedAt: Date.now()
-      }
+      groupId: gid,
+      groupData: updatedPayload
     };
 
     try {
-      const signal = createTimeoutSignal(5000);
+      const signal = createTimeoutSignal(4500);
       const fetchOpts = {
         method: 'POST',
         headers: {
@@ -310,10 +313,13 @@ class CloudSyncService {
       if (res.ok) {
         this.lastSyncTime = Date.now();
         const resJson = await res.json();
-        if (resJson && resJson.data) return resJson.data;
+        if (resJson && resJson.data) {
+          this.isSyncing = false;
+          return resJson.data;
+        }
       }
     } catch (e) {
-      // Silencioso en caso de desconexión momentánea
+      // Silencioso
     } finally {
       this.isSyncing = false;
     }

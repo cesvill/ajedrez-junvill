@@ -1089,9 +1089,16 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
       return;
     }
 
+    // Entrar inmediatamente al tablero de juego
+    setRoomId(cleanCode);
+    setInputRoomId(cleanCode);
+    setMode('playing');
+    setIsHostActive(false);
+    setIsOpponentConnected(false);
+    setAssignedColor('black');
     setIsConnecting(true);
     setErrorMessage('');
-    setIsHostActive(false);
+    setStatusMessage(`Conectando a la sala ${cleanCode}...`);
 
     let cloudData = null;
     try {
@@ -1100,12 +1107,11 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
         const canonicalInfo = cloudSync.resolveCanonicalRoom(cleanCode, cloudData);
         if (canonicalInfo.canonicalRoomId) {
           cleanCode = canonicalInfo.canonicalRoomId;
+          setRoomId(cleanCode);
+          setInputRoomId(cleanCode);
         }
       }
     } catch (e) {}
-
-    setRoomId(cleanCode);
-    setInputRoomId(cleanCode);
 
     // Pre-cargar estado guardado si existe
     try {
@@ -1126,28 +1132,26 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
     } catch (e) {}
 
     if (cloudData && Array.isArray(cloudData.activeMatches)) {
-        const remoteMatch = cloudData.activeMatches.find(m => P2PEngine.cleanRoomId(m.roomId) === cleanCode);
-        if (remoteMatch && remoteMatch.hostUser && remoteMatch.hostUser.id !== currentUser?.id) {
-          setOpponentProfile(remoteMatch.hostUser);
-          const guestColor = remoteMatch.assignedColor === 'white' ? 'black' : 'white';
-          setAssignedColor(guestColor);
-          setTimeControl(remoteMatch.timeControl || 300);
-          setWhiteTime(remoteMatch.whiteTime || 300);
-          setBlackTime(remoteMatch.blackTime || 300);
-          const loadedG = new Chess(remoteMatch.fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
-          setGame(loadedG);
-          setMode('playing');
-          setIsConnecting(false);
-          setIsOpponentConnected(true);
-          setIsInterrupted(false);
-          setStatusMessage(`¡Conectado con ${remoteMatch.hostUser.name}! ¡Iniciando partida!`);
-          audioManager?.playVictory?.();
-
-        }
+      const remoteMatch = cloudData.activeMatches.find(m => P2PEngine.cleanRoomId(m.roomId) === cleanCode);
+      if (remoteMatch && remoteMatch.hostUser && remoteMatch.hostUser.id !== currentUser?.id) {
+        setOpponentProfile(remoteMatch.hostUser);
+        const guestColor = remoteMatch.assignedColor === 'white' ? 'black' : 'white';
+        setAssignedColor(guestColor);
+        setTimeControl(remoteMatch.timeControl || 300);
+        setWhiteTime(remoteMatch.whiteTime || 300);
+        setBlackTime(remoteMatch.blackTime || 300);
+        const loadedG = new Chess(remoteMatch.fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+        setGame(loadedG);
+        setIsConnecting(false);
+        setIsOpponentConnected(true);
+        setIsInterrupted(false);
+        setStatusMessage(`¡Conectado con ${remoteMatch.hostUser.name}! ¡Iniciando partida!`);
+        audioManager?.playVictory?.();
       }
+    }
 
-      // Marcar siempre la unión del invitado en la nube
-      const activeMatchPayload = {
+    // Marcar siempre la unión del invitado en la nube
+    const activeMatchPayload = {
         roomId: cleanCode,
         guestUser: {
           id: currentUser?.id,
