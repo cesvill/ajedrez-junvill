@@ -880,6 +880,10 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
     const idToUse = targetRoom || generatedRoomId;
     const cleanId = P2PEngine.cleanRoomId(idToUse);
     setRoomId(cleanId);
+    setInputRoomId(cleanId);
+    setIsHostActive(true);
+    setMode('playing');
+    setStatusMessage(`¡Sala ${cleanId} iniciada! Esperando a que tu rival ingrese a la partida...`);
 
     // Pre-cargar estado guardado si existe
     try {
@@ -1285,9 +1289,24 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                     type="button"
                     className="btn-gold"
                     onClick={() => {
-                      setInputRoomId(activeP2PGame.roomId);
-                      setRoomId(activeP2PGame.roomId);
-                      handleJoinSubmit(activeP2PGame.roomId);
+                      const clean = P2PEngine.cleanRoomId(activeP2PGame.roomId);
+                      setInputRoomId(clean);
+                      setRoomId(clean);
+                      if (activeP2PGame.fen) setGame(new Chess(activeP2PGame.fen));
+                      if (activeP2PGame.whiteTime !== undefined) setWhiteTime(activeP2PGame.whiteTime);
+                      if (activeP2PGame.blackTime !== undefined) setBlackTime(activeP2PGame.blackTime);
+                      if (activeP2PGame.timeControl) setTimeControl(activeP2PGame.timeControl);
+                      if (activeP2PGame.assignedColor) setAssignedColor(activeP2PGame.assignedColor);
+                      if (activeP2PGame.opponent) setOpponentProfile(activeP2PGame.opponent);
+                      setMode('playing');
+                      setIsP2PPaused(true);
+
+                      const amIHost = activeP2PGame.hostUser?.id === currentUser?.id || (!activeP2PGame.guestUser && activeP2PGame.hostUser);
+                      if (amIHost) {
+                        handleCreateHost(clean);
+                      } else {
+                        handleJoinSubmit(clean);
+                      }
                     }}
                     style={{ padding: '9px 18px', fontSize: '0.88rem', fontWeight: '900', gap: '6px' }}
                   >
