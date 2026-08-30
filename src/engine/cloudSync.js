@@ -202,6 +202,24 @@ export function deduplicateAndMergeUsers(...userLists) {
 
 const CLOUD_STORAGE_BASE = 'https://api.cl1p.net/ajedrez_junvill_cloud_sync_';
 
+function createTimeoutSignal(ms) {
+  try {
+    if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
+      return AbortSignal.timeout(ms);
+    }
+  } catch (e) {}
+  try {
+    if (typeof AbortController !== 'undefined') {
+      const controller = new AbortController();
+      setTimeout(() => {
+        try { controller.abort(); } catch (e) {}
+      }, ms);
+      return controller.signal;
+    }
+  } catch (e) {}
+  return undefined;
+}
+
 class CloudSyncService {
   constructor() {
     this.syncInterval = null;
@@ -242,11 +260,14 @@ class CloudSyncService {
   // Obtener estado más reciente desde la Nube Central (/api/sync)
   async fetchCloudGroup(groupId = 'group_junvill') {
     try {
-      const response = await fetch(`/api/sync?groupId=${encodeURIComponent(groupId || 'group_junvill')}`, {
+      const signal = createTimeoutSignal(4000);
+      const fetchOpts = {
         method: 'GET',
-        headers: { 'Accept': 'application/json' },
-        signal: AbortSignal.timeout(4000)
-      });
+        headers: { 'Accept': 'application/json' }
+      };
+      if (signal) fetchOpts.signal = signal;
+
+      const response = await fetch(`/api/sync?groupId=${encodeURIComponent(groupId || 'group_junvill')}`, fetchOpts);
 
       if (response.ok) {
         const json = await response.json();
@@ -273,15 +294,18 @@ class CloudSyncService {
     };
 
     try {
-      const res = await fetch('/api/sync', {
+      const signal = createTimeoutSignal(5000);
+      const fetchOpts = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(5000)
-      });
+        body: JSON.stringify(payload)
+      };
+      if (signal) fetchOpts.signal = signal;
+
+      const res = await fetch('/api/sync', fetchOpts);
       if (res.ok) {
         this.lastSyncTime = Date.now();
         const resJson = await res.json();
