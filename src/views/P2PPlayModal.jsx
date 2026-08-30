@@ -5,6 +5,7 @@ import { SafeChat } from '../components/SafeChat/SafeChat';
 import { AvatarIcon } from '../assets/avatars';
 import { DynamicAvatar } from '../components/AvatarCreator/DynamicAvatar';
 import { P2PEngine } from '../engine/p2pEngine';
+import { cloudSync } from '../engine/cloudSync';
 import { useUser } from '../context/UserContext';
 import { audioManager } from '../engine/audio';
 import { QRCodeDisplay } from '../components/QRCodeModal/QRCodeDisplay';
@@ -599,17 +600,18 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
     }, 2800);
   };
 
-  // Reloj de Partida
+  // Reloj de Partida (Blindado contra desconexiones, reconexiones y pausas)
   useEffect(() => {
-    if ((mode !== 'playing' && mode !== 'spectating') || timeControl === 0 || isP2PPaused) return;
+    if ((mode !== 'playing' && mode !== 'spectating') || timeControl === 0 || isP2PPaused || isInterrupted) return;
 
     const timer = setInterval(() => {
+      if (isP2PPaused || isInterrupted) return;
       const turn = game.turn();
       if (turn === 'w') {
         setWhiteTime(prev => {
           if (prev <= 1) {
             clearInterval(timer);
-            if (mode === 'playing') handleTimeOut('w');
+            if (mode === 'playing' && !isInterrupted && !isP2PPaused) handleTimeOut('w');
             return 0;
           }
           return prev - 1;
@@ -618,7 +620,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
         setBlackTime(prev => {
           if (prev <= 1) {
             clearInterval(timer);
-            if (mode === 'playing') handleTimeOut('b');
+            if (mode === 'playing' && !isInterrupted && !isP2PPaused) handleTimeOut('b');
             return 0;
           }
           return prev - 1;
@@ -627,13 +629,53 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [mode, game, timeControl, isP2PPaused]);
+  }, [mode, game, timeControl, isP2PPaused, isInterrupted]);
+
+  // Sincronización continua de respaldo con la Nube Central (/api/sync)
+  // Permite que la partida nunca se pierda ni se bloquee aunque se corte WebRTC
+  useEffect(() => {
+    if (!isOpen || (mode !== 'playing' && !isInterrupted)) return;
+
+    const cleanRoom = P2PEngine.cleanRoomId(roomId || initialRoomId);
+    if (!cleanRoom) return;
+
+    const syncInterval = setInterval(async () => {
+      try {
+        const cloudData = await cloudSync.fetchCloudGroup(activeGroup?.id || 'group_junvill');
+        if (cloudData && Array.isArray(cloudData.activeMatches)) {
+          const remoteMatch = cloudData.activeMatches.find(m => P2PEngine.cleanRoomId(m.roomId) === cleanRoom);
+          if (remoteMatch && remoteMatch.fen && remoteMatch.fen !== game.fen()) {
+            const currentTurn = game.turn();
+            const isRivalTurnLocally = (assignedColor === 'white' && currentTurn === 'b') || (assignedColor === 'black' && currentTurn === 'w');
+            
+            if (isRivalTurnLocally || (remoteMatch.updatedAt || 0) > (lastMove?.timestamp || 0)) {
+              try {
+                const updatedG = new Chess(remoteMatch.fen);
+                setGame(updatedG);
+                if (remoteMatch.lastMove) setLastMove(remoteMatch.lastMove);
+                if (remoteMatch.whiteTime !== undefined) setWhiteTime(remoteMatch.whiteTime);
+                if (remoteMatch.blackTime !== undefined) setBlackTime(remoteMatch.blackTime);
+                setIsInterrupted(false);
+                setStatusMessage('♟️ ¡Jugada recibida desde la Nube! Es tu turno.');
+                if (updatedG.isCheck() || updatedG.isCheckmate()) audioManager.playCheck();
+                else audioManager.playMove();
+                checkGameOver(updatedG);
+              } catch (e) {}
+            }
+          }
+        }
+      } catch (err) {}
+    }, 3500);
+
+    return () => clearInterval(syncInterval);
+  }, [isOpen, mode, isInterrupted, roomId, initialRoomId, game, assignedColor, lastMove, activeGroup?.id]);
 
   const handleTimeOut = (color) => {
+    if (isP2PPaused || isInterrupted) return;
     audioManager.playWarning();
     const isMe = (color === 'w' && assignedColor === 'white') || (color === 'b' && assignedColor === 'black');
     if (isMe) {
-      setGameResultReason('Se te agotó el tiempo de reloj. Derrota.');
+      setGameResultReason('Se te agotó el tiempo de reloj.');
       recordGameResult('loss', 0, 50);
     } else {
       setGameResultReason('¡Al rival se le agotó el tiempo! Victoria 🏆');
@@ -743,12 +785,13 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
     triggerCheerAnimation(emoji, currentUser?.name || 'Tú');
   };
 
-  // Rendirse
+  // Rendirse (ÚNICA acción que declara abandono definitivo de la partida)
   const handleResign = () => {
-    if (window.confirm('¿Estás seguro de que deseas rendirte?')) {
+    if (window.confirm('¿Estás seguro de que deseas rendirte y abandonar definitivamente la partida?')) {
       p2pRef.current?.sendResign();
       setGameResultReason('Te has rendido. Partida finalizada.');
       setMode('gameover');
+      if (clearActiveP2PGame) clearActiveP2PGame();
       recordGameResult('loss', 0, 40);
     }
   };

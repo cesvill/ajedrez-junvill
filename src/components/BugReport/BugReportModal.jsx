@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useUser } from '../../context/UserContext';
 import { audioManager } from '../../engine/audio';
+import { cloudSync } from '../../engine/cloudSync';
 import { 
   Bug, 
   X, 
@@ -15,10 +16,30 @@ import {
   Sparkles,
   ListFilter,
   FileText,
-  Trash2
+  Trash2,
+  Globe,
+  Clock
 } from 'lucide-react';
 
 export const PREDEFINED_BUG_TEMPLATES = [
+  {
+    id: 'desconexion_online',
+    category: 'multijugador_red',
+    label: '🌐 La partida online se interrumpe o dice abandono tras unos minutos',
+    description: 'Corte de conexión WebRTC o suspensión de pestaña durante la partida en línea con un familiar.'
+  },
+  {
+    id: 'reloj_pausa_tiempo',
+    category: 'multijugador_red',
+    label: '⏱️ Los relojes corrieron durante la pausa o el tiempo expiró indebidamente',
+    description: 'El reloj de la partida no se detuvo en la pausa o marcó derrota por tiempo injustamente.'
+  },
+  {
+    id: 'reto_sala_no_conecta',
+    category: 'multijugador_red',
+    label: '⚔️ El reto familiar no llegó al rival o dice que la sala no está activa',
+    description: 'Problema al retar a un familiar o al conectarse a la sala creada.'
+  },
   {
     id: 'casilla_pieza_incoherente',
     category: 'movimiento_invalido',
@@ -68,6 +89,18 @@ export const PREDEFINED_BUG_TEMPLATES = [
     description: 'Problema al capturar al paso o la posición no refleja el salto de dos casillas.'
   },
   {
+    id: 'avatar_color_reversion',
+    category: 'diseno_visual',
+    label: '🎨 El avatar o ropa vuelve al color anterior al guardar',
+    description: 'El avatar de perfil no conservó el color de ropa o accesorios seleccionado.'
+  },
+  {
+    id: 'botones_sobrepuestos',
+    category: 'diseno_visual',
+    label: '📱 Botones de pausar o controles se ven sobrepuestos con el chat',
+    description: 'Solapamiento de botones en el panel lateral o visualización móvil.'
+  },
+  {
     id: 'posicion_antinatural',
     category: 'diseno_visual',
     label: '👑 Piezas o Reyes en posiciones extrañas / fuera de lugar',
@@ -78,6 +111,12 @@ export const PREDEFINED_BUG_TEMPLATES = [
     category: 'robot_ia',
     label: '🤖 El robot se queda repitiendo jugadas o en bucle',
     description: 'El robot no busca el jaque mate o mueve la misma pieza de un lado a otro.'
+  },
+  {
+    id: 'problema_tactico_validez',
+    category: 'movimiento_invalido',
+    label: '🧩 El problema táctico no valida la jugada ganadora',
+    description: 'El ejercicio de problemas tácticos rechaza una solución de ajedrez válida.'
   },
   {
     id: 'reinicio_leccion',
@@ -111,15 +150,30 @@ export const BugReportModal = ({ isOpen, onClose, contextData = {} }) => {
   const [activeTab, setActiveTab] = useState('report'); // 'report' | 'consolidated'
   const [savedReports, setSavedReports] = useState([]);
 
-  // Cargar reportes consolidados guardados
+  // Cargar reportes consolidados guardados (Local + Nube Central)
   useEffect(() => {
     if (isOpen) {
+      let local = [];
       try {
-        const stored = JSON.parse(localStorage.getItem('junvill_bug_reports') || '[]');
-        setSavedReports(stored);
+        local = JSON.parse(localStorage.getItem('junvill_bug_reports') || '[]');
       } catch (e) {
-        setSavedReports([]);
+        local = [];
       }
+      setSavedReports(local);
+
+      // Cargar reportes de la nube de forma asíncrona
+      cloudSync.fetchCloudGroup('group_junvill').then(cloudData => {
+        if (cloudData && Array.isArray(cloudData.bugReports)) {
+          const combinedMap = new Map();
+          [...local, ...cloudData.bugReports].forEach(r => {
+            if (r && (r.reportId || r.id)) {
+              combinedMap.set(r.reportId || r.id, r);
+            }
+          });
+          const merged = Array.from(combinedMap.values());
+          setSavedReports(merged);
+        }
+      }).catch(() => {});
     }
   }, [isOpen]);
 
@@ -262,6 +316,11 @@ export const BugReportModal = ({ isOpen, onClose, contextData = {} }) => {
     } catch (err) {
       console.error('Error saving bug report locally', err);
     }
+
+    // Sincronizar inmediatamente con la Base de Datos Central en la Nube
+    cloudSync.pushGroupToCloud('group_junvill', {
+      bugReports: [reportRecord]
+    }).catch(err => console.warn('Aviso sincronización bug report nube:', err));
 
     try {
       audioManager?.playSuccess?.();

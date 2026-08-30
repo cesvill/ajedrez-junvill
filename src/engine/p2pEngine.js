@@ -14,6 +14,12 @@ export class P2PEngine {
     this.roomId = null;
     this.isHost = false;
     this.isSpectator = false;
+    this.isDestroyed = false;
+    this.heartbeatInterval = null;
+    this.heartbeatMonitor = null;
+    this.lastHeartbeatTime = Date.now();
+    this.guestProfile = null;
+    this.reconnectTimer = null;
     this.listeners = {
       open: [],
       connected: [],
@@ -217,15 +223,63 @@ export class P2PEngine {
     });
   }
 
+  startHeartbeat() {
+    this.stopHeartbeat();
+    this.lastHeartbeatTime = Date.now();
+
+    // Enviar latido cada 3 segundos
+    this.heartbeatInterval = setInterval(() => {
+      if (this.conn && this.conn.open) {
+        try {
+          this.conn.send({ type: 'P2P_HEARTBEAT', timestamp: Date.now() });
+        } catch (e) {}
+      }
+    }, 3000);
+
+    // Monitorear silencio de red (más de 12 segundos sin respuesta)
+    this.heartbeatMonitor = setInterval(() => {
+      if (this.conn && this.conn.open && !this.isDestroyed) {
+        const elapsed = Date.now() - this.lastHeartbeatTime;
+        if (elapsed > 12000) {
+          console.warn(`[P2P] Sin respuesta del rival por ${Math.round(elapsed/1000)}s. Activando pausa preventiva de red...`);
+          this.trigger('disconnected');
+          this.stopHeartbeat();
+        }
+      }
+    }, 4000);
+  }
+
+  stopHeartbeat() {
+    if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
+    if (this.heartbeatMonitor) clearInterval(this.heartbeatMonitor);
+    this.heartbeatInterval = null;
+    this.heartbeatMonitor = null;
+  }
+
   setupConnection(onSuccessCallback = null) {
     if (!this.conn) return;
 
     this.conn.on('open', () => {
+      this.lastHeartbeatTime = Date.now();
+      this.startHeartbeat();
       if (onSuccessCallback) onSuccessCallback();
       this.trigger('connected', { isHost: this.isHost, roomId: this.roomId });
     });
 
     this.conn.on('data', (data) => {
+      this.lastHeartbeatTime = Date.now();
+
+      // Manejar latidos internos de red
+      if (data && data.type === 'P2P_HEARTBEAT') {
+        if (this.conn && this.conn.open) {
+          try { this.conn.send({ type: 'P2P_HEARTBEAT_ACK', timestamp: Date.now() }); } catch (e) {}
+        }
+        return;
+      }
+      if (data && data.type === 'P2P_HEARTBEAT_ACK') {
+        return;
+      }
+
       this.trigger('data', data);
       // Re-transmitir jugadas a espectadores si somos el Host
       if (this.isHost && this.spectatorConns.length > 0) {
@@ -234,10 +288,12 @@ export class P2PEngine {
     });
 
     this.conn.on('close', () => {
+      this.stopHeartbeat();
       this.trigger('disconnected');
     });
 
     this.conn.on('error', (err) => {
+      this.stopHeartbeat();
       this.trigger('error', { originalError: err, message: 'Error durante la transmisión de la partida.' });
     });
   }
@@ -359,16 +415,20 @@ export class P2PEngine {
   }
 
   destroy() {
+    this.isDestroyed = true;
+    this.stopHeartbeat();
     if (this.conn) {
-      this.conn.close();
+      try { this.conn.close(); } catch (e) {}
       this.conn = null;
     }
     this.spectatorConns.forEach(sc => {
-      if (sc) sc.close();
+      if (sc) {
+        try { sc.close(); } catch (e) {}
+      }
     });
     this.spectatorConns = [];
     if (this.peer) {
-      this.peer.destroy();
+      try { this.peer.destroy(); } catch (e) {}
       this.peer = null;
     }
   }

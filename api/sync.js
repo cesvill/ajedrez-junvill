@@ -210,7 +210,7 @@ export default async function handler(req, res) {
       });
       const mergedInvs = Array.from(invMap.values());
 
-      // Fusión de partidas activas por turnos / asíncronas en la nube (TTL 7 días)
+      // Fusión de partidas activas por turnos / asíncronas en la nube (TTL 14 días)
       const existingMatches = Array.isArray(existing.activeMatches) ? existing.activeMatches : [];
       const newMatches = Array.isArray(groupData.activeMatches) ? groupData.activeMatches : [];
       const matchMap = new Map();
@@ -222,7 +222,18 @@ export default async function handler(req, res) {
           }
         }
       });
-      const mergedMatches = Array.from(matchMap.values()).filter(m => !m.isGameOver && (now - (m.updatedAt || 0)) < 86400000 * 7);
+      const mergedMatches = Array.from(matchMap.values()).filter(m => !m.isGameOver && (now - (m.updatedAt || 0)) < 86400000 * 14);
+
+      // Fusión de reportes de bugs familiares en la nube (Hasta 200 reportes más recientes)
+      const existingBugs = Array.isArray(existing.bugReports) ? existing.bugReports : [];
+      const newBugs = Array.isArray(groupData.bugReports) ? groupData.bugReports : [];
+      const bugMap = new Map();
+      [...newBugs, ...existingBugs].forEach(b => {
+        if (b && (b.reportId || b.id)) {
+          bugMap.set(b.reportId || b.id, b);
+        }
+      });
+      const mergedBugs = Array.from(bugMap.values()).slice(0, 200);
 
       const mergedGroup = {
         ...existing,
@@ -230,6 +241,7 @@ export default async function handler(req, res) {
         users: mergedUsers,
         activeInvitations: mergedInvs,
         activeMatches: mergedMatches,
+        bugReports: mergedBugs,
         updatedAt: Date.now()
       };
 
