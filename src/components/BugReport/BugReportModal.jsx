@@ -318,9 +318,9 @@ export const BugReportModal = ({ isOpen, onClose, contextData = {} }) => {
     }
 
     // Sincronizar inmediatamente con la Base de Datos Central en la Nube
-    cloudSync.pushGroupToCloud('group_junvill', {
+    cloudSync.pushGroupToCloud({
       bugReports: [reportRecord]
-    }).catch(err => console.warn('Aviso sincronización bug report nube:', err));
+    }, 'group_junvill').catch(err => console.warn('Aviso sincronización bug report nube:', err));
 
     try {
       audioManager?.playSuccess?.();
