@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useUser } from '../context/UserContext';
 import { AvatarIcon, AVATAR_LIST } from '../assets/avatars';
 import { DynamicAvatar } from '../components/AvatarCreator/DynamicAvatar';
+import { FullBodyAvatar } from '../components/AvatarCreator/FullBodyAvatar';
 import { COACHES_LIST, getCoachById } from '../assets/coachesData';
 import { Sparkles, Palette, Crown, Shield, Shirt, Layers, Check, Lock, GraduationCap, UserCheck, Sliders } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -157,16 +158,43 @@ export const AvatarStudioView = ({ onOpenAvatarBuilder }) => {
             <div style={{ position: 'absolute', top: '12px', left: '15px', fontSize: '1.2rem' }}>☁️</div>
             <div style={{ position: 'absolute', top: '15px', right: '15px', fontSize: '1.2rem' }}>☀️</div>
 
-            <div style={{ margin: '0 auto', display: 'inline-block', filter: 'drop-shadow(0 12px 24px rgba(0,0,0,0.35))' }}>
-              <AvatarIcon avatarId={currentUser.avatar} avatarConfig={currentUser.avatarConfig} size={110} />
+            <div style={{ margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', filter: 'drop-shadow(0 12px 24px rgba(0,0,0,0.35))' }}>
+              <FullBodyAvatar
+                characterId={currentUser.avatar || 'teen_gamer'}
+                config={currentUser.avatarConfig}
+                width={130}
+                height={175}
+                interactive={true}
+                showPedestal={true}
+              />
             </div>
 
-            <div style={{ marginTop: '12px', color: 'white', fontWeight: '900', fontSize: '1.3rem', textShadow: '0 2px 6px rgba(0,0,0,0.3)' }}>
+            <div style={{ marginTop: '8px', color: 'white', fontWeight: '900', fontSize: '1.3rem', textShadow: '0 2px 6px rgba(0,0,0,0.3)' }}>
               {currentUser.name}
             </div>
             <div style={{ fontSize: '0.88rem', color: '#f0fdf4', fontWeight: '700', marginTop: '2px' }}>
               {currentUser.title} • {currentUser.elo} Elo
             </div>
+
+            {onOpenAvatarBuilder && (
+              <button
+                type="button"
+                onClick={onOpenAvatarBuilder}
+                className="btn-gold"
+                style={{
+                  marginTop: '14px',
+                  padding: '9px 20px',
+                  fontSize: '0.88rem',
+                  fontWeight: '900',
+                  gap: '8px',
+                  margin: '14px auto 0',
+                  boxShadow: '0 4px 14px rgba(0,0,0,0.35)'
+                }}
+              >
+                <Palette size={16} />
+                <span>Personalizar Mi Avatar 🎨</span>
+              </button>
+            )}
           </div>
 
           {/* Tarjeta del Tutor Activo */}

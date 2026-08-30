@@ -26,9 +26,10 @@ export function deduplicateAndMergeUsers(...userLists) {
   const merged = [];
 
   buckets.forEach((userVariants, key) => {
-    let canonicalId = `user_${key}`;
+    const existingId = userVariants.find(u => u.id)?.id;
+    let canonicalId = existingId || `user_${key}`;
     let canonicalName = userVariants[0].name || key;
-    let canonicalRole = 'student';
+    let canonicalRole = userVariants[0].role || 'student';
 
     if (key === 'martin') {
       canonicalId = 'user_martin';
@@ -80,8 +81,8 @@ export function deduplicateAndMergeUsers(...userLists) {
       if (u.gems && u.gems > maxGems) maxGems = u.gems;
       
       // La configuración de avatar toma la versión más reciente por fecha de edición
-      if (u.avatarConfig && Object.keys(u.avatarConfig).length > 3) {
-        if (!latestAvatarConfig || uTime >= maxUpdatedAt) {
+      if (u.avatarConfig && Object.keys(u.avatarConfig).length > 2) {
+        if (!latestAvatarConfig || uTime >= maxUpdatedAt || uTime === 0) {
           latestAvatarConfig = { ...u.avatarConfig };
         }
       }

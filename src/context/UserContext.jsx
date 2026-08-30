@@ -651,7 +651,15 @@ export const UserProvider = ({ children }) => {
   const activeGroup = useMemo(() => groups.find(g => g.id === activeGroupId) || groups[0] || DEFAULT_FAMILY_GROUPS[0], [groups, activeGroupId]);
   const isGroupUnlocked = activeGroup ? unlockedGroupIds.includes(activeGroup.id) : false;
   const users = useMemo(() => activeGroup ? cloudSync.mergeUsers(DEFAULT_JUNVILL_USERS, activeGroup.users || []) : DEFAULT_JUNVILL_USERS, [activeGroup]);
-  const currentUser = useMemo(() => users.find(u => u.id === activeUserId || normalizeUserKey(u.id || u.name) === normalizeUserKey(activeUserId)) || users[0] || DEFAULT_JUNVILL_USERS[0], [users, activeUserId]);
+  const currentUser = useMemo(() => {
+    if (!users || users.length === 0) return DEFAULT_JUNVILL_USERS[0];
+    const found = users.find(u => 
+      u.id === activeUserId || 
+      normalizeUserKey(u.id) === normalizeUserKey(activeUserId) ||
+      normalizeUserKey(u.name) === normalizeUserKey(activeUserId)
+    );
+    return found || users[0] || DEFAULT_JUNVILL_USERS[0];
+  }, [users, activeUserId]);
 
   // Sincronización en tiempo real de invitaciones, mensajes y presencia entre pestañas y dispositivos
   useEffect(() => {
