@@ -41,6 +41,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
     currentUser, 
     activeGroup, 
     users, 
+    familyInvitations,
     recordGameResult, 
     sendFamilyInvitation,
     saveActiveP2PGame,
@@ -101,6 +102,8 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
   const [errorMessage, setErrorMessage] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
   const [isHostActive, setIsHostActive] = useState(false);
+  const [isOpponentConnected, setIsOpponentConnected] = useState(false);
+  const [opponentJustJoined, setOpponentJustJoined] = useState(false);
 
   // Opciones de partida
   const [timeControl, setTimeControl] = useState(300); // 300 seg (5 min)
@@ -134,6 +137,31 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
   const [selectedFamilyOpponent, setSelectedFamilyOpponent] = useState(null);
 
   const p2pRef = useRef(null);
+
+  // Auto-completar perfil del rival real a partir de la invitación familiar o partidas activas
+  useEffect(() => {
+    const clean = P2PEngine.cleanRoomId(roomId || initialRoomId);
+    if (!clean) return;
+    const inv = (familyInvitations || []).find(i => P2PEngine.cleanRoomId(i.roomId) === clean);
+    if (inv) {
+      if (inv.fromUser && inv.fromUser.id !== currentUser?.id) {
+        setOpponentProfile(inv.fromUser);
+        setSelectedFamilyOpponent(inv.fromUser);
+      } else if (inv.toUserId && inv.toUserId !== currentUser?.id) {
+        const targetU = (users || []).find(u => u.id === inv.toUserId || (u.name || '').toLowerCase() === (inv.toUserName || '').toLowerCase()) || {
+          name: inv.toUserName,
+          avatar: 'teen_gamer',
+          elo: 800,
+          role: 'student'
+        };
+        setOpponentProfile(targetU);
+        setSelectedFamilyOpponent(targetU);
+      }
+    } else if (activeP2PGame && P2PEngine.cleanRoomId(activeP2PGame.roomId) === clean && activeP2PGame.opponent) {
+      setOpponentProfile(activeP2PGame.opponent);
+      setSelectedFamilyOpponent(activeP2PGame.opponent);
+    }
+  }, [roomId, initialRoomId, familyInvitations, users, currentUser?.id, activeP2PGame]);
 
   // Escuchar emparejamiento mutuo entre dos familiares que se retaron al tiempo
   useEffect(() => {
@@ -181,6 +209,9 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
             // Si soy el Host y ya se unió el invitado en la nube
             if (isHostActive && match.guestUser && match.guestUser.id !== currentUser?.id) {
               setOpponentProfile(match.guestUser);
+              setIsOpponentConnected(true);
+              setOpponentJustJoined(true);
+              setTimeout(() => setOpponentJustJoined(false), 5000);
               setMode('playing');
               setIsConnecting(false);
               setIsInterrupted(false);
@@ -190,6 +221,9 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
             // Si soy el Guest y la sala está activa en la nube
             else if (!isHostActive && match.hostUser && match.hostUser.id !== currentUser?.id && match.status === 'active') {
               setOpponentProfile(match.hostUser);
+              setIsOpponentConnected(true);
+              setOpponentJustJoined(true);
+              setTimeout(() => setOpponentJustJoined(false), 5000);
               setMode('playing');
               setIsConnecting(false);
               setIsInterrupted(false);
@@ -212,6 +246,8 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
         p2pRef.current = null;
       }
       setIsHostActive(false);
+      setIsOpponentConnected(false);
+      setOpponentJustJoined(false);
       setIsConnecting(false);
       setErrorMessage('');
       setMode('lobby');
@@ -236,6 +272,9 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
         setStatusMessage('¡Conectado como Espectador en Vivo! Observando partida...');
         setMode('spectating');
       } else {
+        setIsOpponentConnected(true);
+        setOpponentJustJoined(true);
+        setTimeout(() => setOpponentJustJoined(false), 5000);
         setStatusMessage('¡Rival conectado! Iniciando partida...');
         setMode('playing');
 
@@ -412,6 +451,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
         setAssignedColor(data.assignedColor || 'black');
         if (data.profile) setOpponentProfile(data.profile);
         if (data.withAssistance !== undefined) setWithAssistance(data.withAssistance);
+        setIsOpponentConnected(true);
         setIsP2PPaused(true);
         setIsInterrupted(false);
         setMode('playing');
@@ -443,6 +483,9 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
       }
     } else if (data.type === 'PROFILE_SYNC') {
       setOpponentProfile(data.profile);
+      setIsOpponentConnected(true);
+      setOpponentJustJoined(true);
+      setTimeout(() => setOpponentJustJoined(false), 5000);
       if (data.profile.withAssistance !== undefined) {
         setWithAssistance(data.profile.withAssistance);
       }
@@ -642,18 +685,19 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
     }, 2800);
   };
 
-  // Reloj de Partida (Blindado contra desconexiones, reconexiones y pausas)
+  // Reloj de Partida (Blindado contra desconexiones, reconexiones, pausas y espera del rival)
   useEffect(() => {
-    if ((mode !== 'playing' && mode !== 'spectating') || timeControl === 0 || isP2PPaused || isInterrupted) return;
+    const isWaitingForOpponent = isHostActive && !isOpponentConnected;
+    if ((mode !== 'playing' && mode !== 'spectating') || timeControl === 0 || isP2PPaused || isInterrupted || isWaitingForOpponent) return;
 
     const timer = setInterval(() => {
-      if (isP2PPaused || isInterrupted) return;
+      if (isP2PPaused || isInterrupted || isWaitingForOpponent) return;
       const turn = game.turn();
       if (turn === 'w') {
         setWhiteTime(prev => {
           if (prev <= 1) {
             clearInterval(timer);
-            if (mode === 'playing' && !isInterrupted && !isP2PPaused) handleTimeOut('w');
+            if (mode === 'playing' && !isInterrupted && !isP2PPaused && !isWaitingForOpponent) handleTimeOut('w');
             return 0;
           }
           return prev - 1;
@@ -662,7 +706,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
         setBlackTime(prev => {
           if (prev <= 1) {
             clearInterval(timer);
-            if (mode === 'playing' && !isInterrupted && !isP2PPaused) handleTimeOut('b');
+            if (mode === 'playing' && !isInterrupted && !isP2PPaused && !isWaitingForOpponent) handleTimeOut('b');
             return 0;
           }
           return prev - 1;
@@ -671,7 +715,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [mode, game, timeControl, isP2PPaused, isInterrupted]);
+  }, [mode, game, timeControl, isP2PPaused, isInterrupted, isHostActive, isOpponentConnected]);
 
   // Sincronización continua de respaldo con la Nube Central (/api/sync)
   // Permite que la partida nunca se pierda ni se bloquee aunque se corte WebRTC
@@ -883,7 +927,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
   };
 
   // Crear Sala Host (Sin Guión)
-  const handleCreateHost = (targetRoom = null) => {
+  const handleCreateHost = (targetRoom = null, targetUser = null) => {
     setIsConnecting(true);
     setErrorMessage('');
     const idToUse = targetRoom || generatedRoomId;
@@ -891,8 +935,18 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
     setRoomId(cleanId);
     setInputRoomId(cleanId);
     setIsHostActive(true);
+    setIsOpponentConnected(false);
+    setOpponentJustJoined(false);
     setMode('playing');
-    setStatusMessage(`¡Sala ${cleanId} iniciada! Esperando a que tu rival ingrese a la partida...`);
+
+    const matchedOpponent = targetUser || selectedFamilyOpponent;
+    if (matchedOpponent) {
+      setOpponentProfile(matchedOpponent);
+      setSelectedFamilyOpponent(matchedOpponent);
+      setStatusMessage(`¡Sala ${cleanId} iniciada! Esperando a que ${matchedOpponent.name} ingrese a la partida...`);
+    } else {
+      setStatusMessage(`¡Sala ${cleanId} iniciada! Esperando a que tu rival ingrese a la partida...`);
+    }
 
     // Pre-cargar estado guardado si existe
     try {
@@ -1052,7 +1106,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
       const newRoom = result?.roomId || generatedRoomId;
       setGeneratedRoomId(newRoom);
       setRoomId(newRoom);
-      handleCreateHost(newRoom);
+      handleCreateHost(newRoom, targetUser);
     }
   };
 
@@ -1921,6 +1975,76 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px', alignItems: 'start' }}>
             {/* LADO IZQUIERDO: TABLERO DE AJEDREZ */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', position: 'relative' }}>
+              {/* Banner de Espera del Rival (Host esperando conexión) */}
+              {isHostActive && !isOpponentConnected && mode === 'playing' && (
+                <div style={{
+                  background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.22) 0%, rgba(30, 41, 59, 0.95) 100%)',
+                  border: '2px solid #f59e0b',
+                  borderRadius: '12px',
+                  padding: '12px 16px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                  boxShadow: '0 6px 20px rgba(245, 158, 11, 0.25)',
+                  animation: 'pulseGlow 2s infinite ease-in-out'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '1.5rem' }}>⏳</span>
+                      <div>
+                        <div style={{ fontWeight: '900', fontSize: '0.94rem', color: '#fef08a' }}>
+                          Esperando a que {opponentProfile?.name && opponentProfile.name !== 'Rival P2P' ? opponentProfile.name : 'tu rival'} se una a la partida...
+                        </div>
+                        <div style={{ fontSize: '0.76rem', color: '#cbd5e1' }}>
+                          ⏱️ El reloj y los movimientos comenzarán cuando {opponentProfile?.name || 'tu contrincante'} ingrese.
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ background: '#0f172a', border: '1.5px solid #f59e0b', color: '#facc15', padding: '5px 12px', borderRadius: '6px', fontFamily: 'monospace', fontWeight: '900', fontSize: '0.96rem', letterSpacing: '1px' }}>
+                        {roomId}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(roomId);
+                          setCopiedLink(true);
+                          setTimeout(() => setCopiedLink(false), 2000);
+                        }}
+                        style={{ background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 12px', fontSize: '0.78rem', fontWeight: '800', cursor: 'pointer' }}
+                      >
+                        {copiedLink ? '✓ Copiado' : 'Copiar Sala'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Notificación Celebratoria de Entrada del Rival */}
+              {opponentJustJoined && (
+                <div style={{
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  color: '#ffffff',
+                  borderRadius: '10px',
+                  padding: '12px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  fontWeight: '900',
+                  fontSize: '0.92rem',
+                  boxShadow: '0 6px 20px rgba(16, 185, 129, 0.45)',
+                  animation: 'bounce 0.5s ease-out'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '1.5rem' }}>🎉</span>
+                    <span>¡{opponentProfile?.name || 'Tu contrincante'} ha entrado a la partida! ¡Que comience el juego!</span>
+                  </div>
+                  <span style={{ fontSize: '0.75rem', background: 'rgba(0,0,0,0.3)', padding: '4px 10px', borderRadius: '6px' }}>
+                    En Vivo 🟢
+                  </span>
+                </div>
+              )}
+
               {/* Banner de Pausa / Interrupción de Red */}
               {(isInterrupted || (isP2PPaused && mode === 'playing')) && (
                 <div style={{
@@ -2018,11 +2142,25 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                   <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden' }}>
-                    <AvatarIcon avatarId={mode === 'spectating' ? (blackPlayerProfile?.avatar || 'knight') : (opponentProfile?.avatar || 'knight')} size={32} />
+                    <AvatarIcon 
+                      avatarId={mode === 'spectating' ? (blackPlayerProfile?.avatar || 'knight') : (opponentProfile?.avatar || 'teen_gamer')} 
+                      avatarConfig={mode === 'spectating' ? blackPlayerProfile?.avatarConfig : opponentProfile?.avatarConfig}
+                      size={32} 
+                    />
                   </div>
                   <div>
-                    <div style={{ fontWeight: '800', fontSize: '0.86rem', color: '#f8fafc' }}>
-                      {mode === 'spectating' ? (blackPlayerProfile?.name || 'Jugador Negras') : (opponentProfile?.name || 'Rival')}
+                    <div style={{ fontWeight: '800', fontSize: '0.86rem', color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>{mode === 'spectating' ? (blackPlayerProfile?.name || 'Jugador Negras') : (opponentProfile?.name || 'Rival')}</span>
+                      {mode === 'playing' && isHostActive && !isOpponentConnected && (
+                        <span style={{ fontSize: '0.68rem', background: '#eab308', color: '#000', padding: '1px 6px', borderRadius: '4px', fontWeight: '900' }}>
+                          Esperando conexión...
+                        </span>
+                      )}
+                      {mode === 'playing' && (isOpponentConnected || !isHostActive) && (
+                        <span style={{ fontSize: '0.68rem', background: '#10b981', color: '#fff', padding: '1px 6px', borderRadius: '4px', fontWeight: '900' }}>
+                          En Línea 🟢
+                        </span>
+                      )}
                     </div>
                     <div style={{ fontSize: '0.70rem', color: '#94a3b8' }}>
                       {mode === 'spectating' ? `${blackPlayerProfile?.elo || 600} Elo` : `${opponentProfile?.elo || 600} Elo`}
@@ -2082,25 +2220,27 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  background: isP2PPaused ? 'rgba(59, 130, 246, 0.15)' : ((assignedColor === 'black' ? game.turn() === 'b' : game.turn() === 'w') ? 'rgba(16, 185, 129, 0.15)' : 'rgba(234, 179, 8, 0.12)'),
-                  border: `1.5px solid ${isP2PPaused ? '#3b82f6' : ((assignedColor === 'black' ? game.turn() === 'b' : game.turn() === 'w') ? '#10b981' : '#eab308')}`,
+                  background: (isHostActive && !isOpponentConnected) ? 'rgba(234, 179, 8, 0.15)' : (isP2PPaused ? 'rgba(59, 130, 246, 0.15)' : ((assignedColor === 'black' ? game.turn() === 'b' : game.turn() === 'w') ? 'rgba(16, 185, 129, 0.15)' : 'rgba(234, 179, 8, 0.12)')),
+                  border: `1.5px solid ${(isHostActive && !isOpponentConnected) ? '#eab308' : (isP2PPaused ? '#3b82f6' : ((assignedColor === 'black' ? game.turn() === 'b' : game.turn() === 'w') ? '#10b981' : '#eab308'))}`,
                   borderRadius: '8px',
                   padding: '6px 12px',
                   marginBottom: '6px',
                   fontSize: '0.82rem',
                   fontWeight: '800',
-                  color: isP2PPaused ? '#60a5fa' : ((assignedColor === 'black' ? game.turn() === 'b' : game.turn() === 'w') ? '#34d399' : '#facc15')
+                  color: (isHostActive && !isOpponentConnected) ? '#facc15' : (isP2PPaused ? '#60a5fa' : ((assignedColor === 'black' ? game.turn() === 'b' : game.turn() === 'w') ? '#34d399' : '#facc15'))
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span style={{
                       width: '8px',
                       height: '8px',
                       borderRadius: '50%',
-                      background: isP2PPaused ? '#3b82f6' : ((assignedColor === 'black' ? game.turn() === 'b' : game.turn() === 'w') ? '#10b981' : '#eab308'),
+                      background: (isHostActive && !isOpponentConnected) ? '#eab308' : (isP2PPaused ? '#3b82f6' : ((assignedColor === 'black' ? game.turn() === 'b' : game.turn() === 'w') ? '#10b981' : '#eab308')),
                       display: 'inline-block'
                     }} />
                     <span>
-                      {isP2PPaused
+                      {isHostActive && !isOpponentConnected
+                        ? `⏳ Esperando a que ${opponentProfile?.name || 'tu rival'} se una a la partida...`
+                        : isP2PPaused
                         ? '⏸️ Partida en Pausa (Pulsa Reanudar)'
                         : (assignedColor === 'black' ? game.turn() === 'b' : game.turn() === 'w')
                         ? `🟢 ¡Tu Turno! Mueve tus fichas (${assignedColor === 'black' ? 'Negras' : 'Blancas'})`
@@ -2120,7 +2260,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                   onMove={handlePieceMove}
                   orientation={mode === 'spectating' ? 'white' : (assignedColor === 'black' ? 'black' : 'white')}
                   lastMove={lastMove}
-                  interactive={mode === 'playing' && !isP2PPaused && !isInterrupted && (assignedColor === 'black' ? game.turn() === 'b' : game.turn() === 'w')}
+                  interactive={mode === 'playing' && (isHostActive ? isOpponentConnected : true) && !isP2PPaused && !isInterrupted && (assignedColor === 'black' ? game.turn() === 'b' : game.turn() === 'w')}
                 />
 
                 {/* Burbujas flotantes de reacciones de espectadores */}
