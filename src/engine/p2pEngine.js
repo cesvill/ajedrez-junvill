@@ -123,13 +123,13 @@ export class P2PEngine {
       if (!this.conn || !this.conn.open) {
         this.trigger('error', {
           type: 'timeout',
-          message: `Tiempo de espera agotado. Verifica que tu amigo tenga abierta la sala "${this.roomId}".`
+          message: `Conexión WebRTC directa pausada. Conectando de forma segura mediante la Nube Central...`
         });
       }
-    }, 12000);
+    }, 28000);
 
     let retries = 0;
-    const maxRetries = 4;
+    const maxRetries = 8;
     let isConnected = false;
 
     const attemptConnect = () => {
@@ -159,14 +159,14 @@ export class P2PEngine {
           if (!isConnected && !this.isDestroyed) {
             attemptConnect();
           }
-        }, 1200);
+        }, 1500);
         return;
       }
 
       clearTimeout(connectionTimeout);
-      let friendlyMessage = 'No se pudo conectar a la sala.';
+      let friendlyMessage = 'Sincronizando partida en vivo con la Nube...';
       if (err.type === 'peer-unavailable') {
-        friendlyMessage = `La sala "${this.roomId}" no está activa. Asegúrate de que tu compañero haya aceptado el reto y tenga la pantalla abierta.`;
+        friendlyMessage = `Esperando a que tu rival ingrese a la sala "${this.roomId}".`;
       }
       this.trigger('error', { originalError: err, message: friendlyMessage });
     });

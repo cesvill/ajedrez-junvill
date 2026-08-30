@@ -3,6 +3,16 @@
 
 let inMemoryCloudStore = {};
 
+function normalizeUserKey(raw) {
+  if (!raw) return '';
+  return String(raw)
+    .toLowerCase()
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/^(user_|usr_)/, '');
+}
+
 const RESTFUL_OBJECT_ID = 'ff808181a04ccf2d01a05302af8117fb';
 const RESTFUL_API_URL = `https://api.restful-api.dev/objects/${RESTFUL_OBJECT_ID}`;
 
@@ -213,35 +223,59 @@ export default async function handler(req, res) {
       // Fusión inteligente de usuarios (Smart Merge CRDT)
       const mergedUsers = mergeUsers(existing.users, groupData.users);
 
-      // Fusión de retos familiares en la nube (TTL 10 minutos)
+      // Fusión de retos familiares en la nube (TTL 10 minutos, más recientes primero)
       const now = Date.now();
       const existingInvs = Array.isArray(existing.activeInvitations) ? existing.activeInvitations : [];
       const newInvs = Array.isArray(groupData.activeInvitations) ? groupData.activeInvitations : [];
-      const combinedInvs = [...existingInvs, ...newInvs].filter(inv => (now - (inv.createdAt || 0)) < 600000);
+      const combinedInvs = [...newInvs, ...existingInvs].filter(inv => (now - (inv.createdAt || 0)) < 600000);
+      combinedInvs.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
       
-      const invMap = new Map();
+      const pairInvMap = new Map();
+      const mergedInvs = [];
       combinedInvs.forEach(inv => {
-        if (inv && inv.id) invMap.set(inv.id, inv);
+        const u1 = inv.fromUser?.id || inv.fromUser?.name || '';
+        const u2 = inv.toUserId || inv.toUserName || '';
+        if (u1 && u2) {
+          const pairKey = [normalizeUserKey(u1), normalizeUserKey(u2)].sort().join('_');
+          if (!pairInvMap.has(pairKey)) {
+            pairInvMap.set(pairKey, inv);
+            mergedInvs.push(inv);
+          }
+        } else if (inv.id && !mergedInvs.some(i => i.id === inv.id)) {
+          mergedInvs.push(inv);
+        }
       });
-      const mergedInvs = Array.from(invMap.values());
 
-      // Fusión de partidas activas y detección inteligente de salas paralelas (TTL 14 días)
+      // Fusión de partidas activas y detección inteligente de salas paralelas (TTL 2 horas)
       const existingMatches = Array.isArray(existing.activeMatches) ? existing.activeMatches : [];
       const newMatches = Array.isArray(groupData.activeMatches) ? groupData.activeMatches : [];
       const matchMap = new Map();
       [...existingMatches, ...newMatches].forEach(m => {
         if (m && m.roomId) {
           const prev = matchMap.get(m.roomId);
-          if (!prev || (m.updatedAt || 0) >= (prev.updatedAt || 0)) {
+          if (!prev) {
             matchMap.set(m.roomId, m);
+          } else {
+            const merged = {
+              ...prev,
+              ...m,
+              hostUser: m.hostUser || prev.hostUser,
+              guestUser: m.guestUser || prev.guestUser,
+              opponent: m.opponent || prev.opponent,
+              fen: (m.updatedAt || 0) >= (prev.updatedAt || 0) ? (m.fen || prev.fen) : (prev.fen || m.fen),
+              lastMove: (m.updatedAt || 0) >= (prev.updatedAt || 0) ? (m.lastMove || prev.lastMove) : (prev.lastMove || m.lastMove),
+              turn: (m.updatedAt || 0) >= (prev.updatedAt || 0) ? (m.turn || prev.turn) : (prev.turn || m.turn),
+              updatedAt: Math.max(prev.updatedAt || 0, m.updatedAt || 0)
+            };
+            matchMap.set(m.roomId, merged);
           }
         }
       });
 
       const roomAliases = { ...(existing.roomAliases || {}), ...(groupData.roomAliases || {}) };
       const pairMatchMap = new Map();
-      const rawMatches = Array.from(matchMap.values()).filter(m => !m.isGameOver && (now - (m.updatedAt || 0)) < 86400000 * 14);
-      rawMatches.sort((a, b) => (a.createdAt || a.updatedAt || 0) - (b.createdAt || b.updatedAt || 0));
+      const rawMatches = Array.from(matchMap.values()).filter(m => !m.isGameOver && (now - (m.updatedAt || 0)) < 7200000);
+      rawMatches.sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
 
       const mergedMatches = [];
       rawMatches.forEach(m => {

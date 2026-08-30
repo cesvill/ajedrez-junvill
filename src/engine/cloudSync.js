@@ -340,14 +340,27 @@ class CloudSyncService {
             ? this.mergeUsers(currentGroup.users, cloudGroup.users)
             : (currentGroup.users || []);
 
-          // Fusionar retos familiares activos
+          // Fusionar retos familiares activos (más recientes primero)
           const existingInvs = Array.isArray(currentGroup.activeInvitations) ? currentGroup.activeInvitations : [];
           const cloudInvs = Array.isArray(cloudGroup.activeInvitations) ? cloudGroup.activeInvitations : [];
           const now = Date.now();
           const combinedInvs = [...cloudInvs, ...existingInvs].filter(i => (now - (i.createdAt || 0)) < 600000);
-          const invMap = new Map();
-          combinedInvs.forEach(i => { if (i && i.id) invMap.set(i.id, i); });
-          const mergedInvs = Array.from(invMap.values());
+          combinedInvs.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+          const pairInvMap = new Map();
+          const mergedInvs = [];
+          combinedInvs.forEach(i => {
+            const u1 = i.fromUser?.id || i.fromUser?.name || '';
+            const u2 = i.toUserId || i.toUserName || '';
+            if (u1 && u2) {
+              const pairKey = [String(u1).toLowerCase(), String(u2).toLowerCase()].sort().join('_');
+              if (!pairInvMap.has(pairKey)) {
+                pairInvMap.set(pairKey, i);
+                mergedInvs.push(i);
+              }
+            } else if (i.id && !mergedInvs.some(prev => prev.id === i.id)) {
+              mergedInvs.push(i);
+            }
+          });
 
           // Fusionar partidas activas / asíncronas
           const existingMatches = Array.isArray(currentGroup.activeMatches) ? currentGroup.activeMatches : [];
@@ -356,10 +369,26 @@ class CloudSyncService {
           [...cloudMatches, ...existingMatches].forEach(m => {
             if (m && m.roomId) {
               const prev = matchMap.get(m.roomId);
-              if (!prev || (m.updatedAt || 0) >= (prev.updatedAt || 0)) matchMap.set(m.roomId, m);
+              if (!prev) {
+                matchMap.set(m.roomId, m);
+              } else {
+                const merged = {
+                  ...prev,
+                  ...m,
+                  hostUser: m.hostUser || prev.hostUser,
+                  guestUser: m.guestUser || prev.guestUser,
+                  opponent: m.opponent || prev.opponent,
+                  fen: (m.updatedAt || 0) >= (prev.updatedAt || 0) ? (m.fen || prev.fen) : (prev.fen || m.fen),
+                  lastMove: (m.updatedAt || 0) >= (prev.updatedAt || 0) ? (m.lastMove || prev.lastMove) : (prev.lastMove || m.lastMove),
+                  turn: (m.updatedAt || 0) >= (prev.updatedAt || 0) ? (m.turn || prev.turn) : (prev.turn || m.turn),
+                  updatedAt: Math.max(prev.updatedAt || 0, m.updatedAt || 0)
+                };
+                matchMap.set(m.roomId, merged);
+              }
             }
           });
-          const mergedMatches = Array.from(matchMap.values()).filter(m => !m.isGameOver && (now - (m.updatedAt || 0)) < 86400000 * 7);
+          const mergedMatches = Array.from(matchMap.values()).filter(m => !m.isGameOver && (now - (m.updatedAt || 0)) < 7200000);
+          mergedMatches.sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
 
           const updatedGroup = {
             ...currentGroup,

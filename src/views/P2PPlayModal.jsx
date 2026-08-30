@@ -137,6 +137,13 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
   const [selectedFamilyOpponent, setSelectedFamilyOpponent] = useState(null);
 
   const p2pRef = useRef(null);
+  const isHostActiveRef = useRef(isHostActive);
+  const isOpponentConnectedRef = useRef(isOpponentConnected);
+  const currentUserRef = useRef(currentUser);
+
+  useEffect(() => { isHostActiveRef.current = isHostActive; }, [isHostActive]);
+  useEffect(() => { isOpponentConnectedRef.current = isOpponentConnected; }, [isOpponentConnected]);
+  useEffect(() => { currentUserRef.current = currentUser; }, [currentUser]);
 
   // Auto-completar perfil del rival real a partir de la invitación familiar o partidas activas
   useEffect(() => {
@@ -192,11 +199,11 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
     return () => window.removeEventListener('junvill_mutual_match', handleMutualMatch);
   }, []);
 
-  // Sincronización en tiempo real del Lobby y Fusión Inteligente de Salas Paralelas
+  // Sincronización en tiempo real del Lobby, Fusión de Salas y Jugadas en Nube (Infalible)
   useEffect(() => {
-    if (!isOpen || (mode !== 'lobby' && (isOpponentConnected || !isHostActive))) return;
+    if (!isOpen || (mode !== 'lobby' && mode !== 'playing')) return;
 
-    const cleanRoom = P2PEngine.cleanRoomId(roomId || generatedRoomId || initialRoomId);
+    const cleanRoom = P2PEngine.cleanRoomId(roomId || inputRoomId || initialRoomId);
     if (!cleanRoom) return;
 
     const lobbyPoll = setInterval(async () => {
@@ -208,7 +215,6 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
           if (canonicalInfo.isAlias && canonicalInfo.canonicalRoomId && canonicalInfo.canonicalRoomId !== cleanRoom) {
             const canonicalMatch = canonicalInfo.canonicalMatch || (cloudData.activeMatches || []).find(m => P2PEngine.cleanRoomId(m.roomId) === canonicalInfo.canonicalRoomId);
             if (canonicalMatch) {
-              // Si el otro familiar ya es el Host de la sala canónica, yo me uno automáticamente como Invitado (Negras)
               if (canonicalMatch.hostUser && canonicalMatch.hostUser.id !== currentUser?.id) {
                 setRoomId(canonicalInfo.canonicalRoomId);
                 setInputRoomId(canonicalInfo.canonicalRoomId);
@@ -224,29 +230,57 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
           if (Array.isArray(cloudData.activeMatches)) {
             const match = cloudData.activeMatches.find(m => P2PEngine.cleanRoomId(m.roomId) === cleanRoom);
             if (match) {
+              const curUser = currentUserRef.current;
+              const hostActive = isHostActiveRef.current;
+              const oppConnected = isOpponentConnectedRef.current;
+
               // Si soy el Host y ya se unió el invitado en la nube
-              if (isHostActive && match.guestUser && match.guestUser.id !== currentUser?.id) {
-                setOpponentProfile(match.guestUser);
-                setIsOpponentConnected(true);
-                setOpponentJustJoined(true);
-                setTimeout(() => setOpponentJustJoined(false), 5000);
-                setMode('playing');
-                setIsConnecting(false);
-                setIsInterrupted(false);
-                setStatusMessage(`¡${match.guestUser.name} se ha unido a la sala! ¡Iniciando partida!`);
-                audioManager?.playVictory?.();
+              if (hostActive && match.guestUser && match.guestUser.id !== curUser?.id) {
+                if (!oppConnected) {
+                  setOpponentProfile(match.guestUser);
+                  setIsOpponentConnected(true);
+                  setOpponentJustJoined(true);
+                  setTimeout(() => setOpponentJustJoined(false), 5000);
+                  setMode('playing');
+                  setIsConnecting(false);
+                  setIsInterrupted(false);
+                  setStatusMessage(`¡${match.guestUser.name} se ha unido a la sala! ¡Iniciando partida!`);
+                  audioManager?.playVictory?.();
+                }
               }
-              // Si soy el Guest y la sala está activa en la nube
-              else if (!isHostActive && match.hostUser && match.hostUser.id !== currentUser?.id && match.status === 'active') {
-                setOpponentProfile(match.hostUser);
-                setIsOpponentConnected(true);
-                setOpponentJustJoined(true);
-                setTimeout(() => setOpponentJustJoined(false), 5000);
-                setMode('playing');
-                setIsConnecting(false);
-                setIsInterrupted(false);
-                setStatusMessage(`¡Conectado con ${match.hostUser.name}! ¡Iniciando partida!`);
-                audioManager?.playVictory?.();
+              // Si soy el Guest y la sala existe en la nube
+              else if (!hostActive && match.hostUser && match.hostUser.id !== curUser?.id) {
+                if (!oppConnected) {
+                  setOpponentProfile(match.hostUser);
+                  setIsOpponentConnected(true);
+                  setOpponentJustJoined(true);
+                  const guestColor = match.assignedColor === 'white' ? 'black' : 'white';
+                  setAssignedColor(guestColor);
+                  setTimeout(() => setOpponentJustJoined(false), 5000);
+                  setMode('playing');
+                  setIsConnecting(false);
+                  setIsInterrupted(false);
+                  setStatusMessage(`¡Conectado con ${match.hostUser.name}! ¡Iniciando partida!`);
+                  audioManager?.playVictory?.();
+                }
+              }
+
+              // Sincronizar jugadas del rival recibidas por la Nube (si WebRTC tiene NAT restringido)
+              if (match.fen && match.fen !== game.fen()) {
+                const myTurnLetter = assignedColor === 'white' ? 'w' : 'b';
+                if (match.turn === myTurnLetter) {
+                  try {
+                    const nextG = new Chess(match.fen);
+                    setGame(nextG);
+                    if (match.lastMove) setLastMove(match.lastMove);
+                    if (match.whiteTime !== undefined) setWhiteTime(match.whiteTime);
+                    if (match.blackTime !== undefined) setBlackTime(match.blackTime);
+                    if (nextG.isCheckmate() || nextG.isCheck()) audioManager?.playCheck?.();
+                    else if (match.lastMove?.captured) audioManager?.playCapture?.();
+                    else audioManager?.playMove?.();
+                    checkGameOver(nextG);
+                  } catch (errSyncMove) {}
+                }
               }
             }
           }
@@ -255,7 +289,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
     }, 1500);
 
     return () => clearInterval(lobbyPoll);
-  }, [isOpen, mode, roomId, generatedRoomId, initialRoomId, isHostActive, isOpponentConnected, currentUser?.id, activeGroup?.id]);
+  }, [isOpen, mode, roomId, generatedRoomId, initialRoomId, isHostActive, isOpponentConnected, currentUser?.id, activeGroup?.id, assignedColor, game]);
 
   // Iniciar P2P Engine
   useEffect(() => {
@@ -448,6 +482,8 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
       if (initialMode === 'host') {
         handleCreateHost(clean);
       } else {
+        setMode('playing');
+        setAssignedColor('black');
         handleJoinSubmit(clean);
       }
     }
@@ -842,21 +878,26 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
       setLastMove(moveResult);
       setGame(updatedGame);
 
+      const cleanRoom = P2PEngine.cleanRoomId(roomId || initialRoomId);
+      const movePayload = {
+        type: 'p2p',
+        roomId: cleanRoom,
+        opponent: opponentProfile,
+        fen: updatedGame.fen(),
+        assignedColor: myColor,
+        timeControl,
+        whiteTime,
+        blackTime,
+        lastMove: moveResult,
+        turn: updatedGame.turn(),
+        status: 'active',
+        updatedAt: Date.now()
+      };
+
       if (saveActiveP2PGame) {
-        saveActiveP2PGame({
-          type: 'p2p',
-          roomId,
-          opponent: opponentProfile,
-          fen: updatedGame.fen(),
-          assignedColor: myColor,
-          timeControl,
-          whiteTime,
-          blackTime,
-          lastMove: moveResult,
-          turn: updatedGame.turn(),
-          updatedAt: Date.now()
-        });
+        saveActiveP2PGame(movePayload);
       }
+      cloudSync.pushGroupToCloud({ activeMatches: [movePayload] }, activeGroup?.id || 'group_junvill');
 
       // Transmitir jugada por WebRTC a rival y espectadores
       p2pRef.current?.sendMove(moveResult, updatedGame.fen(), { white: whiteTime, black: blackTime });
@@ -958,13 +999,28 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
     setOpponentJustJoined(false);
     setMode('playing');
 
-    const matchedOpponent = targetUser || selectedFamilyOpponent;
+    let matchedOpponent = targetUser || selectedFamilyOpponent;
+    if (!matchedOpponent) {
+      const inv = (familyInvitations || []).find(i => P2PEngine.cleanRoomId(i.roomId) === cleanId);
+      if (inv) {
+        if (inv.toUserId && inv.toUserId !== currentUser?.id) {
+          matchedOpponent = (users || []).find(u => u.id === inv.toUserId || (u.name || '').toLowerCase() === (inv.toUserName || '').toLowerCase()) || {
+            name: inv.toUserName,
+            avatar: 'teen_gamer',
+            elo: 800,
+            role: 'student'
+          };
+        } else if (inv.fromUser && inv.fromUser.id !== currentUser?.id) {
+          matchedOpponent = inv.fromUser;
+        }
+      }
+    }
     if (matchedOpponent) {
       setOpponentProfile(matchedOpponent);
       setSelectedFamilyOpponent(matchedOpponent);
       setStatusMessage(`¡Sala ${cleanId} iniciada! Esperando a que ${matchedOpponent.name} ingrese a la partida...`);
     } else {
-      setStatusMessage(`¡Sala ${cleanId} iniciada! Esperando a que tu rival ingrese a la partida...`);
+      setStatusMessage(`¡Sala ${cleanId} iniciada! Esperando a que tu amigo o familiar ingrese a la partida...`);
     }
 
     // Pre-cargar estado guardado si existe
@@ -1000,7 +1056,12 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
         avatarConfig: currentUser?.avatarConfig,
         elo: currentUser?.elo || 600
       },
-      opponent: selectedFamilyOpponent || opponentProfile || null,
+      opponent: matchedOpponent || {
+        id: 'p2p_rival',
+        name: 'Rival P2P',
+        avatar: 'teen_gamer',
+        elo: 600
+      },
       fen: game.fen(),
       assignedColor: chosenColor,
       timeControl: timeControl || 300,
@@ -1014,6 +1075,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
       localStorage.setItem(`junvill_p2p_room_${cleanId}`, JSON.stringify(hostPayload));
       if (saveActiveP2PGame) saveActiveP2PGame(hostPayload);
     } catch (e) {}
+    cloudSync.pushGroupToCloud({ activeMatches: [hostPayload] }, activeGroup?.id || 'group_junvill');
 
     p2pRef.current?.initHost(cleanId);
   };
@@ -1076,27 +1138,30 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
           setGame(loadedG);
           setMode('playing');
           setIsConnecting(false);
+          setIsOpponentConnected(true);
           setIsInterrupted(false);
           setStatusMessage(`¡Conectado con ${remoteMatch.hostUser.name}! ¡Iniciando partida!`);
           audioManager?.playVictory?.();
 
-          // Marcar sala como activa en la nube
-          const activeMatchPayload = {
-            ...remoteMatch,
-            guestUser: {
-              id: currentUser?.id,
-              name: currentUser?.name || 'Invitado',
-              avatar: currentUser?.avatar || 'teen_gamer',
-              avatarConfig: currentUser?.avatarConfig,
-              elo: currentUser?.elo || 600
-            },
-            status: 'active',
-            isWaiting: false,
-            updatedAt: Date.now()
-          };
-          if (saveActiveP2PGame) saveActiveP2PGame(activeMatchPayload);
         }
       }
+
+      // Marcar siempre la unión del invitado en la nube
+      const activeMatchPayload = {
+        roomId: cleanCode,
+        guestUser: {
+          id: currentUser?.id,
+          name: currentUser?.name || 'Invitado',
+          avatar: currentUser?.avatar || 'teen_gamer',
+          avatarConfig: currentUser?.avatarConfig,
+          elo: currentUser?.elo || 600
+        },
+        status: 'active',
+        isWaiting: false,
+        updatedAt: Date.now()
+      };
+      if (saveActiveP2PGame) saveActiveP2PGame(activeMatchPayload);
+      cloudSync.pushGroupToCloud({ activeMatches: [activeMatchPayload] }, activeGroup?.id || 'group_junvill');
 
     p2pRef.current?.joinRoom(cleanCode, {
       name: currentUser?.name || 'Estudiante',

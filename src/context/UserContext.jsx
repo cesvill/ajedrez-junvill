@@ -1043,10 +1043,39 @@ export const UserProvider = ({ children }) => {
       localStorage.setItem(INVITATIONS_STORAGE_KEY, JSON.stringify(remainingInvs));
     } catch (e) {}
 
+    // Establecer nueva partida P2P activa
+    const newMatch = {
+      type: 'p2p',
+      roomId: inv.roomId,
+      hostUser: inv.fromUser,
+      guestUser: {
+        id: currentUser?.id,
+        name: currentUser?.name || 'Invitado',
+        avatar: currentUser?.avatar || 'teen_gamer',
+        avatarConfig: currentUser?.avatarConfig,
+        elo: currentUser?.elo || 600
+      },
+      opponent: inv.fromUser,
+      assignedColor: 'black',
+      timeControl: inv.timeControl || 300,
+      withAssistance: inv.withAssistance !== false,
+      status: 'active',
+      isWaiting: false,
+      updatedAt: Date.now()
+    };
+    setActiveP2PGame(newMatch);
+    try {
+      if (currentUser?.id) {
+        localStorage.setItem(`junvill_ongoing_p2p_game_v1_${currentUser.id}`, JSON.stringify(newMatch));
+        localStorage.setItem(`junvill_p2p_room_${inv.roomId}`, JSON.stringify(newMatch));
+      }
+    } catch (e) {}
+
     if (activeGroup) {
       cloudSync.pushGroupToCloud({
         ...activeGroup,
         activeInvitations: remainingInvs,
+        activeMatches: [newMatch],
         updatedAt: Date.now()
       }, activeGroupId || 'group_junvill').catch(() => {});
     }
@@ -1183,11 +1212,14 @@ export const UserProvider = ({ children }) => {
         // Sincronizar partidas activas / asíncronas
         const curUser = currentUserRef.current;
         if (Array.isArray(updatedCloudGroup.activeMatches) && curUser) {
+          const now = Date.now();
+          const sortedMatches = [...updatedCloudGroup.activeMatches].sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
           const myKey = normalizeUserKey(curUser.name || curUser.id);
-          const myMatch = updatedCloudGroup.activeMatches.find(m => {
+          const myMatch = sortedMatches.find(m => {
+            if (!m || (now - (m.updatedAt || 0)) > 7200000) return false;
             const oppKey = normalizeUserKey(m.opponent?.name || m.opponent?.id || '');
-            const whiteKey = normalizeUserKey(m.playerWhite?.name || m.playerWhite?.id || '');
-            const blackKey = normalizeUserKey(m.playerBlack?.name || m.playerBlack?.id || '');
+            const whiteKey = normalizeUserKey(m.playerWhite?.name || m.playerWhite?.id || m.hostUser?.name || m.hostUser?.id || '');
+            const blackKey = normalizeUserKey(m.playerBlack?.name || m.playerBlack?.id || m.guestUser?.name || m.guestUser?.id || '');
             return (whiteKey === myKey || blackKey === myKey || oppKey === myKey || m.userId === curUser.id);
           });
           const curP2P = activeP2PGameRef.current;
