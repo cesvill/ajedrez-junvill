@@ -62,8 +62,10 @@ export const App = () => {
   const [p2pInitialMode, setP2pInitialMode] = useState('join');
 
   const handleOpenP2P = (customRoomId = null, mode = 'join') => {
-    setUrlRoomId(customRoomId || null);
-    setP2pInitialMode(mode || 'join');
+    const validRoom = typeof customRoomId === 'string' ? customRoomId : null;
+    const validMode = typeof mode === 'string' ? mode : 'join';
+    setUrlRoomId(validRoom);
+    setP2pInitialMode(validMode);
     setIsP2POpen(true);
   };
 

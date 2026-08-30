@@ -1055,7 +1055,7 @@ export const HomeView = ({
 
           {/* Botón 2: Partida Online P2P */}
           <button
-            onClick={onOpenP2P}
+            onClick={() => onOpenP2P && onOpenP2P(null, 'host')}
             className="btn-secondary"
             style={{ padding: '16px 14px', flexDirection: 'column', gap: '8px', alignItems: 'center', textAlign: 'center' }}
           >

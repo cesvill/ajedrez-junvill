@@ -87,13 +87,15 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
 
   // Modos de vista: 'lobby' | 'playing' | 'spectating' | 'gameover'
   const [mode, setMode] = useState('lobby');
+  const cleanInitialRoom = typeof initialRoomId === 'string' ? P2PEngine.cleanRoomId(initialRoomId) : '';
+
   // Pestañas del lobby: 'family' | 'code' | 'spectator'
-  const [lobbyTab, setLobbyTab] = useState(initialRoomId ? 'code' : 'family');
+  const [lobbyTab, setLobbyTab] = useState(cleanInitialRoom ? 'code' : 'family');
   
   // Código de sala (sin guiones)
   const [generatedRoomId, setGeneratedRoomId] = useState(() => P2PEngine.generateRoomId());
-  const [roomId, setRoomId] = useState(initialRoomId ? P2PEngine.cleanRoomId(initialRoomId) : '');
-  const [inputRoomId, setInputRoomId] = useState(initialRoomId ? P2PEngine.cleanRoomId(initialRoomId) : '');
+  const [roomId, setRoomId] = useState(cleanInitialRoom);
+  const [inputRoomId, setInputRoomId] = useState(cleanInitialRoom);
   const [copiedLink, setCopiedLink] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');

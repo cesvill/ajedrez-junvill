@@ -33,7 +33,8 @@ export class P2PEngine {
 
   // Normaliza cualquier código de sala eliminando guiones y espacios (ej: 'JUN-7K2' -> 'JUN7K2')
   static cleanRoomId(rawId) {
-    return (rawId || '')
+    if (!rawId || typeof rawId !== 'string') return '';
+    return rawId
       .replace(/[-\s]/g, '')
       .toUpperCase()
       .trim();
