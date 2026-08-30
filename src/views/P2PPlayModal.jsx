@@ -759,8 +759,15 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
   const handlePieceMove = (moveResult, newFen) => {
     if (mode !== 'playing') return false;
 
+    // Normalizar color asignado
+    let myColor = assignedColor;
+    if (myColor !== 'black' && myColor !== 'white') {
+      myColor = 'white';
+      setAssignedColor('white');
+    }
+
     const isWhiteTurn = game.turn() === 'w';
-    const isMyTurn = (assignedColor === 'white' && isWhiteTurn) || (assignedColor === 'black' && !isWhiteTurn);
+    const isMyTurn = (myColor === 'white' && isWhiteTurn) || (myColor === 'black' && !isWhiteTurn);
     if (!isMyTurn) return false;
 
     try {
@@ -778,7 +785,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
           roomId,
           opponent: opponentProfile,
           fen: updatedGame.fen(),
-          assignedColor,
+          assignedColor: myColor,
           timeControl,
           whiteTime,
           blackTime,
@@ -905,6 +912,9 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
       }
     } catch (e) {}
 
+    const chosenColor = assignedColor === 'black' ? 'black' : 'white';
+    setAssignedColor(chosenColor);
+
     // Registrar sala anfitriona en Nube Central (/api/sync) para conexión garantizada
     const hostPayload = {
       type: 'p2p',
@@ -919,7 +929,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
       },
       opponent: selectedFamilyOpponent || opponentProfile || null,
       fen: game.fen(),
-      assignedColor: assignedColor === 'random' ? 'white' : (assignedColor || 'white'),
+      assignedColor: chosenColor,
       timeControl: timeControl || 300,
       whiteTime: timeControl || 300,
       blackTime: timeControl || 300,
