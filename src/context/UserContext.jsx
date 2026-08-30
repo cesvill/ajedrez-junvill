@@ -722,28 +722,6 @@ export const UserProvider = ({ children }) => {
         if (!incomingInvitation) return;
         try { audioManager.playVictory(); } catch (e) {}
 
-        // Verificar si yo ya le había enviado un reto a ese mismo usuario (Reto mutuo simultáneo)
-        const myPendingToOpponent = familyInvitations.find(inv =>
-          inv.status === 'pending' &&
-          (inv.fromUser?.id === currentUser.id || (inv.fromUser?.name || '').toLowerCase() === (currentUser.name || '').toLowerCase()) &&
-          (inv.toUserId === incomingInvitation.fromUser?.id || (inv.toUserName || '').toLowerCase() === (incomingInvitation.fromUser?.name || '').toLowerCase())
-        );
-
-        if (myPendingToOpponent) {
-          // Ambos se retaron al tiempo: gana el reto con createdAt menor (el primero en crearse)
-          const isMyOlder = (myPendingToOpponent.createdAt || 0) <= (incomingInvitation.createdAt || Infinity);
-          const winnerInvitation = isMyOlder ? myPendingToOpponent : incomingInvitation;
-
-          window.dispatchEvent(new CustomEvent('junvill_mutual_match', {
-            detail: {
-              roomId: winnerInvitation.roomId,
-              opponent: incomingInvitation.fromUser,
-              invitation: winnerInvitation,
-              isHost: isMyOlder
-            }
-          }));
-        }
-
         setFamilyInvitations(prev => {
           const filtered = prev.filter(i => i.id !== incomingInvitation.id && i.roomId !== incomingInvitation.roomId);
           const updated = [incomingInvitation, ...filtered];

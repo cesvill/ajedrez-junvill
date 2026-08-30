@@ -225,7 +225,7 @@ export default async function handler(req, res) {
       });
       const mergedInvs = Array.from(invMap.values());
 
-      // Fusión de partidas activas por turnos / asíncronas en la nube (TTL 14 días)
+      // Fusión de partidas activas y detección inteligente de salas paralelas (TTL 14 días)
       const existingMatches = Array.isArray(existing.activeMatches) ? existing.activeMatches : [];
       const newMatches = Array.isArray(groupData.activeMatches) ? groupData.activeMatches : [];
       const matchMap = new Map();
@@ -237,7 +237,33 @@ export default async function handler(req, res) {
           }
         }
       });
-      const mergedMatches = Array.from(matchMap.values()).filter(m => !m.isGameOver && (now - (m.updatedAt || 0)) < 86400000 * 14);
+
+      const roomAliases = { ...(existing.roomAliases || {}), ...(groupData.roomAliases || {}) };
+      const pairMatchMap = new Map();
+      const rawMatches = Array.from(matchMap.values()).filter(m => !m.isGameOver && (now - (m.updatedAt || 0)) < 86400000 * 14);
+      rawMatches.sort((a, b) => (a.createdAt || a.updatedAt || 0) - (b.createdAt || b.updatedAt || 0));
+
+      const mergedMatches = [];
+      rawMatches.forEach(m => {
+        const u1 = m.hostUser?.id || m.hostUser?.name || '';
+        const u2 = m.opponent?.id || m.opponent?.name || m.guestUser?.id || m.guestUser?.name || '';
+        if (u1 && u2 && normalizeUserKey(u1) !== normalizeUserKey(u2)) {
+          const pairKey = [normalizeUserKey(u1), normalizeUserKey(u2)].sort().join('_');
+          if (!pairMatchMap.has(pairKey)) {
+            pairMatchMap.set(pairKey, m);
+            mergedMatches.push(m);
+          } else {
+            const canonicalMatch = pairMatchMap.get(pairKey);
+            if (m.roomId !== canonicalMatch.roomId) {
+              roomAliases[m.roomId] = canonicalMatch.roomId;
+              m.aliasOf = canonicalMatch.roomId;
+              m.status = 'merged';
+            }
+          }
+        } else {
+          mergedMatches.push(m);
+        }
+      });
 
       // Fusión de reportes de bugs familiares en la nube (Hasta 200 reportes más recientes)
       const existingBugs = Array.isArray(existing.bugReports) ? existing.bugReports : [];
@@ -256,6 +282,7 @@ export default async function handler(req, res) {
         users: mergedUsers,
         activeInvitations: mergedInvs,
         activeMatches: mergedMatches,
+        roomAliases,
         bugReports: mergedBugs,
         updatedAt: Date.now()
       };

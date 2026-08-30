@@ -401,15 +401,58 @@ class CloudSyncService {
     const handleFocus = () => performSync();
     window.addEventListener('focus', handleFocus);
     window.addEventListener('online', handleFocus);
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') performSync();
-    });
-
     return () => {
       if (this.syncInterval) clearInterval(this.syncInterval);
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('online', handleFocus);
     };
+  }
+
+  // Resuelve si un código de sala es un alias o pertenece a una partida paralela existente entre los mismos jugadores
+  resolveCanonicalRoom(requestedRoomId, cloudData) {
+    if (!cloudData || !requestedRoomId) return { canonicalRoomId: requestedRoomId, isAlias: false };
+    const cleanReq = String(requestedRoomId).replace(/[-\s]/g, '').toUpperCase();
+    
+    // 1. Verificar alias directo de sala
+    if (cloudData.roomAliases && cloudData.roomAliases[cleanReq]) {
+      const canonical = cloudData.roomAliases[cleanReq];
+      return {
+        canonicalRoomId: canonical,
+        isAlias: true
+      };
+    }
+
+    // 2. Verificar si hay partidas activas paralelas entre la misma pareja de jugadores
+    if (Array.isArray(cloudData.activeMatches)) {
+      const myMatch = cloudData.activeMatches.find(m => (m.roomId || '').replace(/[-\s]/g, '').toUpperCase() === cleanReq);
+      if (myMatch) {
+        const u1 = myMatch.hostUser?.id || myMatch.hostUser?.name;
+        const u2 = myMatch.opponent?.id || myMatch.opponent?.name || myMatch.guestUser?.id || myMatch.guestUser?.name;
+        if (u1 && u2) {
+          const k1 = normalizeUserKey(u1);
+          const k2 = normalizeUserKey(u2);
+          const parallelMatch = cloudData.activeMatches.find(m => {
+            const mClean = (m.roomId || '').replace(/[-\s]/g, '').toUpperCase();
+            if (mClean === cleanReq) return false;
+            const mu1 = normalizeUserKey(m.hostUser?.id || m.hostUser?.name);
+            const mu2 = normalizeUserKey(m.opponent?.id || m.opponent?.name || m.guestUser?.id || m.guestUser?.name);
+            return (mu1 === k1 && mu2 === k2) || (mu1 === k2 && mu2 === k1);
+          });
+          if (parallelMatch) {
+            const isMineEarlier = (myMatch.createdAt || myMatch.updatedAt || 0) <= (parallelMatch.createdAt || parallelMatch.updatedAt || 0);
+            const winner = isMineEarlier ? myMatch : parallelMatch;
+            const canonicalClean = (winner.roomId || '').replace(/[-\s]/g, '').toUpperCase();
+            return {
+              canonicalRoomId: canonicalClean,
+              isAlias: canonicalClean !== cleanReq,
+              canonicalMatch: winner
+            };
+          }
+        }
+      }
+    }
+
+    return { canonicalRoomId: cleanReq, isAlias: false };
   }
 }
 
