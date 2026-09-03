@@ -140,10 +140,29 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
   const isHostActiveRef = useRef(isHostActive);
   const isOpponentConnectedRef = useRef(isOpponentConnected);
   const currentUserRef = useRef(currentUser);
+  const gameRef = useRef(game);
+  const assignedColorRef = useRef(assignedColor);
+  const roomIdRef = useRef(roomId);
+  const modeRef = useRef(mode);
+  const opponentProfileRef = useRef(opponentProfile);
+  const timeControlRef = useRef(timeControl);
+  const whiteTimeRef = useRef(whiteTime);
+  const blackTimeRef = useRef(blackTime);
+  const isP2PPausedRef = useRef(isP2PPaused);
+  const handleIncomingDataRef = useRef(null);
 
   useEffect(() => { isHostActiveRef.current = isHostActive; }, [isHostActive]);
   useEffect(() => { isOpponentConnectedRef.current = isOpponentConnected; }, [isOpponentConnected]);
   useEffect(() => { currentUserRef.current = currentUser; }, [currentUser]);
+  useEffect(() => { gameRef.current = game; }, [game]);
+  useEffect(() => { assignedColorRef.current = assignedColor; }, [assignedColor]);
+  useEffect(() => { roomIdRef.current = roomId; }, [roomId]);
+  useEffect(() => { modeRef.current = mode; }, [mode]);
+  useEffect(() => { opponentProfileRef.current = opponentProfile; }, [opponentProfile]);
+  useEffect(() => { timeControlRef.current = timeControl; }, [timeControl]);
+  useEffect(() => { whiteTimeRef.current = whiteTime; }, [whiteTime]);
+  useEffect(() => { blackTimeRef.current = blackTime; }, [blackTime]);
+  useEffect(() => { isP2PPausedRef.current = isP2PPaused; }, [isP2PPaused]);
 
   // Auto-completar perfil del rival real a partir de la invitación familiar o partidas activas
   useEffect(() => {
@@ -201,7 +220,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
 
   // Sincronización en tiempo real del Lobby, Fusión de Salas y Jugadas en Nube (Infalible)
   useEffect(() => {
-    if (!isOpen || (mode !== 'lobby' && mode !== 'playing')) return;
+    if (!isOpen) return;
 
     const cleanRoom = P2PEngine.cleanRoomId(roomId || inputRoomId || initialRoomId);
     if (!cleanRoom) return;
@@ -210,12 +229,12 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
       try {
         const cloudData = await cloudSync.fetchCloudGroup(activeGroup?.id || 'group_junvill');
         if (cloudData) {
-          // 1. Verificar si mi sala fue fusionada en una sala canónica previa (ej. Leti y Martin se retaron al tiempo)
+          // 1. Verificar si mi sala fue fusionada en una sala canónica previa
           const canonicalInfo = cloudSync.resolveCanonicalRoom(cleanRoom, cloudData);
           if (canonicalInfo.isAlias && canonicalInfo.canonicalRoomId && canonicalInfo.canonicalRoomId !== cleanRoom) {
             const canonicalMatch = canonicalInfo.canonicalMatch || (cloudData.activeMatches || []).find(m => P2PEngine.cleanRoomId(m.roomId) === canonicalInfo.canonicalRoomId);
             if (canonicalMatch) {
-              if (canonicalMatch.hostUser && canonicalMatch.hostUser.id !== currentUser?.id) {
+              if (canonicalMatch.hostUser && canonicalMatch.hostUser.id !== currentUserRef.current?.id) {
                 setRoomId(canonicalInfo.canonicalRoomId);
                 setInputRoomId(canonicalInfo.canonicalRoomId);
                 setIsHostActive(false);
@@ -233,6 +252,16 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
               const curUser = currentUserRef.current;
               const hostActive = isHostActiveRef.current;
 
+              // Identificar si soy el Host o el Guest basándose en los datos persistentes de la partida
+              const isMatchHost = match.hostUser && (
+                (curUser?.id && match.hostUser.id === curUser.id) ||
+                (curUser?.name && match.hostUser.name && match.hostUser.name.toLowerCase() === curUser.name.toLowerCase())
+              );
+              const isMatchGuest = match.guestUser && (
+                (curUser?.id && match.guestUser.id === curUser.id) ||
+                (curUser?.name && match.guestUser.name && match.guestUser.name.toLowerCase() === curUser.name.toLowerCase())
+              );
+
               // Si soy el Host y ya se unió el invitado en la nube
               const isGuestJoined = match.guestUser && (
                 (curUser?.id && match.guestUser.id !== curUser.id) ||
@@ -240,16 +269,17 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                 (!curUser && match.guestUser)
               );
 
-              if (hostActive && isGuestJoined) {
+              if ((hostActive || isMatchHost) && isGuestJoined) {
                 setOpponentProfile(match.guestUser);
                 setIsOpponentConnected(true);
+                setAssignedColor(match.assignedColor === 'black' ? 'black' : 'white');
                 setMode('playing');
                 setIsConnecting(false);
                 setIsInterrupted(false);
                 setStatusMessage(`¡${match.guestUser.name || 'Tu rival'} se ha unido a la sala! ¡Iniciando partida!`);
               }
               // Si soy el Guest y la sala existe en la nube
-              else if (!hostActive && match.hostUser) {
+              else if ((!hostActive || isMatchGuest) && match.hostUser) {
                 const isDiffHost = (curUser?.id && match.hostUser.id !== curUser.id) ||
                   (curUser?.name && match.hostUser.name && match.hostUser.name.toLowerCase() !== curUser.name.toLowerCase()) ||
                   !curUser;
@@ -265,31 +295,41 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                 }
               }
 
-              // Sincronizar jugadas del rival recibidas por la Nube (si WebRTC tiene NAT restringido)
-              if (match.fen && match.fen !== game.fen()) {
-                const myTurnLetter = assignedColor === 'white' ? 'w' : 'b';
-                if (match.turn === myTurnLetter) {
-                  try {
-                    const nextG = new Chess(match.fen);
+              // Sincronizar jugadas del rival recibidas por la Nube (bidireccional, inmediato)
+              const localFen = gameRef.current ? gameRef.current.fen() : '';
+              if (match.fen && localFen && match.fen !== localFen) {
+                try {
+                  const nextG = new Chess(match.fen);
+                  const localHistLen = gameRef.current?.history()?.length || 0;
+                  const incomingHistLen = nextG.history()?.length || 0;
+                  const myTurnLetter = assignedColorRef.current === 'white' ? 'w' : 'b';
+
+                  // Aplicar si la partida en la nube tiene más jugadas o si es nuestro turno de responder
+                  if (incomingHistLen >= localHistLen || match.turn === myTurnLetter) {
                     setGame(nextG);
+                    gameRef.current = nextG;
                     if (match.lastMove) setLastMove(match.lastMove);
                     if (match.whiteTime !== undefined) setWhiteTime(match.whiteTime);
                     if (match.blackTime !== undefined) setBlackTime(match.blackTime);
+                    setIsInterrupted(false);
+                    setStatusMessage('♟️ ¡Jugada recibida! Es tu turno.');
                     if (nextG.isCheckmate() || nextG.isCheck()) audioManager?.playCheck?.();
                     else if (match.lastMove?.captured) audioManager?.playCapture?.();
                     else audioManager?.playMove?.();
                     checkGameOver(nextG);
-                  } catch (errSyncMove) {}
+                  }
+                } catch (errSyncMove) {
+                  console.warn('Error al aplicar jugada de nube:', errSyncMove);
                 }
               }
             }
           }
         }
       } catch (e) {}
-    }, 1500);
+    }, 1200);
 
     return () => clearInterval(lobbyPoll);
-  }, [isOpen, mode, roomId, generatedRoomId, initialRoomId, isHostActive, isOpponentConnected, currentUser?.id, activeGroup?.id, assignedColor, game]);
+  }, [isOpen, roomId, inputRoomId, initialRoomId, activeGroup?.id]);
 
   // Iniciar P2P Engine
   useEffect(() => {
@@ -499,6 +539,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
       try {
         const loadedG = new Chess(data.fen);
         setGame(loadedG);
+        gameRef.current = loadedG;
         setLastMove(data.lastMove || null);
         setWhiteTime(data.whiteTime ?? data.timeControl ?? 300);
         setBlackTime(data.blackTime ?? data.timeControl ?? 300);
@@ -548,7 +589,9 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
         setGameVariant(data.profile.gameVariant);
         if (data.profile.gameVariant !== 'standard') {
           const variantFen = getStartingFenForVariant(data.profile.gameVariant);
-          setGame(new Chess(variantFen));
+          const newVarG = new Chess(variantFen);
+          setGame(newVarG);
+          gameRef.current = newVarG;
         }
       }
       if (!p2pRef.current?.isHost) {
@@ -572,7 +615,9 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
       // Estado inicial recibido por espectador
       const { fullGameState } = data;
       if (fullGameState) {
-        setGame(new Chess(fullGameState.fen));
+        const specG = new Chess(fullGameState.fen);
+        setGame(specG);
+        gameRef.current = specG;
         setLastMove(fullGameState.lastMove);
         setWhiteTime(fullGameState.whiteTime);
         setBlackTime(fullGameState.blackTime);
@@ -584,11 +629,12 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
     } else if (data.type === 'MOVE') {
       let updatedGame;
       try {
+        const baseFen = data.fen || (gameRef.current ? gameRef.current.fen() : game.fen());
         if (data.fen) {
           updatedGame = new Chess(data.fen);
         } else {
-          updatedGame = new Chess(game.fen());
-          updatedGame.move(data.move);
+          updatedGame = new Chess(baseFen);
+          if (data.move) updatedGame.move(data.move);
         }
 
         if (updatedGame.isCheckmate() || updatedGame.isCheck()) audioManager.playCheck();
@@ -597,6 +643,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
 
         setLastMove(data.move);
         setGame(updatedGame);
+        gameRef.current = updatedGame;
         if (data.clocks) {
           setWhiteTime(data.clocks.white);
           setBlackTime(data.clocks.black);
@@ -670,6 +717,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
       const newFen = getHandicapFen(data.config);
       const newG = new Chess(newFen);
       setGame(newG);
+      gameRef.current = newG;
       setLastMove(null);
       setIncomingHandicapOffer(null);
       audioManager.playVictory();
@@ -679,12 +727,17 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
       const newFen = getHandicapFen(DEFAULT_HANDICAP_CONFIG);
       const newG = new Chess(newFen);
       setGame(newG);
+      gameRef.current = newG;
       setLastMove(null);
       setIncomingHandicapOffer(null);
       audioManager.playMove();
       setStatusMessage('Tu rival prefirió jugar una partida estándar sin ventajas.');
     }
   };
+
+  useEffect(() => {
+    handleIncomingDataRef.current = handleIncomingData;
+  });
 
   const handlePauseAndExitP2P = () => {
     setIsP2PPaused(true);
@@ -772,59 +825,19 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
     return () => clearInterval(timer);
   }, [mode, game, timeControl, isP2PPaused, isInterrupted, isHostActive, isOpponentConnected]);
 
-  // Sincronización continua de respaldo con la Nube Central (/api/sync)
-  // Permite que la partida nunca se pierda ni se bloquee aunque se corte WebRTC
-  useEffect(() => {
-    if (!isOpen || (mode !== 'playing' && !isInterrupted)) return;
-
-    const cleanRoom = P2PEngine.cleanRoomId(roomId || initialRoomId);
-    if (!cleanRoom) return;
-
-    const syncInterval = setInterval(async () => {
-      try {
-        const cloudData = await cloudSync.fetchCloudGroup(activeGroup?.id || 'group_junvill');
-        if (cloudData && Array.isArray(cloudData.activeMatches)) {
-          const remoteMatch = cloudData.activeMatches.find(m => P2PEngine.cleanRoomId(m.roomId) === cleanRoom);
-          if (remoteMatch && remoteMatch.fen && remoteMatch.fen !== game.fen()) {
-            const currentTurn = game.turn();
-            const isRivalTurnLocally = (assignedColor === 'white' && currentTurn === 'b') || (assignedColor === 'black' && currentTurn === 'w');
-            
-            if (isRivalTurnLocally || (remoteMatch.updatedAt || 0) > (lastMove?.timestamp || 0)) {
-              try {
-                const updatedG = new Chess(remoteMatch.fen);
-                setGame(updatedG);
-                if (remoteMatch.lastMove) setLastMove(remoteMatch.lastMove);
-                if (remoteMatch.whiteTime !== undefined) setWhiteTime(remoteMatch.whiteTime);
-                if (remoteMatch.blackTime !== undefined) setBlackTime(remoteMatch.blackTime);
-                setIsInterrupted(false);
-                setStatusMessage('♟️ ¡Jugada recibida desde la Nube! Es tu turno.');
-                if (updatedG.isCheck() || updatedG.isCheckmate()) audioManager.playCheck();
-                else audioManager.playMove();
-                checkGameOver(updatedG);
-              } catch (e) {}
-            }
-          }
-        }
-      } catch (err) {}
-    }, 3500);
-
-    return () => clearInterval(syncInterval);
-  }, [isOpen, mode, isInterrupted, roomId, initialRoomId, game, assignedColor, lastMove, activeGroup?.id]);
-
   const handleTimeOut = (color) => {
     if (isP2PPaused || isInterrupted) return;
     audioManager.playWarning();
     const isMe = (color === 'w' && assignedColor === 'white') || (color === 'b' && assignedColor === 'black');
-    if (isMe) {
-      setGameResultReason('Se te agotó el tiempo de reloj.');
-      recordGameResult('loss', 0, 50);
-    } else {
-      setGameResultReason('¡Al rival se le agotó el tiempo! Victoria 🏆');
-      recordGameResult('win', 20, 85);
-      confetti({ particleCount: 90, spread: 70 });
-    }
+    setGameResultReason(isMe ? 'Tiempo agotado. Victoria para el rival ⏱️' : '¡Tiempo agotado del rival! Victoria para ti 🏆');
     setMode('gameover');
     if (clearActiveP2PGame) clearActiveP2PGame();
+    if (!isMe) {
+      recordGameResult('win', 20, 95);
+      confetti({ particleCount: 120, spread: 90 });
+    } else {
+      recordGameResult('loss', 2, 60);
+    }
   };
 
   const checkGameOver = (currentGame) => {
@@ -859,38 +872,58 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
     if (mode !== 'playing') return false;
 
     // Normalizar color asignado
-    let myColor = assignedColor;
+    let myColor = assignedColorRef.current || assignedColor;
     if (myColor !== 'black' && myColor !== 'white') {
-      myColor = 'white';
-      setAssignedColor('white');
+      myColor = isHostActiveRef.current ? 'white' : 'black';
+      setAssignedColor(myColor);
     }
 
-    const isWhiteTurn = game.turn() === 'w';
+    const curGame = gameRef.current || game;
+    const isWhiteTurn = curGame.turn() === 'w';
     const isMyTurn = (myColor === 'white' && isWhiteTurn) || (myColor === 'black' && !isWhiteTurn);
     if (!isMyTurn) return false;
 
     try {
-      const updatedGame = new Chess(newFen || game.fen());
+      const updatedGame = new Chess(newFen || curGame.fen());
       if (updatedGame.isCheckmate() || updatedGame.isCheck()) audioManager.playCheck();
       else if (moveResult?.captured) audioManager.playCapture();
       else audioManager.playMove();
 
       setLastMove(moveResult);
       setGame(updatedGame);
+      gameRef.current = updatedGame;
 
-      const cleanRoom = P2PEngine.cleanRoomId(roomId || initialRoomId);
+      const cleanRoom = P2PEngine.cleanRoomId(roomIdRef.current || roomId || initialRoomId);
+      const curUser = currentUserRef.current;
+      const isHost = isHostActiveRef.current;
+
       const movePayload = {
         type: 'p2p',
         roomId: cleanRoom,
-        opponent: opponentProfile,
+        hostUser: isHost ? {
+          id: curUser?.id,
+          name: curUser?.name || 'Anfitrión',
+          avatar: curUser?.avatar || 'teen_gamer',
+          avatarConfig: curUser?.avatarConfig,
+          elo: curUser?.elo || 600
+        } : (opponentProfileRef.current || null),
+        guestUser: !isHost ? {
+          id: curUser?.id,
+          name: curUser?.name || 'Invitado',
+          avatar: curUser?.avatar || 'teen_gamer',
+          avatarConfig: curUser?.avatarConfig,
+          elo: curUser?.elo || 600
+        } : (opponentProfileRef.current || null),
+        opponent: opponentProfileRef.current || opponentProfile,
         fen: updatedGame.fen(),
         assignedColor: myColor,
-        timeControl,
+        timeControl: timeControlRef.current || timeControl,
         whiteTime,
         blackTime,
         lastMove: moveResult,
         turn: updatedGame.turn(),
         status: 'active',
+        isWaiting: false,
         updatedAt: Date.now()
       };
 
