@@ -1127,11 +1127,28 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
     setInputRoomId(cleanCode);
     setMode('playing');
     setIsHostActive(false);
-    setIsOpponentConnected(false);
     setAssignedColor('black');
     setIsConnecting(true);
     setErrorMessage('');
     setStatusMessage(`Conectando a la sala ${cleanCode}...`);
+
+    // 1. Verificar si hay invitación familiar directa para esta sala
+    const directInv = (familyInvitations || []).find(i => P2PEngine.cleanRoomId(i.roomId) === cleanCode);
+    if (directInv && directInv.fromUser) {
+      setOpponentProfile(directInv.fromUser);
+      setAssignedColor('black');
+      if (directInv.timeControl) {
+        setTimeControl(directInv.timeControl);
+        setWhiteTime(directInv.timeControl);
+        setBlackTime(directInv.timeControl);
+      }
+      if (directInv.gameVariant) setGameVariant(directInv.gameVariant);
+      if (directInv.withAssistance !== undefined) setWithAssistance(directInv.withAssistance);
+      setIsOpponentConnected(true);
+      setIsConnecting(false);
+      setIsInterrupted(false);
+      setStatusMessage(`¡Conectado con ${directInv.fromUser.name}! ¡Iniciando partida!`);
+    }
 
     let cloudData = null;
     try {
@@ -1185,20 +1202,20 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
 
     // Marcar siempre la unión del invitado en la nube
     const activeMatchPayload = {
-        roomId: cleanCode,
-        guestUser: {
-          id: currentUser?.id,
-          name: currentUser?.name || 'Invitado',
-          avatar: currentUser?.avatar || 'teen_gamer',
-          avatarConfig: currentUser?.avatarConfig,
-          elo: currentUser?.elo || 600
-        },
-        status: 'active',
-        isWaiting: false,
-        updatedAt: Date.now()
-      };
-      if (saveActiveP2PGame) saveActiveP2PGame(activeMatchPayload);
-      cloudSync.pushGroupToCloud({ activeMatches: [activeMatchPayload] }, activeGroup?.id || 'group_junvill');
+      roomId: cleanCode,
+      guestUser: {
+        id: currentUser?.id,
+        name: currentUser?.name || 'Invitado',
+        avatar: currentUser?.avatar || 'teen_gamer',
+        avatarConfig: currentUser?.avatarConfig,
+        elo: currentUser?.elo || 600
+      },
+      status: 'active',
+      isWaiting: false,
+      updatedAt: Date.now()
+    };
+    if (saveActiveP2PGame) saveActiveP2PGame(activeMatchPayload);
+    cloudSync.pushGroupToCloud({ activeMatches: [activeMatchPayload] }, activeGroup?.id || 'group_junvill');
 
     p2pRef.current?.joinRoom(cleanCode, {
       name: currentUser?.name || 'Estudiante',

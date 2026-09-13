@@ -195,10 +195,10 @@ export class P2PEngine {
       if (!this.conn || !this.conn.open) {
         this.trigger('error', {
           type: 'timeout',
-          message: `Tiempo de espera agotado. La partida "${this.roomId}" no está disponible o el anfitrión se desconectó.`
+          message: `Sincronizando espectador de la partida "${this.roomId}" mediante la Nube Central...`
         });
       }
-    }, 10000);
+    }, 15000);
 
     this.peer.on('open', () => {
       try {
