@@ -299,6 +299,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
         if (!cleanRoom) return;
 
         const curUser = currentUserRef.current;
+        const curKey = normalizeUserKey(curUser?.name || curUser?.id || '');
         const hostActive = isHostActiveRef.current;
 
         // Enviar latido de presencia periódica (Heartbeat cada 2 segundos) para confirmar estado activo en BD
