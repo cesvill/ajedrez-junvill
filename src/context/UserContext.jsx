@@ -854,15 +854,21 @@ export const UserProvider = ({ children }) => {
     try {
       const key = `junvill_ongoing_p2p_game_v1_${currentUser?.id || 'default'}`;
       localStorage.removeItem(key);
+      const roomToClear = targetRoomId || activeP2PGame?.roomId;
+      if (roomToClear) {
+        localStorage.removeItem(`junvill_p2p_room_${roomToClear}`);
+      }
       setActiveP2PGame(null);
 
       if (activeGroup) {
         const currentMatches = Array.isArray(activeGroup.activeMatches) ? activeGroup.activeMatches : [];
-        const filteredMatches = targetRoomId 
-          ? currentMatches.filter(m => m.roomId !== targetRoomId)
-          : currentMatches.filter(m => m.roomId !== activeP2PGame?.roomId);
+        const filteredMatches = roomToClear
+          ? currentMatches.filter(m => m.roomId !== roomToClear)
+          : [];
         cloudSync.pushGroupToCloud({
           ...activeGroup,
+          deletedMatches: roomToClear ? [roomToClear] : [],
+          closedRoomIds: roomToClear ? [roomToClear] : [],
           activeMatches: filteredMatches,
           updatedAt: Date.now()
         }, activeGroupId || 'group_junvill').catch(() => {});
@@ -1105,6 +1111,7 @@ export const UserProvider = ({ children }) => {
     if (activeGroup) {
       cloudSync.pushGroupToCloud({
         ...activeGroup,
+        deletedInvitations: [invitationId],
         activeInvitations: remainingInvs,
         activeMatches: [newMatch],
         updatedAt: Date.now()
@@ -1130,6 +1137,8 @@ export const UserProvider = ({ children }) => {
     if (activeGroup) {
       cloudSync.pushGroupToCloud({
         ...activeGroup,
+        deletedInvitations: [invitationId],
+        deletedMatches: inv?.roomId ? [inv.roomId] : [],
         activeInvitations: remainingInvs,
         updatedAt: Date.now()
       }, activeGroupId || 'group_junvill').catch(() => {});

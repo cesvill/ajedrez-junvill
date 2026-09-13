@@ -222,11 +222,35 @@ export default async function handler(req, res) {
       // Fusión inteligente de usuarios (Smart Merge CRDT)
       const mergedUsers = mergeUsers(existing.users, groupData.users);
 
-      // Fusión de retos familiares en la nube (TTL 10 minutos, más recientes primero)
+      // Conjuntos de eliminación explícita (Tombstones para evitar resurrección zombi)
+      const deletedInvIds = new Set([
+        ...(Array.isArray(groupData.deletedInvitations) ? groupData.deletedInvitations : []),
+        ...(Array.isArray(groupData.dismissedInvitationIds) ? groupData.dismissedInvitationIds : [])
+      ]);
+      const deletedRoomIds = new Set([
+        ...(Array.isArray(groupData.deletedMatches) ? groupData.deletedMatches : []),
+        ...(Array.isArray(groupData.closedRoomIds) ? groupData.closedRoomIds : [])
+      ].map(r => String(r || '').toUpperCase().replace(/[^A-Z0-9]/g, '')));
+
+      // Fusión de retos familiares en la nube (TTL 5 minutos, eliminar cancelados o rechazados)
       const now = Date.now();
       const existingInvs = Array.isArray(existing.activeInvitations) ? existing.activeInvitations : [];
       const newInvs = Array.isArray(groupData.activeInvitations) ? groupData.activeInvitations : [];
-      const combinedInvs = [...newInvs, ...existingInvs].filter(inv => (now - (inv.createdAt || 0)) < 600000);
+
+      // Marcar invitaciones rechazadas en newInvs para agregarlas al conjunto de eliminadas
+      newInvs.forEach(inv => {
+        if (inv && (inv.status === 'declined' || inv.status === 'accepted' || inv.status === 'cancelled')) {
+          if (inv.id) deletedInvIds.add(inv.id);
+        }
+      });
+
+      const combinedInvs = [...newInvs, ...existingInvs].filter(inv => {
+        if (!inv || !inv.id) return false;
+        if (deletedInvIds.has(inv.id)) return false;
+        if (inv.status && inv.status !== 'pending') return false;
+        if (inv.roomId && deletedRoomIds.has(String(inv.roomId).toUpperCase().replace(/[^A-Z0-9]/g, ''))) return false;
+        return (now - (inv.createdAt || 0)) < 300000;
+      });
       combinedInvs.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
       
       const pairInvMap = new Map();
@@ -245,13 +269,24 @@ export default async function handler(req, res) {
         }
       });
 
-      // Fusión directa e infalible de partidas activas por roomId con confirmación mutua en BD (TTL 2 horas)
+      // Fusión de partidas activas por roomId (TTL 30 min, respetar eliminaciones)
       const existingMatches = Array.isArray(existing.activeMatches) ? existing.activeMatches : [];
       const newMatches = Array.isArray(groupData.activeMatches) ? groupData.activeMatches : [];
+
+      // Marcar partidas canceladas o finalizadas en newMatches
+      newMatches.forEach(m => {
+        if (m && (m.isGameOver || m.status === 'cancelled' || m.status === 'abandoned' || m.status === 'completed')) {
+          if (m.roomId) deletedRoomIds.add(String(m.roomId).toUpperCase().replace(/[^A-Z0-9]/g, ''));
+        }
+      });
+
       const matchMap = new Map();
       [...existingMatches, ...newMatches].forEach(m => {
         if (m && m.roomId) {
           const cleanId = String(m.roomId).toUpperCase().replace(/[^A-Z0-9]/g, '');
+          if (deletedRoomIds.has(cleanId)) return;
+          if (m.isGameOver || m.status === 'cancelled' || m.status === 'abandoned' || m.status === 'completed') return;
+
           const prev = matchMap.get(cleanId);
           if (!prev) {
             const hasGuest = Boolean(m.guestUser);
@@ -318,7 +353,7 @@ export default async function handler(req, res) {
       });
 
       const mergedMatches = Array.from(matchMap.values())
-        .filter(m => !m.isGameOver && (now - (m.updatedAt || 0)) < 7200000)
+        .filter(m => !m.isGameOver && !deletedRoomIds.has(m.roomId) && (now - (m.updatedAt || 0)) < 1800000)
         .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
 
       // Fusión de reportes de bugs familiares en la nube (Hasta 200 reportes más recientes)

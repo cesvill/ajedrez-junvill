@@ -1454,7 +1454,7 @@ export const PlayView = ({
                   <button
                     type="button"
                     className="btn-secondary"
-                    onClick={() => clearActiveP2PGame && clearActiveP2PGame()}
+                    onClick={() => clearActiveP2PGame && clearActiveP2PGame(activeP2PGame.roomId)}
                     style={{ padding: '9px 12px', fontSize: '0.80rem', color: '#ef4444' }}
                     title="Abandonar y descartar partida P2P"
                   >
