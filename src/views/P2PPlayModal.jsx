@@ -311,10 +311,6 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
             avatarConfig: curUser.avatarConfig,
             elo: curUser.elo || 600
           };
-          const curFen = gameRef.current ? gameRef.current.fen() : '';
-          const curTurn = gameRef.current ? gameRef.current.turn() : 'w';
-          const curMoveCount = getFenMoveCount(curFen);
-          const curLastMove = lastMoveRef.current;
 
           if (hostActive) {
             cloudSync.pushGroupToCloud({
@@ -323,11 +319,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                 hostUser: userSummary,
                 hostReady: true,
                 hostHeartbeat: Date.now(),
-                hostStatus: 'ready',
-                fen: curFen || undefined,
-                turn: curTurn,
-                moveCount: curMoveCount,
-                lastMove: curLastMove || undefined
+                hostStatus: 'ready'
               }]
             }, activeGroup?.id || 'group_junvill');
           } else {
@@ -337,11 +329,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                 guestUser: userSummary,
                 guestReady: true,
                 guestHeartbeat: Date.now(),
-                guestStatus: 'ready',
-                fen: curFen || undefined,
-                turn: curTurn,
-                moveCount: curMoveCount,
-                lastMove: curLastMove || undefined
+                guestStatus: 'ready'
               }]
             }, activeGroup?.id || 'group_junvill');
           }
@@ -349,19 +337,21 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
 
         const cloudData = await cloudSync.fetchCloudGroup(activeGroup?.id || 'group_junvill');
         if (cloudData) {
-          // 1. Verificar si mi sala fue fusionada en una sala canónica previa
-          const canonicalInfo = cloudSync.resolveCanonicalRoom(cleanRoom, cloudData);
-          if (canonicalInfo.isAlias && canonicalInfo.canonicalRoomId && canonicalInfo.canonicalRoomId !== cleanRoom) {
-            const canonicalMatch = canonicalInfo.canonicalMatch || (cloudData.activeMatches || []).find(m => P2PEngine.cleanRoomId(m.roomId) === canonicalInfo.canonicalRoomId);
-            if (canonicalMatch) {
-              if (canonicalMatch.hostUser && canonicalMatch.hostUser.id !== curUser?.id) {
-                setRoomId(canonicalInfo.canonicalRoomId);
-                setInputRoomId(canonicalInfo.canonicalRoomId);
-                setIsHostActive(false);
-                setAssignedColor('black');
-                setOpponentProfile(canonicalMatch.hostUser);
-                handleJoinSubmit(canonicalInfo.canonicalRoomId);
-                return;
+          // 1. Verificar si mi sala fue fusionada en una sala canónica previa (solo si estamos en lobby)
+          if (modeRef.current === 'lobby') {
+            const canonicalInfo = cloudSync.resolveCanonicalRoom(cleanRoom, cloudData);
+            if (canonicalInfo.isAlias && canonicalInfo.canonicalRoomId && canonicalInfo.canonicalRoomId !== cleanRoom) {
+              const canonicalMatch = canonicalInfo.canonicalMatch || (cloudData.activeMatches || []).find(m => P2PEngine.cleanRoomId(m.roomId) === canonicalInfo.canonicalRoomId);
+              if (canonicalMatch) {
+                if (canonicalMatch.hostUser && canonicalMatch.hostUser.id !== curUser?.id) {
+                  setRoomId(canonicalInfo.canonicalRoomId);
+                  setInputRoomId(canonicalInfo.canonicalRoomId);
+                  setIsHostActive(false);
+                  setAssignedColor('black');
+                  setOpponentProfile(canonicalMatch.hostUser);
+                  handleJoinSubmit(canonicalInfo.canonicalRoomId);
+                  return;
+                }
               }
             }
           }
@@ -451,13 +441,11 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                   const incomingMoveCount = match.moveCount ?? getFenMoveCount(match.fen);
                   const timeSinceLastLocalMove = Date.now() - (lastLocalMoveTimeRef.current || 0);
 
-                  // Solo aplicar si la posición en la nube es estrictamente más avanzada en jugadas
-                  // O si tiene el mismo conteo pero fue realizada por el rival hace más de 3 segundos
+                  // Aplicar si la jugada en la nube es más avanzada, o si es una jugada distinta realizada por el rival
                   const isStrictlyMoreAdvanced = incomingMoveCount > localMoveCount;
-                  const isOpponentMoveAtSameCount = incomingMoveCount === localMoveCount && 
-                    timeSinceLastLocalMove > 3000 && 
+                  const isOpponentMoveAtSameCount = incomingMoveCount >= localMoveCount && 
                     match.lastMoveSenderId !== curUser?.id &&
-                    (match.updatedAt || 0) > (lastLocalMoveTimeRef.current || 0);
+                    timeSinceLastLocalMove > 1000;
 
                   if (isStrictlyMoreAdvanced || isOpponentMoveAtSameCount) {
                     const nextG = new Chess(match.fen);

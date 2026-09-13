@@ -405,6 +405,7 @@ export default async function handler(req, res) {
               withAssistance: m.withAssistance !== undefined ? m.withAssistance : (prev.withAssistance !== undefined ? prev.withAssistance : true),
               fen: isGameProgressNewer ? (m.fen || prev.fen) : (prev.fen || m.fen),
               lastMove: isGameProgressNewer ? (m.lastMove || prev.lastMove) : (prev.lastMove || m.lastMove),
+              lastMoveSenderId: isGameProgressNewer ? (m.lastMoveSenderId || prev.lastMoveSenderId) : (prev.lastMoveSenderId || m.lastMoveSenderId),
               turn: isGameProgressNewer ? (m.turn || prev.turn) : (prev.turn || m.turn),
               whiteTime: isGameProgressNewer ? (m.whiteTime ?? prev.whiteTime) : (prev.whiteTime ?? m.whiteTime),
               blackTime: isGameProgressNewer ? (m.blackTime ?? prev.blackTime) : (prev.blackTime ?? m.blackTime),
