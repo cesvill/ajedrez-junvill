@@ -384,7 +384,12 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                 }
                 setIsOpponentConnected(true);
                 isOpponentConnectedRef.current = true;
-                setAssignedColor(match.assignedColor === 'black' ? 'black' : 'white');
+                
+                // Color del Anfitrión: Fijo y bloqueado (por defecto 'white' a menos que haya elegido 'black')
+                if (assignedColorRef.current !== 'white' && assignedColorRef.current !== 'black') {
+                  const hostCol = match.hostColor || (match.assignedColor === 'black' ? 'black' : 'white');
+                  setAssignedColor(hostCol);
+                }
                 setMode('playing');
                 setIsConnecting(false);
                 setIsInterrupted(false);
@@ -400,8 +405,12 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                   opponentProfileRef.current = match.hostUser;
                   setIsOpponentConnected(true);
                   isOpponentConnectedRef.current = true;
-                  const guestColor = match.assignedColor === 'white' ? 'black' : 'white';
-                  setAssignedColor(guestColor);
+                  
+                  // Color del Invitado: Fijo y opuesto al Anfitrión (por defecto 'black')
+                  if (assignedColorRef.current !== 'white' && assignedColorRef.current !== 'black') {
+                    const guestCol = match.guestColor || (match.hostColor === 'black' ? 'white' : 'black');
+                    setAssignedColor(guestCol);
+                  }
                   setMode('playing');
                   setIsConnecting(false);
                   setIsInterrupted(false);
@@ -1057,6 +1066,8 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
         bothConfirmed: true,
         opponent: opponentProfileRef.current || opponentProfile,
         fen: updatedGame.fen(),
+        hostColor: isHost ? myColor : (myColor === 'white' ? 'black' : 'white'),
+        guestColor: !isHost ? myColor : (myColor === 'white' ? 'black' : 'white'),
         assignedColor: myColor,
         timeControl: timeControlRef.current || timeControl,
         whiteTime,
@@ -1259,6 +1270,8 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
         elo: 600
       },
       fen: game.fen(),
+      hostColor: chosenColor,
+      guestColor: chosenColor === 'white' ? 'black' : 'white',
       assignedColor: chosenColor,
       timeControl: timeControl || 300,
       whiteTime: timeControl || 300,
@@ -1348,7 +1361,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
       const remoteMatch = cloudData.activeMatches.find(m => P2PEngine.cleanRoomId(m.roomId) === cleanCode);
       if (remoteMatch && remoteMatch.hostUser && remoteMatch.hostUser.id !== currentUser?.id) {
         setOpponentProfile(remoteMatch.hostUser);
-        const guestColor = remoteMatch.assignedColor === 'white' ? 'black' : 'white';
+        const guestColor = remoteMatch.guestColor || (remoteMatch.hostColor === 'black' ? 'white' : (remoteMatch.assignedColor === 'white' ? 'black' : 'white'));
         setAssignedColor(guestColor);
         setTimeControl(remoteMatch.timeControl || 300);
         setWhiteTime(remoteMatch.whiteTime || 300);
@@ -1376,6 +1389,8 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
       guestReady: true,
       guestHeartbeat: Date.now(),
       guestStatus: 'ready',
+      hostColor: 'white',
+      guestColor: 'black',
       status: 'active',
       isWaiting: false,
       updatedAt: Date.now()
