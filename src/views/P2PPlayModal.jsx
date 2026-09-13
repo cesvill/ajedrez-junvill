@@ -220,7 +220,47 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
     return () => window.removeEventListener('junvill_mutual_match', handleMutualMatch);
   }, []);
 
-  // Sincronización en tiempo real del Lobby, Fusión de Salas y Jugadas en Nube (Infalible)
+  // Canal de difusión ultra-rápido en vivo (Instantánea en < 10ms para pestañas/ventanas locales)
+  useEffect(() => {
+    if (!isOpen) return;
+    let bc = null;
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        bc = new BroadcastChannel('junvill_p2p_channel');
+        bc.onmessage = (event) => {
+          const data = event.data;
+          if (!data || data.type !== 'MOVE') return;
+          const cleanCurrent = P2PEngine.cleanRoomId(roomIdRef.current || roomId || inputRoomId || initialRoomId);
+          if (P2PEngine.cleanRoomId(data.roomId) === cleanCurrent && data.fen) {
+            const localFen = gameRef.current ? gameRef.current.fen() : '';
+            if (data.fen !== localFen) {
+              try {
+                const nextG = new Chess(data.fen);
+                setGame(nextG);
+                gameRef.current = nextG;
+                if (data.lastMove) setLastMove(data.lastMove);
+                if (data.whiteTime !== undefined) setWhiteTime(data.whiteTime);
+                if (data.blackTime !== undefined) setBlackTime(data.blackTime);
+                setIsOpponentConnected(true);
+                isOpponentConnectedRef.current = true;
+                setBothConfirmedInDB(true);
+                setStatusMessage('♟️ ¡Jugada recibida! Es tu turno.');
+                if (nextG.isCheckmate() || nextG.isCheck()) audioManager?.playCheck?.();
+                else if (data.lastMove?.captured) audioManager?.playCapture?.();
+                else audioManager?.playMove?.();
+                checkGameOver(nextG);
+              } catch (e) {}
+            }
+          }
+        };
+      }
+    } catch (e) {}
+    return () => {
+      try { bc?.close(); } catch (e) {}
+    };
+  }, [isOpen, roomId, inputRoomId, initialRoomId]);
+
+  // Sincronización en tiempo real del Lobby, Fusión de Salas y Jugadas en Nube (Ultra-rápido 350ms)
   useEffect(() => {
     if (!isOpen) return;
 
@@ -381,7 +421,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
           }
         }
       } catch (e) {}
-    }, 800);
+    }, 350);
 
     return () => clearInterval(lobbyPoll);
   }, [isOpen, roomId, inputRoomId, initialRoomId, activeGroup?.id]);
@@ -990,13 +1030,28 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
         updatedAt: Date.now()
       };
 
-      if (saveActiveP2PGame) {
-        saveActiveP2PGame(movePayload);
-      }
-      cloudSync.pushGroupToCloud({ activeMatches: [movePayload] }, activeGroup?.id || 'group_junvill');
+      // 1. Difusión instantánea local (< 10ms) para ventanas/pestañas locales
+      try {
+        if (typeof BroadcastChannel !== 'undefined') {
+          const bc = new BroadcastChannel('junvill_p2p_channel');
+          bc.postMessage({
+            type: 'MOVE',
+            roomId: cleanRoom,
+            fen: updatedGame.fen(),
+            lastMove: moveResult,
+            turn: updatedGame.turn(),
+            whiteTime,
+            blackTime
+          });
+          bc.close();
+        }
+      } catch (e) {}
 
-      // Transmitir jugada por WebRTC a rival y espectadores
+      // 2. Transmitir jugada por WebRTC DataChannel directo a rival y espectadores (< 50ms)
       p2pRef.current?.sendMove(moveResult, updatedGame.fen(), { white: whiteTime, black: blackTime });
+
+      // 3. Persistir en Nube Central / Base de Datos
+      cloudSync.pushGroupToCloud({ activeMatches: [movePayload] }, activeGroup?.id || 'group_junvill');
 
       checkGameOver(updatedGame);
       return true;
