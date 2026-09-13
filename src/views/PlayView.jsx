@@ -2562,6 +2562,49 @@ export const PlayView = ({
                 <span>▶ Reanudar Partida</span>
               </button>
 
+              {/* Interruptor Rápido de Sonido y Voz de Recomendaciones */}
+              <div style={{
+                background: 'var(--bg-parchment)',
+                border: '1.5px solid var(--bg-parchment-border)',
+                borderRadius: 'var(--radius-md, 8px)',
+                padding: '10px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '8px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', textAlign: 'left' }}>
+                  {isVoiceActive ? <Volume2 size={20} color="#10b981" /> : <VolumeX size={20} color="#ef4444" />}
+                  <div>
+                    <div style={{ fontSize: '0.86rem', fontWeight: '800', color: 'var(--text-parchment-main)' }}>
+                      Sonido y Voz del Tutor
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-parchment-muted)' }}>
+                      {isVoiceActive ? 'Recomendaciones orales activadas' : 'Recomendaciones en silencio'}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleVoice}
+                  style={{
+                    background: isVoiceActive ? 'var(--color-success)' : 'rgba(239, 68, 68, 0.15)',
+                    color: isVoiceActive ? 'white' : '#ef4444',
+                    border: `1.5px solid ${isVoiceActive ? '#10b981' : '#ef4444'}`,
+                    borderRadius: 'var(--radius-sm, 6px)',
+                    padding: '6px 12px',
+                    fontSize: '0.80rem',
+                    fontWeight: '800',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  {isVoiceActive ? '🔊 Activado' : '🔇 Silenciado'}
+                </button>
+              </div>
+
               <button
                 className="btn-secondary"
                 onClick={() => {
@@ -2833,6 +2876,31 @@ export const PlayView = ({
         onClose={() => setIsVariantRulesOpen(false)}
         variantId={gameVariant}
       />
+
+      {/* Modal de Creación y Configuración de Retos Familiares */}
+      {challengeOpponent && (
+        <FamilyChallengeDialog
+          isOpen={!!challengeOpponent}
+          onClose={() => setChallengeOpponent(null)}
+          opponent={challengeOpponent}
+          isOpponentOnline={challengeOpponent ? isUserOnline(challengeOpponent) : false}
+          onSendChallenge={({ variantId, timeControl, withAssistance, customMessage, handicapConfig }) => {
+            const createdInv = sendFamilyInvitation(
+              challengeOpponent,
+              timeControl,
+              withAssistance,
+              null,
+              variantId,
+              customMessage,
+              handicapConfig
+            );
+            setChallengeOpponent(null);
+            if (createdInv && !createdInv.isMutualMatch && onOpenP2P) {
+              onOpenP2P(challengeOpponent, createdInv.roomId, 'create');
+            }
+          }}
+        />
+      )}
     </div>
   );
 };
