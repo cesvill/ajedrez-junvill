@@ -645,11 +645,21 @@ export const UserProvider = ({ children }) => {
   // 3. ESTADO DE USUARIO ACTIVO
   const [activeUserId, setActiveUserId] = useState(() => {
     try {
-      return localStorage.getItem(ACTIVE_USER_KEY) || 'user_1786849943311';
+      const saved = localStorage.getItem(ACTIVE_USER_KEY);
+      if (saved && saved !== 'undefined' && saved !== 'null') return saved;
+      return 'user_leti';
     } catch (e) {
-      return 'user_1786849943311';
+      return 'user_leti';
     }
   });
+
+  useEffect(() => {
+    try {
+      if (activeUserId) {
+        localStorage.setItem(ACTIVE_USER_KEY, activeUserId);
+      }
+    } catch (e) {}
+  }, [activeUserId]);
 
   const INVITATIONS_STORAGE_KEY = 'ajedrez_junvill_family_invitations_v1';
   const MESSAGES_STORAGE_KEY = 'ajedrez_junvill_family_messages_v1';
@@ -699,13 +709,14 @@ export const UserProvider = ({ children }) => {
   const isGroupUnlocked = activeGroup ? unlockedGroupIds.includes(activeGroup.id) : false;
   const users = useMemo(() => activeGroup ? cloudSync.mergeUsers(activeGroup.users || [], DEFAULT_JUNVILL_USERS) : DEFAULT_JUNVILL_USERS, [activeGroup]);
   const currentUser = useMemo(() => {
-    if (!users || users.length === 0) return DEFAULT_JUNVILL_USERS[0];
+    if (!users || users.length === 0) return DEFAULT_JUNVILL_USERS[1] || DEFAULT_JUNVILL_USERS[0];
+    const activeKey = normalizeUserKey(activeUserId || '');
     const found = users.find(u => 
       u.id === activeUserId || 
-      normalizeUserKey(u.id) === normalizeUserKey(activeUserId) ||
-      normalizeUserKey(u.name) === normalizeUserKey(activeUserId)
+      normalizeUserKey(u.id) === activeKey ||
+      normalizeUserKey(u.name) === activeKey
     );
-    return found || users[0] || DEFAULT_JUNVILL_USERS[0];
+    return found || users.find(u => normalizeUserKey(u.id) === 'leti' || normalizeUserKey(u.name) === 'leti') || users[0] || DEFAULT_JUNVILL_USERS[0];
   }, [users, activeUserId]);
 
   // Sincronización inmediata con la Nube Central al iniciar la aplicación (Auto-Pull Máximo Avance)
@@ -2052,11 +2063,11 @@ export const UserProvider = ({ children }) => {
   const resetUserData = () => {
     setGroups(DEFAULT_FAMILY_GROUPS);
     setActiveGroupId('group_junvill');
-    setActiveUserId('user_1786849943311');
+    setActiveUserId('user_leti');
     try {
       localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(DEFAULT_FAMILY_GROUPS));
       localStorage.setItem(ACTIVE_GROUP_KEY, 'group_junvill');
-      localStorage.setItem(ACTIVE_USER_KEY, 'user_1786849943311');
+      localStorage.setItem(ACTIVE_USER_KEY, 'user_leti');
     } catch (e) {}
   };
 

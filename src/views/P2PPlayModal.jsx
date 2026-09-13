@@ -5,7 +5,7 @@ import { SafeChat } from '../components/SafeChat/SafeChat';
 import { AvatarIcon } from '../assets/avatars';
 import { DynamicAvatar } from '../components/AvatarCreator/DynamicAvatar';
 import { P2PEngine } from '../engine/p2pEngine';
-import { cloudSync, getFenMoveCount } from '../engine/cloudSync';
+import { cloudSync, getFenMoveCount, normalizeUserKey } from '../engine/cloudSync';
 import { useUser } from '../context/UserContext';
 import { audioManager } from '../engine/audio';
 import { QRCodeDisplay } from '../components/QRCodeModal/QRCodeDisplay';
@@ -173,24 +173,44 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
   useEffect(() => {
     const clean = P2PEngine.cleanRoomId(roomId || initialRoomId);
     if (!clean) return;
+    const curKey = normalizeUserKey(currentUser?.name || currentUser?.id || '');
+
+    const setOpponentIfChanged = (newOpp) => {
+      if (!newOpp) return;
+      const prevOpp = opponentProfileRef.current;
+      const hasChanged = !prevOpp ||
+        prevOpp.id !== newOpp.id ||
+        prevOpp.name !== newOpp.name ||
+        prevOpp.avatar !== newOpp.avatar ||
+        JSON.stringify(prevOpp.avatarConfig || {}) !== JSON.stringify(newOpp.avatarConfig || {});
+      if (hasChanged) {
+        setOpponentProfile(newOpp);
+        opponentProfileRef.current = newOpp;
+        setSelectedFamilyOpponent(newOpp);
+      }
+    };
+
     const inv = (familyInvitations || []).find(i => P2PEngine.cleanRoomId(i.roomId) === clean);
     if (inv) {
-      if (inv.fromUser && inv.fromUser.id !== currentUser?.id) {
-        setOpponentProfile(inv.fromUser);
-        setSelectedFamilyOpponent(inv.fromUser);
-      } else if (inv.toUserId && inv.toUserId !== currentUser?.id) {
-        const targetU = (users || []).find(u => u.id === inv.toUserId || (u.name || '').toLowerCase() === (inv.toUserName || '').toLowerCase()) || {
-          name: inv.toUserName,
-          avatar: 'teen_gamer',
+      if (inv.fromUser && normalizeUserKey(inv.fromUser.name || inv.fromUser.id) !== curKey) {
+        setOpponentIfChanged(inv.fromUser);
+      } else if (inv.toUserId && normalizeUserKey(inv.toUserName || inv.toUserId) !== curKey) {
+        const targetU = (users || []).find(u => 
+          u.id === inv.toUserId || 
+          normalizeUserKey(u.name) === normalizeUserKey(inv.toUserName) ||
+          normalizeUserKey(u.id) === normalizeUserKey(inv.toUserId)
+        ) || {
+          name: inv.toUserName || 'Rival',
+          avatar: 'custom_dynamic',
           elo: 800,
           role: 'student'
         };
-        setOpponentProfile(targetU);
-        setSelectedFamilyOpponent(targetU);
+        setOpponentIfChanged(targetU);
       }
     } else if (activeP2PGame && P2PEngine.cleanRoomId(activeP2PGame.roomId) === clean && activeP2PGame.opponent) {
-      setOpponentProfile(activeP2PGame.opponent);
-      setSelectedFamilyOpponent(activeP2PGame.opponent);
+      if (normalizeUserKey(activeP2PGame.opponent.name || activeP2PGame.opponent.id) !== curKey) {
+        setOpponentIfChanged(activeP2PGame.opponent);
+      }
     }
   }, [roomId, initialRoomId, familyInvitations, users, currentUser?.id, activeP2PGame]);
 
@@ -360,61 +380,66 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                 setBothConfirmedInDB(true);
               }
 
-              // Identificar si soy el Host o el Guest basándose en los datos persistentes de la partida
+              // 1. Identificar el rival real sin riesgo de auto-asignarse
+              let realOpponent = null;
+              if (match.hostUser && normalizeUserKey(match.hostUser.name || match.hostUser.id) !== curKey) {
+                realOpponent = match.hostUser;
+              } else if (match.guestUser && normalizeUserKey(match.guestUser.name || match.guestUser.id) !== curKey) {
+                realOpponent = match.guestUser;
+              } else if (match.opponent && normalizeUserKey(match.opponent.name || match.opponent.id) !== curKey) {
+                realOpponent = match.opponent;
+              }
+
+              // Solo actualizar el estado de React si el objeto de rival cambió para evitar re-renders y parpadeos
+              if (realOpponent) {
+                const prevOpp = opponentProfileRef.current;
+                const hasChanged = !prevOpp ||
+                  prevOpp.id !== realOpponent.id ||
+                  prevOpp.name !== realOpponent.name ||
+                  prevOpp.avatar !== realOpponent.avatar ||
+                  JSON.stringify(prevOpp.avatarConfig || {}) !== JSON.stringify(realOpponent.avatarConfig || {});
+                if (hasChanged) {
+                  setOpponentProfile(realOpponent);
+                  opponentProfileRef.current = realOpponent;
+                }
+              }
+
+              // 2. Identificar rol (Host vs Guest) basándose en las identidades
               const isMatchHost = match.hostUser && (
-                (curUser?.id && match.hostUser.id === curUser.id) ||
-                (curUser?.name && match.hostUser.name && match.hostUser.name.toLowerCase() === curUser.name.toLowerCase())
+                normalizeUserKey(match.hostUser.id || '') === curKey ||
+                normalizeUserKey(match.hostUser.name || '') === curKey
               );
               const isMatchGuest = match.guestUser && (
-                (curUser?.id && match.guestUser.id === curUser.id) ||
-                (curUser?.name && match.guestUser.name && match.guestUser.name.toLowerCase() === curUser.name.toLowerCase())
+                normalizeUserKey(match.guestUser.id || '') === curKey ||
+                normalizeUserKey(match.guestUser.name || '') === curKey
               );
 
-              // Si soy el Host y ya se unió el invitado en la nube
-              const isGuestJoined = match.guestUser && (
-                (curUser?.id && match.guestUser.id !== curUser.id) ||
-                (curUser?.name && match.guestUser.name && match.guestUser.name.toLowerCase() !== curUser.name.toLowerCase()) ||
-                (!curUser && match.guestUser)
+              const amIHost = isMatchHost || (!isMatchGuest && hostActive);
+
+              const isOpponentJoined = Boolean(
+                (amIHost && (match.guestUser || match.status === 'active' || isMutuallyConfirmed)) ||
+                (!amIHost && (match.hostUser || isMutuallyConfirmed))
               );
 
-              if ((hostActive || isMatchHost) && (isGuestJoined || match.status === 'active' || match.guestUser || isMutuallyConfirmed)) {
-                if (match.guestUser) {
-                  setOpponentProfile(match.guestUser);
-                  opponentProfileRef.current = match.guestUser;
-                }
+              if (isOpponentJoined) {
                 setIsOpponentConnected(true);
                 isOpponentConnectedRef.current = true;
                 
-                // Color del Anfitrión: Fijo y bloqueado (por defecto 'white' a menos que haya elegido 'black')
+                // Color fijo e inmutable una vez iniciada la partida
                 if (assignedColorRef.current !== 'white' && assignedColorRef.current !== 'black') {
-                  const hostCol = match.hostColor || (match.assignedColor === 'black' ? 'black' : 'white');
-                  setAssignedColor(hostCol);
+                  if (amIHost) {
+                    const hostCol = match.hostColor || (match.assignedColor === 'black' ? 'black' : 'white');
+                    setAssignedColor(hostCol);
+                  } else {
+                    const guestCol = match.guestColor || (match.hostColor === 'black' ? 'white' : 'black');
+                    setAssignedColor(guestCol);
+                  }
                 }
                 setMode('playing');
                 setIsConnecting(false);
                 setIsInterrupted(false);
-                setStatusMessage(`¡${match.guestUser?.name || opponentProfileRef.current?.name || 'Tu rival'} confirmado en Base de Datos! ¡Iniciando partida!`);
-              }
-              // Si soy el Guest y la sala existe en la nube
-              else if ((!hostActive || isMatchGuest) && match.hostUser) {
-                const isDiffHost = (curUser?.id && match.hostUser.id !== curUser.id) ||
-                  (curUser?.name && match.hostUser.name && match.hostUser.name.toLowerCase() !== curUser.name.toLowerCase()) ||
-                  !curUser;
-                if (isDiffHost) {
-                  setOpponentProfile(match.hostUser);
-                  opponentProfileRef.current = match.hostUser;
-                  setIsOpponentConnected(true);
-                  isOpponentConnectedRef.current = true;
-                  
-                  // Color del Invitado: Fijo y opuesto al Anfitrión (por defecto 'black')
-                  if (assignedColorRef.current !== 'white' && assignedColorRef.current !== 'black') {
-                    const guestCol = match.guestColor || (match.hostColor === 'black' ? 'white' : 'black');
-                    setAssignedColor(guestCol);
-                  }
-                  setMode('playing');
-                  setIsConnecting(false);
-                  setIsInterrupted(false);
-                  setStatusMessage(`¡Conectado con ${match.hostUser.name}! Base de Datos confirmada.`);
+                if (realOpponent?.name) {
+                  setStatusMessage(`¡Conectado con ${realOpponent.name}! Base de Datos confirmada.`);
                 }
               }
 
@@ -2472,7 +2497,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                   <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden' }}>
                     <AvatarIcon 
-                      avatarId={mode === 'spectating' ? (blackPlayerProfile?.avatar || 'knight') : (opponentProfile?.avatar || 'teen_gamer')} 
+                      avatarId={mode === 'spectating' ? (blackPlayerProfile?.avatar || 'custom_dynamic') : (opponentProfile?.avatar || 'custom_dynamic')} 
                       avatarConfig={mode === 'spectating' ? blackPlayerProfile?.avatarConfig : opponentProfile?.avatarConfig}
                       size={32} 
                     />
@@ -2669,7 +2694,11 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                   <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden' }}>
-                    <AvatarIcon avatarId={mode === 'spectating' ? (whitePlayerProfile?.avatar || 'teen_gamer') : (currentUser?.avatar || 'teen_gamer')} size={32} />
+                    <AvatarIcon 
+                      avatarId={mode === 'spectating' ? (whitePlayerProfile?.avatar || 'custom_dynamic') : (currentUser?.avatar || 'custom_dynamic')} 
+                      avatarConfig={mode === 'spectating' ? whitePlayerProfile?.avatarConfig : currentUser?.avatarConfig}
+                      size={32} 
+                    />
                   </div>
                   <div>
                     <div style={{ fontWeight: '800', fontSize: '0.86rem', color: '#f8fafc' }}>
