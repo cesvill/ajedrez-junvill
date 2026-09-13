@@ -193,12 +193,21 @@ export default async function handler(req, res) {
       
       const cloudData = await fetchFromDurableCloud(groupId);
       if (cloudData) {
+        const now = Date.now();
+        const validInvs = (cloudData.activeInvitations || []).filter(inv => 
+          inv && inv.id && inv.status === 'pending' && inv.createdAt && (now - inv.createdAt) < 300000
+        );
+        const validMatches = (cloudData.activeMatches || []).filter(m => 
+          m && m.roomId && !m.isGameOver && m.status !== 'cancelled' && m.status !== 'abandoned' && (now - (m.updatedAt || 0)) < 1800000
+        );
+        cloudData.activeInvitations = validInvs;
+        cloudData.activeMatches = validMatches;
         inMemoryCloudStore[groupId] = cloudData;
         return res.status(200).json({
           success: true,
           groupId,
           data: cloudData,
-          updatedAt: cloudData.updatedAt || Date.now()
+          updatedAt: cloudData.updatedAt || now
         });
       }
 
