@@ -2308,14 +2308,14 @@ export const CURRICULUM_SECTIONS = [
           },
           {
             "id": "ex_3",
-            "fen": "8/8/8/8/8/5k2/6q1/5Q1K w - - 0 1",
-            "instruction": "Paso 3: La Dama negra en g2 da jaque a tu Rey en h1. Captura la Dama con tu propia Dama en g2 (Dxg2+). Tras la recaptura enemiga, ¡quedarás ahogado y salvas el empate!",
+            "fen": "8/8/8/8/8/6k1/4q3/5Q1K w - - 0 1",
+            "instruction": "Paso 3: Las negras amenazan jaque mate. Entrega tu Dama con Df2+ (de f1 a f2) dando jaque al rey. ¡Al ser capturada, tu rey en h1 queda totalmente ahogado y salvas el empate!",
             "solution": {
               "from": "f1",
-              "to": "g2"
+              "to": "f2"
             },
-            "hint": "Captura la dama enemiga en g2.",
-            "feedback": "¡Sacrificio salvador! Al eliminar las damas, el rey negro en g2 te ahoga por completo asegurando las tablas."
+            "hint": "Sacrifica la dama en f2 con jaque al rey negro.",
+            "feedback": "¡Sacrificio salvador genial! Al entregar la dama en f2, las negras están obligadas a capturarla y tu rey queda ahogado en h1, logrando las tablas."
           },
           {
             "id": "ex_4",
