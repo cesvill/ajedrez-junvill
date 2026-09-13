@@ -442,10 +442,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                   const incomingMoveCount = match.moveCount ?? getFenMoveCount(match.fen);
                   const timeSinceLastLocalMove = Date.now() - (lastLocalMoveTimeRef.current || 0);
 
-                  const isStrictlyMoreAdvanced = incomingMoveCount > localMoveCount;
-                  const isOpponentMove = match.fen !== localFen && (incomingMoveCount >= localMoveCount || match.lastMoveSenderId !== curUser?.id);
-
-                  if (isStrictlyMoreAdvanced || isOpponentMove) {
+                  if (incomingMoveCount > localMoveCount) {
                     const nextG = new Chess(match.fen);
                     setGame(nextG);
                     gameRef.current = nextG;
@@ -783,7 +780,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
         }
         const incomingMoveCount = data.moveCount ?? getFenMoveCount(targetFen);
 
-        if (incomingMoveCount > localMoveCount || (targetFen && targetFen !== localFen)) {
+        if (incomingMoveCount > localMoveCount) {
           updatedGame = new Chess(targetFen || localFen);
           if (updatedGame.isCheckmate() || updatedGame.isCheck()) audioManager.playCheck();
           else if (data.move?.captured) audioManager.playCapture();
