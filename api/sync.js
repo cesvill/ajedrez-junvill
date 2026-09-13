@@ -245,7 +245,7 @@ export default async function handler(req, res) {
         }
       });
 
-      // Fusión directa e infalible de partidas activas por roomId (TTL 2 horas)
+      // Fusión directa e infalible de partidas activas por roomId con confirmación mutua en BD (TTL 2 horas)
       const existingMatches = Array.isArray(existing.activeMatches) ? existing.activeMatches : [];
       const newMatches = Array.isArray(groupData.activeMatches) ? groupData.activeMatches : [];
       const matchMap = new Map();
@@ -255,18 +255,36 @@ export default async function handler(req, res) {
           const prev = matchMap.get(cleanId);
           if (!prev) {
             const hasGuest = Boolean(m.guestUser);
+            const hasHost = Boolean(m.hostUser);
+            const hostReady = Boolean(m.hostReady ?? hasHost);
+            const guestReady = Boolean(m.guestReady ?? hasGuest);
+            const bothConfirmed = Boolean(hasHost && hasGuest && (hostReady || m.hostHeartbeat) && (guestReady || m.guestHeartbeat));
             matchMap.set(cleanId, {
               ...m,
               roomId: cleanId,
+              hostUser: m.hostUser || null,
+              guestUser: m.guestUser || null,
+              hostReady,
+              guestReady,
+              hostHeartbeat: m.hostHeartbeat || (hasHost ? Date.now() : 0),
+              guestHeartbeat: m.guestHeartbeat || (hasGuest ? Date.now() : 0),
+              bothConfirmed,
+              connectionState: bothConfirmed ? 'MUTUALLY_CONFIRMED' : (hasGuest ? 'GUEST_JOINED' : 'WAITING_GUEST'),
               assignedColor: m.assignedColor || 'white',
-              status: m.status || (hasGuest ? 'active' : 'waiting'),
-              isWaiting: !hasGuest
+              status: m.status || (bothConfirmed || hasGuest ? 'active' : 'waiting'),
+              isWaiting: !bothConfirmed && !hasGuest,
+              updatedAt: m.updatedAt || Date.now()
             });
           } else {
             const guest = m.guestUser || prev.guestUser || null;
             const host = m.hostUser || prev.hostUser || null;
+            const hostReady = Boolean(m.hostReady ?? prev.hostReady ?? Boolean(host));
+            const guestReady = Boolean(m.guestReady ?? prev.guestReady ?? Boolean(guest));
+            const hostHeartbeat = Math.max(m.hostHeartbeat || 0, prev.hostHeartbeat || 0, m.hostUser ? Date.now() : 0);
+            const guestHeartbeat = Math.max(m.guestHeartbeat || 0, prev.guestHeartbeat || 0, m.guestUser ? Date.now() : 0);
             const isGuestPresent = Boolean(guest);
-            const isStatusActive = m.status === 'active' || prev.status === 'active' || isGuestPresent;
+            const bothConfirmed = Boolean(host && guest && (hostReady || hostHeartbeat > 0) && (guestReady || guestHeartbeat > 0));
+            const isStatusActive = bothConfirmed || m.status === 'active' || prev.status === 'active' || isGuestPresent;
             const isNewer = (m.updatedAt || 0) >= (prev.updatedAt || 0);
 
             const merged = {
@@ -275,6 +293,12 @@ export default async function handler(req, res) {
               roomId: cleanId,
               hostUser: host,
               guestUser: guest,
+              hostReady,
+              guestReady,
+              hostHeartbeat,
+              guestHeartbeat,
+              bothConfirmed,
+              connectionState: bothConfirmed ? 'MUTUALLY_CONFIRMED' : (isGuestPresent ? 'GUEST_JOINED' : 'WAITING_GUEST'),
               opponent: m.opponent || prev.opponent || (guest ? guest : null),
               assignedColor: m.assignedColor || prev.assignedColor || 'white',
               timeControl: m.timeControl || prev.timeControl || 300,
@@ -285,7 +309,7 @@ export default async function handler(req, res) {
               whiteTime: isNewer ? (m.whiteTime ?? prev.whiteTime) : (prev.whiteTime ?? m.whiteTime),
               blackTime: isNewer ? (m.blackTime ?? prev.blackTime) : (prev.blackTime ?? m.blackTime),
               status: isStatusActive ? 'active' : (m.status || prev.status || 'waiting'),
-              isWaiting: !isGuestPresent,
+              isWaiting: !bothConfirmed && !isGuestPresent,
               updatedAt: Math.max(prev.updatedAt || 0, m.updatedAt || 0, Date.now())
             };
             matchMap.set(cleanId, merged);

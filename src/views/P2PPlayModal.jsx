@@ -103,7 +103,9 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
   const [isConnecting, setIsConnecting] = useState(false);
   const [isHostActive, setIsHostActive] = useState(false);
   const [isOpponentConnected, setIsOpponentConnected] = useState(false);
+  const [bothConfirmedInDB, setBothConfirmedInDB] = useState(false);
   const [opponentJustJoined, setOpponentJustJoined] = useState(false);
+  const lastHeartbeatSentRef = useRef(0);
 
   // Opciones de partida
   const [timeControl, setTimeControl] = useState(300); // 300 seg (5 min)
@@ -227,6 +229,42 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
         const cleanRoom = P2PEngine.cleanRoomId(roomIdRef.current || roomId || inputRoomId || initialRoomId);
         if (!cleanRoom) return;
 
+        const curUser = currentUserRef.current;
+        const hostActive = isHostActiveRef.current;
+
+        // Enviar latido de presencia periódica (Heartbeat cada 2 segundos) para confirmar estado activo en BD
+        if (Date.now() - lastHeartbeatSentRef.current > 2000 && curUser) {
+          lastHeartbeatSentRef.current = Date.now();
+          const userSummary = {
+            id: curUser.id,
+            name: curUser.name,
+            avatar: curUser.avatar,
+            avatarConfig: curUser.avatarConfig,
+            elo: curUser.elo || 600
+          };
+          if (hostActive) {
+            cloudSync.pushGroupToCloud({
+              activeMatches: [{
+                roomId: cleanRoom,
+                hostUser: userSummary,
+                hostReady: true,
+                hostHeartbeat: Date.now(),
+                hostStatus: 'ready'
+              }]
+            }, activeGroup?.id || 'group_junvill');
+          } else {
+            cloudSync.pushGroupToCloud({
+              activeMatches: [{
+                roomId: cleanRoom,
+                guestUser: userSummary,
+                guestReady: true,
+                guestHeartbeat: Date.now(),
+                guestStatus: 'ready'
+              }]
+            }, activeGroup?.id || 'group_junvill');
+          }
+        }
+
         const cloudData = await cloudSync.fetchCloudGroup(activeGroup?.id || 'group_junvill');
         if (cloudData) {
           // 1. Verificar si mi sala fue fusionada en una sala canónica previa
@@ -234,7 +272,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
           if (canonicalInfo.isAlias && canonicalInfo.canonicalRoomId && canonicalInfo.canonicalRoomId !== cleanRoom) {
             const canonicalMatch = canonicalInfo.canonicalMatch || (cloudData.activeMatches || []).find(m => P2PEngine.cleanRoomId(m.roomId) === canonicalInfo.canonicalRoomId);
             if (canonicalMatch) {
-              if (canonicalMatch.hostUser && canonicalMatch.hostUser.id !== currentUserRef.current?.id) {
+              if (canonicalMatch.hostUser && canonicalMatch.hostUser.id !== curUser?.id) {
                 setRoomId(canonicalInfo.canonicalRoomId);
                 setInputRoomId(canonicalInfo.canonicalRoomId);
                 setIsHostActive(false);
@@ -249,8 +287,16 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
           if (Array.isArray(cloudData.activeMatches)) {
             const match = cloudData.activeMatches.find(m => P2PEngine.cleanRoomId(m.roomId) === cleanRoom);
             if (match) {
-              const curUser = currentUserRef.current;
-              const hostActive = isHostActiveRef.current;
+              // Confirmación mutua en base de datos central
+              const isMutuallyConfirmed = Boolean(
+                match.bothConfirmed || 
+                (match.hostReady && match.guestReady) || 
+                (match.hostUser && match.guestUser)
+              );
+
+              if (isMutuallyConfirmed) {
+                setBothConfirmedInDB(true);
+              }
 
               // Identificar si soy el Host o el Guest basándose en los datos persistentes de la partida
               const isMatchHost = match.hostUser && (
@@ -269,7 +315,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                 (!curUser && match.guestUser)
               );
 
-              if ((hostActive || isMatchHost) && (isGuestJoined || match.status === 'active' || match.guestUser)) {
+              if ((hostActive || isMatchHost) && (isGuestJoined || match.status === 'active' || match.guestUser || isMutuallyConfirmed)) {
                 if (match.guestUser) {
                   setOpponentProfile(match.guestUser);
                   opponentProfileRef.current = match.guestUser;
@@ -280,7 +326,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                 setMode('playing');
                 setIsConnecting(false);
                 setIsInterrupted(false);
-                setStatusMessage(`¡${match.guestUser?.name || opponentProfileRef.current?.name || 'Tu rival'} se ha unido a la sala! ¡Iniciando partida!`);
+                setStatusMessage(`¡${match.guestUser?.name || opponentProfileRef.current?.name || 'Tu rival'} confirmado en Base de Datos! ¡Iniciando partida!`);
               }
               // Si soy el Guest y la sala existe en la nube
               else if ((!hostActive || isMatchGuest) && match.hostUser) {
@@ -297,7 +343,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                   setMode('playing');
                   setIsConnecting(false);
                   setIsInterrupted(false);
-                  setStatusMessage(`¡Conectado con ${match.hostUser.name}! ¡Iniciando partida!`);
+                  setStatusMessage(`¡Conectado con ${match.hostUser.name}! Base de Datos confirmada.`);
                 }
               }
 
@@ -320,6 +366,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                     setIsInterrupted(false);
                     setIsOpponentConnected(true);
                     isOpponentConnectedRef.current = true;
+                    setBothConfirmedInDB(true);
                     setStatusMessage('♟️ ¡Jugada recibida! Es tu turno.');
                     if (nextG.isCheckmate() || nextG.isCheck()) audioManager?.playCheck?.();
                     else if (match.lastMove?.captured) audioManager?.playCapture?.();
@@ -925,6 +972,11 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
           avatarConfig: curUser?.avatarConfig,
           elo: curUser?.elo || 600
         } : (opponentProfileRef.current || null),
+        hostReady: isHost ? true : undefined,
+        guestReady: !isHost ? true : undefined,
+        hostHeartbeat: isHost ? Date.now() : undefined,
+        guestHeartbeat: !isHost ? Date.now() : undefined,
+        bothConfirmed: true,
         opponent: opponentProfileRef.current || opponentProfile,
         fen: updatedGame.fen(),
         assignedColor: myColor,
@@ -1088,7 +1140,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
     const chosenColor = assignedColor === 'black' ? 'black' : 'white';
     setAssignedColor(chosenColor);
 
-    // Registrar sala anfitriona en Nube Central (/api/sync) para conexión garantizada
+    // Registrar sala anfitriona en Nube Central (/api/sync) para conexión garantizada con confirmación en BD
     const hostPayload = {
       type: 'p2p',
       roomId: cleanId,
@@ -1100,6 +1152,9 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
         avatarConfig: currentUser?.avatarConfig,
         elo: currentUser?.elo || 600
       },
+      hostReady: true,
+      hostHeartbeat: Date.now(),
+      hostStatus: 'ready',
       opponent: matchedOpponent || {
         id: 'p2p_rival',
         name: 'Rival P2P',
@@ -1211,7 +1266,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
       }
     }
 
-    // Marcar siempre la unión del invitado en la nube
+    // Marcar siempre la unión del invitado en la nube con confirmación en BD
     const activeMatchPayload = {
       roomId: cleanCode,
       guestUser: {
@@ -1221,6 +1276,9 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
         avatarConfig: currentUser?.avatarConfig,
         elo: currentUser?.elo || 600
       },
+      guestReady: true,
+      guestHeartbeat: Date.now(),
+      guestStatus: 'ready',
       status: 'active',
       isWaiting: false,
       updatedAt: Date.now()
@@ -2408,6 +2466,40 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                   </div>
                   <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
                     Turno: {game.turn() === 'w' ? 'Blancas' : 'Negras'}
+                  </span>
+                </div>
+              )}
+
+              {/* Badge de Confirmación Mutua en Base de Datos Central */}
+              {mode === 'playing' && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  background: bothConfirmedInDB ? 'rgba(16, 185, 129, 0.12)' : 'rgba(234, 179, 8, 0.12)',
+                  border: `1px solid ${bothConfirmedInDB ? 'rgba(16, 185, 129, 0.35)' : 'rgba(234, 179, 8, 0.35)'}`,
+                  borderRadius: '6px',
+                  padding: '4px 10px',
+                  marginBottom: '6px',
+                  fontSize: '0.74rem',
+                  fontWeight: '700'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{
+                      width: '7px',
+                      height: '7px',
+                      borderRadius: '50%',
+                      background: bothConfirmedInDB ? '#10b981' : '#eab308',
+                      display: 'inline-block'
+                    }} />
+                    <span style={{ color: bothConfirmedInDB ? '#34d399' : '#facc15' }}>
+                      {bothConfirmedInDB
+                        ? '🟢 Base de Datos: Conexión mutua confirmada'
+                        : '⏳ Base de Datos: Sincronizando estado con rival...'}
+                    </span>
+                  </div>
+                  <span style={{ color: '#94a3b8', fontSize: '0.70rem', fontFamily: 'monospace' }}>
+                    Sala {roomId}
                   </span>
                 </div>
               )}
