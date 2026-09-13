@@ -1147,20 +1147,46 @@ export const UserProvider = ({ children }) => {
   const refreshInvitationsNow = async () => {
     setIsRefreshingInvitations(true);
     try {
-      // 1. Consultar Nube Central de inmediato
+      // 1. Consultar Nube Central de inmediato (con timestamp anti-cache)
       const cloudData = await cloudSync.fetchCloudGroup(activeGroupId || 'group_junvill');
-      if (cloudData && Array.isArray(cloudData.activeInvitations)) {
+      if (cloudData) {
         const now = Date.now();
-        setFamilyInvitations(prev => {
-          const combined = [...cloudData.activeInvitations, ...prev];
-          const map = new Map();
-          combined.forEach(inv => {
-            if (inv && inv.id) map.set(inv.id, inv);
+
+        // Actualizar retos e invitaciones
+        if (Array.isArray(cloudData.activeInvitations)) {
+          setFamilyInvitations(prev => {
+            const combined = [...cloudData.activeInvitations, ...prev];
+            const map = new Map();
+            combined.forEach(inv => {
+              if (inv && inv.id) map.set(inv.id, inv);
+            });
+            const updated = Array.from(map.values()).filter(inv => (now - (inv.createdAt || 0)) < 600000);
+            try { localStorage.setItem(INVITATIONS_STORAGE_KEY, JSON.stringify(updated)); } catch (e) {}
+            return updated;
           });
-          const updated = Array.from(map.values()).filter(inv => (now - (inv.createdAt || 0)) < 600000);
-          try { localStorage.setItem(INVITATIONS_STORAGE_KEY, JSON.stringify(updated)); } catch (e) {}
-          return updated;
-        });
+        }
+
+        // Actualizar usuarios y presencia en línea inmediata
+        if (Array.isArray(cloudData.users)) {
+          setGroups(prev => {
+            const targetId = activeGroupId || 'group_junvill';
+            const updated = prev.map(g => {
+              if (g.id === targetId) {
+                const mergedUsers = cloudSync.mergeUsers(g.users || [], cloudData.users);
+                return {
+                  ...g,
+                  ...cloudData,
+                  users: mergedUsers,
+                  activeMatches: cloudData.activeMatches || g.activeMatches || [],
+                  updatedAt: Math.max(g.updatedAt || 0, cloudData.updatedAt || 0, now)
+                };
+              }
+              return g;
+            });
+            try { localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(updated)); } catch (e) {}
+            return updated;
+          });
+        }
       }
 
       // 2. Transmitir latido de búsqueda por WebRTC

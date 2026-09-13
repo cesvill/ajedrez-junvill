@@ -178,6 +178,10 @@ export default async function handler(req, res) {
     'Access-Control-Allow-Headers',
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
   );
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -250,23 +254,39 @@ export default async function handler(req, res) {
           const cleanId = String(m.roomId).toUpperCase().replace(/[^A-Z0-9]/g, '');
           const prev = matchMap.get(cleanId);
           if (!prev) {
-            matchMap.set(cleanId, { ...m, roomId: cleanId });
+            const hasGuest = Boolean(m.guestUser);
+            matchMap.set(cleanId, {
+              ...m,
+              roomId: cleanId,
+              assignedColor: m.assignedColor || 'white',
+              status: m.status || (hasGuest ? 'active' : 'waiting'),
+              isWaiting: !hasGuest
+            });
           } else {
+            const guest = m.guestUser || prev.guestUser || null;
+            const host = m.hostUser || prev.hostUser || null;
+            const isGuestPresent = Boolean(guest);
+            const isStatusActive = m.status === 'active' || prev.status === 'active' || isGuestPresent;
+            const isNewer = (m.updatedAt || 0) >= (prev.updatedAt || 0);
+
             const merged = {
               ...prev,
               ...m,
               roomId: cleanId,
-              hostUser: m.hostUser || prev.hostUser,
-              guestUser: m.guestUser || prev.guestUser,
-              opponent: m.opponent || prev.opponent,
-              fen: (m.updatedAt || 0) >= (prev.updatedAt || 0) ? (m.fen || prev.fen) : (prev.fen || m.fen),
-              lastMove: (m.updatedAt || 0) >= (prev.updatedAt || 0) ? (m.lastMove || prev.lastMove) : (prev.lastMove || m.lastMove),
-              turn: (m.updatedAt || 0) >= (prev.updatedAt || 0) ? (m.turn || prev.turn) : (prev.turn || m.turn),
-              whiteTime: (m.updatedAt || 0) >= (prev.updatedAt || 0) ? (m.whiteTime ?? prev.whiteTime) : (prev.whiteTime ?? m.whiteTime),
-              blackTime: (m.updatedAt || 0) >= (prev.updatedAt || 0) ? (m.blackTime ?? prev.blackTime) : (prev.blackTime ?? m.blackTime),
-              status: (m.status === 'active' || prev.status === 'active') ? 'active' : (m.status || prev.status),
-              isWaiting: Boolean(!m.guestUser && !prev.guestUser),
-              updatedAt: Math.max(prev.updatedAt || 0, m.updatedAt || 0)
+              hostUser: host,
+              guestUser: guest,
+              opponent: m.opponent || prev.opponent || (guest ? guest : null),
+              assignedColor: m.assignedColor || prev.assignedColor || 'white',
+              timeControl: m.timeControl || prev.timeControl || 300,
+              withAssistance: m.withAssistance !== undefined ? m.withAssistance : (prev.withAssistance !== undefined ? prev.withAssistance : true),
+              fen: isNewer ? (m.fen || prev.fen) : (prev.fen || m.fen),
+              lastMove: isNewer ? (m.lastMove || prev.lastMove) : (prev.lastMove || m.lastMove),
+              turn: isNewer ? (m.turn || prev.turn) : (prev.turn || m.turn),
+              whiteTime: isNewer ? (m.whiteTime ?? prev.whiteTime) : (prev.whiteTime ?? m.whiteTime),
+              blackTime: isNewer ? (m.blackTime ?? prev.blackTime) : (prev.blackTime ?? m.blackTime),
+              status: isStatusActive ? 'active' : (m.status || prev.status || 'waiting'),
+              isWaiting: !isGuestPresent,
+              updatedAt: Math.max(prev.updatedAt || 0, m.updatedAt || 0, Date.now())
             };
             matchMap.set(cleanId, merged);
           }
