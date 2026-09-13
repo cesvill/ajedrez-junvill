@@ -374,8 +374,8 @@ export class P2PEngine {
   }
 
   // Métodos de envío de eventos de partida
-  sendMove(move, fen, clocks = null) {
-    this.send({ type: 'MOVE', move, fen, clocks, timestamp: Date.now() });
+  sendMove(move, fen, clocks = null, moveCount = null) {
+    this.send({ type: 'MOVE', move, fen, clocks, moveCount, timestamp: Date.now() });
   }
 
   sendSafeChat(message, isEmote = false) {

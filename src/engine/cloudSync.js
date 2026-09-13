@@ -10,6 +10,15 @@ export function normalizeUserKey(nameOrId = '') {
   return str || 'unknown';
 }
 
+export function getFenMoveCount(fen) {
+  if (!fen || typeof fen !== 'string') return 0;
+  const parts = fen.trim().split(/\s+/);
+  if (parts.length < 2) return 0;
+  const turn = parts[1];
+  const fullMove = parseInt(parts[5], 10) || 1;
+  return turn === 'b' ? (fullMove - 1) * 2 + 1 : (fullMove - 1) * 2;
+}
+
 export function recoverAllLocalUsersFromStorage() {
   const recoveredUsers = [];
   try {
@@ -477,7 +486,18 @@ class CloudSyncService {
                 const isGuestPresent = Boolean(guest);
                 const bothConfirmed = Boolean(host && guest && (hostReady || hostHeartbeat > 0) && (guestReady || guestHeartbeat > 0));
                 const isStatusActive = bothConfirmed || m.status === 'active' || prev.status === 'active' || isGuestPresent;
-                const isNewer = (m.updatedAt || 0) >= (prev.updatedAt || 0);
+                const prevMoveCount = getFenMoveCount(prev.fen);
+                const newMoveCount = getFenMoveCount(m.fen);
+                let isGameProgressNewer = false;
+                if (newMoveCount > prevMoveCount) {
+                  isGameProgressNewer = true;
+                } else if (newMoveCount < prevMoveCount) {
+                  isGameProgressNewer = false;
+                } else {
+                  if (m.fen && !prev.fen) isGameProgressNewer = true;
+                  else if (prev.fen && !m.fen) isGameProgressNewer = false;
+                  else isGameProgressNewer = (m.updatedAt || 0) >= (prev.updatedAt || 0);
+                }
 
                 const merged = {
                   ...prev,
@@ -495,14 +515,15 @@ class CloudSyncService {
                   assignedColor: m.assignedColor || prev.assignedColor || 'white',
                   timeControl: m.timeControl || prev.timeControl || 300,
                   withAssistance: m.withAssistance !== undefined ? m.withAssistance : (prev.withAssistance !== undefined ? prev.withAssistance : true),
-                  fen: isNewer ? (m.fen || prev.fen) : (prev.fen || m.fen),
-                  lastMove: isNewer ? (m.lastMove || prev.lastMove) : (prev.lastMove || m.lastMove),
-                  turn: isNewer ? (m.turn || prev.turn) : (prev.turn || m.turn),
-                  whiteTime: isNewer ? (m.whiteTime ?? prev.whiteTime) : (prev.whiteTime ?? m.whiteTime),
-                  blackTime: isNewer ? (m.blackTime ?? prev.blackTime) : (prev.blackTime ?? m.blackTime),
+                  fen: isGameProgressNewer ? (m.fen || prev.fen) : (prev.fen || m.fen),
+                  lastMove: isGameProgressNewer ? (m.lastMove || prev.lastMove) : (prev.lastMove || m.lastMove),
+                  turn: isGameProgressNewer ? (m.turn || prev.turn) : (prev.turn || m.turn),
+                  whiteTime: isGameProgressNewer ? (m.whiteTime ?? prev.whiteTime) : (prev.whiteTime ?? m.whiteTime),
+                  blackTime: isGameProgressNewer ? (m.blackTime ?? prev.blackTime) : (prev.blackTime ?? m.blackTime),
+                  moveCount: Math.max(prevMoveCount, newMoveCount),
                   status: isStatusActive ? 'active' : (m.status || prev.status || 'waiting'),
                   isWaiting: !bothConfirmed && !isGuestPresent,
-                  updatedAt: Math.max(prev.updatedAt || 0, m.updatedAt || 0, Date.now())
+                  updatedAt: Math.max(prev.updatedAt || 0, m.updatedAt || 0)
                 };
                 matchMap.set(cleanId, merged);
               }
