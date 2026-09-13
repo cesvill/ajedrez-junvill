@@ -442,13 +442,10 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                   const incomingMoveCount = match.moveCount ?? getFenMoveCount(match.fen);
                   const timeSinceLastLocalMove = Date.now() - (lastLocalMoveTimeRef.current || 0);
 
-                  // Aplicar si la jugada en la nube es más avanzada, o si es una jugada distinta realizada por el rival
                   const isStrictlyMoreAdvanced = incomingMoveCount > localMoveCount;
-                  const isOpponentMoveAtSameCount = incomingMoveCount >= localMoveCount && 
-                    match.lastMoveSenderId !== curUser?.id &&
-                    timeSinceLastLocalMove > 1000;
+                  const isOpponentMove = match.fen !== localFen && (incomingMoveCount >= localMoveCount || match.lastMoveSenderId !== curUser?.id);
 
-                  if (isStrictlyMoreAdvanced || isOpponentMoveAtSameCount) {
+                  if (isStrictlyMoreAdvanced || isOpponentMove) {
                     const nextG = new Chess(match.fen);
                     setGame(nextG);
                     gameRef.current = nextG;
