@@ -106,8 +106,15 @@ export const HomeView = ({
     const handleFocus = () => {
       setOngoingGame(getOngoingGame());
     };
+    const handleClearEvent = () => {
+      setOngoingGame(null);
+    };
     window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
+    window.addEventListener('junvill_clear_p2p_match', handleClearEvent);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('junvill_clear_p2p_match', handleClearEvent);
+    };
   }, [getOngoingGame, currentUser?.id, activeP2PGame]);
 
   const ongoingBot = ongoingGame?.botId
@@ -119,7 +126,10 @@ export const HomeView = ({
       try {
         if (ongoingGame?.type === 'p2p') {
           localStorage.removeItem(ONGOING_P2P_KEY);
-          if (clearActiveP2PGame) clearActiveP2PGame();
+          if (ongoingGame.roomId) {
+            localStorage.removeItem(`junvill_p2p_room_${ongoingGame.roomId}`);
+          }
+          if (clearActiveP2PGame) clearActiveP2PGame(ongoingGame.roomId);
         } else {
           localStorage.removeItem(STORAGE_KEY);
         }

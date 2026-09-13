@@ -1656,7 +1656,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                     className="btn-secondary"
                     onClick={() => {
                       if (window.confirm('¿Deseas descartar y eliminar esta partida guardada?')) {
-                        clearActiveP2PGame();
+                        if (clearActiveP2PGame) clearActiveP2PGame(activeP2PGame?.roomId);
                       }
                     }}
                     style={{ padding: '9px 12px', fontSize: '0.80rem' }}

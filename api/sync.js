@@ -194,14 +194,29 @@ export default async function handler(req, res) {
       const cloudData = await fetchFromDurableCloud(groupId);
       if (cloudData) {
         const now = Date.now();
+        const closedRooms = new Set([
+          ...(Array.isArray(cloudData.closedRoomIds) ? cloudData.closedRoomIds : []),
+          ...(Array.isArray(cloudData.deletedMatches) ? cloudData.deletedMatches : [])
+        ].map(r => String(r || '').toUpperCase().replace(/[^A-Z0-9]/g, '')).filter(Boolean));
+        const deletedInvs = new Set((Array.isArray(cloudData.deletedInvitations) ? cloudData.deletedInvitations : []).filter(Boolean));
+
         const validInvs = (cloudData.activeInvitations || []).filter(inv => 
-          inv && inv.id && inv.status === 'pending' && inv.createdAt && (now - inv.createdAt) < 300000
+          inv && inv.id && !deletedInvs.has(inv.id) && inv.status === 'pending' && inv.createdAt && (now - inv.createdAt) < 300000 &&
+          (!inv.roomId || !closedRooms.has(String(inv.roomId).toUpperCase().replace(/[^A-Z0-9]/g, '')))
         );
-        const validMatches = (cloudData.activeMatches || []).filter(m => 
-          m && m.roomId && !m.isGameOver && m.status !== 'cancelled' && m.status !== 'abandoned' && (now - (m.updatedAt || 0)) < 1800000
-        );
+        const validMatches = (cloudData.activeMatches || []).filter(m => {
+          if (!m || !m.roomId) return false;
+          const cleanId = String(m.roomId).toUpperCase().replace(/[^A-Z0-9]/g, '');
+          if (closedRooms.has(cleanId)) return false;
+          if (m.isGameOver || m.status === 'cancelled' || m.status === 'abandoned' || m.status === 'completed') return false;
+          return (now - (m.updatedAt || 0)) < 1800000;
+        });
         cloudData.activeInvitations = validInvs;
         cloudData.activeMatches = validMatches;
+        cloudData.closedRoomIds = Array.from(closedRooms).slice(-100);
+        cloudData.deletedMatches = Array.from(closedRooms).slice(-100);
+        cloudData.deletedInvitations = Array.from(deletedInvs).slice(-100);
+
         inMemoryCloudStore[groupId] = cloudData;
         return res.status(200).json({
           success: true,
@@ -231,15 +246,31 @@ export default async function handler(req, res) {
       // Fusión inteligente de usuarios (Smart Merge CRDT)
       const mergedUsers = mergeUsers(existing.users, groupData.users);
 
-      // Conjuntos de eliminación explícita (Tombstones para evitar resurrección zombi)
-      const deletedInvIds = new Set([
-        ...(Array.isArray(groupData.deletedInvitations) ? groupData.deletedInvitations : []),
-        ...(Array.isArray(groupData.dismissedInvitationIds) ? groupData.dismissedInvitationIds : [])
-      ]);
-      const deletedRoomIds = new Set([
+      // Conjuntos de eliminación explícita (Tombstones acumulativos para evitar resurrección zombi)
+      const existingClosedRooms = [
+        ...(Array.isArray(existing.closedRoomIds) ? existing.closedRoomIds : []),
+        ...(Array.isArray(existing.deletedMatches) ? existing.deletedMatches : [])
+      ];
+      const incomingClosedRooms = [
         ...(Array.isArray(groupData.deletedMatches) ? groupData.deletedMatches : []),
         ...(Array.isArray(groupData.closedRoomIds) ? groupData.closedRoomIds : [])
-      ].map(r => String(r || '').toUpperCase().replace(/[^A-Z0-9]/g, '')));
+      ];
+      const allClosedRooms = Array.from(new Set([
+        ...existingClosedRooms,
+        ...incomingClosedRooms
+      ])).map(r => String(r || '').toUpperCase().replace(/[^A-Z0-9]/g, '')).filter(Boolean);
+      const deletedRoomIds = new Set(allClosedRooms);
+
+      const existingDeletedInvs = Array.isArray(existing.deletedInvitations) ? existing.deletedInvitations : [];
+      const incomingDeletedInvs = [
+        ...(Array.isArray(groupData.deletedInvitations) ? groupData.deletedInvitations : []),
+        ...(Array.isArray(groupData.dismissedInvitationIds) ? groupData.dismissedInvitationIds : [])
+      ];
+      const allDeletedInvs = Array.from(new Set([
+        ...existingDeletedInvs,
+        ...incomingDeletedInvs
+      ])).filter(Boolean);
+      const deletedInvIds = new Set(allDeletedInvs);
 
       // Fusión de retos familiares en la nube (TTL 5 minutos, eliminar cancelados o rechazados)
       const now = Date.now();
@@ -382,6 +413,9 @@ export default async function handler(req, res) {
         users: mergedUsers,
         activeInvitations: mergedInvs,
         activeMatches: mergedMatches,
+        closedRoomIds: Array.from(deletedRoomIds).slice(-100),
+        deletedMatches: Array.from(deletedRoomIds).slice(-100),
+        deletedInvitations: Array.from(deletedInvIds).slice(-100),
         roomAliases: existing.roomAliases || groupData.roomAliases || {},
         bugReports: mergedBugs,
         updatedAt: Date.now()

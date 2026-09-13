@@ -14,6 +14,42 @@ const GROUPS_STORAGE_KEY = 'ajedrez_junvill_groups_v5';
 const ACTIVE_GROUP_KEY = 'ajedrez_junvill_active_group_id_v5';
 const UNLOCKED_GROUPS_KEY = 'ajedrez_junvill_unlocked_groups_v5';
 const ACTIVE_USER_KEY = 'ajedrez_junvill_active_user_id_v5';
+const TOMBSTONE_ROOMS_KEY = 'junvill_tombstone_rooms_v1';
+const TOMBSTONE_INVS_KEY = 'junvill_tombstone_invs_v1';
+
+export const getLocalTombstoneRooms = () => {
+  try {
+    const raw = localStorage.getItem(TOMBSTONE_ROOMS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) { return []; }
+};
+
+export const getLocalTombstoneInvs = () => {
+  try {
+    const raw = localStorage.getItem(TOMBSTONE_INVS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) { return []; }
+};
+
+export const addTombstoneRoom = (roomId) => {
+  if (!roomId) return;
+  const clean = String(roomId).toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!clean) return;
+  try {
+    const current = getLocalTombstoneRooms();
+    const updated = Array.from(new Set([...current, clean])).slice(-200);
+    localStorage.setItem(TOMBSTONE_ROOMS_KEY, JSON.stringify(updated));
+  } catch (e) {}
+};
+
+export const addTombstoneInv = (invId) => {
+  if (!invId) return;
+  try {
+    const current = getLocalTombstoneInvs();
+    const updated = Array.from(new Set([...current, invId])).slice(-200);
+    localStorage.setItem(TOMBSTONE_INVS_KEY, JSON.stringify(updated));
+  } catch (e) {}
+};
 
 // Usuarios oficiales predeterminados para la Familia Junvill
 export const DEFAULT_JUNVILL_USERS = [
@@ -645,8 +681,12 @@ export const UserProvider = ({ children }) => {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
           const now = Date.now();
-          // Mantener invitaciones de menos de 45 minutos
-          return parsed.filter(inv => (now - (inv.createdAt || 0)) < 45 * 60 * 1000);
+          const tombInvs = new Set(getLocalTombstoneInvs());
+          const tombRooms = new Set(getLocalTombstoneRooms());
+          return parsed.filter(inv => 
+            inv && inv.id && !tombInvs.has(inv.id) && inv.status === 'pending' && (now - (inv.createdAt || 0)) < 300000 &&
+            (!inv.roomId || !tombRooms.has(String(inv.roomId).toUpperCase().replace(/[^A-Z0-9]/g, '')))
+          );
         }
       }
       return [];
@@ -817,7 +857,15 @@ export const UserProvider = ({ children }) => {
     try {
       const raw = localStorage.getItem(`junvill_ongoing_p2p_game_v1_${activeUserId || 'default'}`);
       if (!raw) return null;
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      if (!parsed || !parsed.roomId) return null;
+      const clean = String(parsed.roomId).toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const tombRooms = new Set(getLocalTombstoneRooms());
+      if (tombRooms.has(clean) || parsed.isGameOver || parsed.status === 'cancelled' || parsed.status === 'abandoned') {
+        localStorage.removeItem(`junvill_ongoing_p2p_game_v1_${activeUserId || 'default'}`);
+        return null;
+      }
+      return parsed;
     } catch (e) {
       return null;
     }
@@ -852,29 +900,53 @@ export const UserProvider = ({ children }) => {
 
   const clearActiveP2PGame = useCallback((targetRoomId = null) => {
     try {
-      const key = `junvill_ongoing_p2p_game_v1_${currentUser?.id || 'default'}`;
-      localStorage.removeItem(key);
       const roomToClear = targetRoomId || activeP2PGame?.roomId;
       if (roomToClear) {
+        addTombstoneRoom(roomToClear);
         localStorage.removeItem(`junvill_p2p_room_${roomToClear}`);
       }
+
+      // Limpiar claves de partida para todos los usuarios conocidos
+      const allUserKeys = (users || []).map(u => u.id).concat(['default', currentUser?.id, 'user_martin', 'user_leti', 'user_cesar', 'user_estudiante', 'user_lore']);
+      Array.from(new Set(allUserKeys)).filter(Boolean).forEach(uid => {
+        localStorage.removeItem(`junvill_ongoing_p2p_game_v1_${uid}`);
+      });
+
       setActiveP2PGame(null);
+      activeP2PGameRef.current = null;
+
+      // Actualizar estado reactivo de grupos eliminando la sala
+      setGroups(prev => {
+        const nextGroups = prev.map(g => {
+          const filteredMatches = (g.activeMatches || []).filter(m => {
+            if (!m || !m.roomId) return false;
+            const mClean = String(m.roomId).toUpperCase().replace(/[^A-Z0-9]/g, '');
+            return roomToClear ? mClean !== String(roomToClear).toUpperCase().replace(/[^A-Z0-9]/g, '') : false;
+          });
+          return {
+            ...g,
+            activeMatches: filteredMatches,
+            closedRoomIds: roomToClear ? Array.from(new Set([...(g.closedRoomIds || []), String(roomToClear).toUpperCase().replace(/[^A-Z0-9]/g, '')])) : (g.closedRoomIds || [])
+          };
+        });
+        try { localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(nextGroups)); } catch (e) {}
+        return nextGroups;
+      });
 
       if (activeGroup) {
-        const currentMatches = Array.isArray(activeGroup.activeMatches) ? activeGroup.activeMatches : [];
-        const filteredMatches = roomToClear
-          ? currentMatches.filter(m => m.roomId !== roomToClear)
-          : [];
         cloudSync.pushGroupToCloud({
           ...activeGroup,
           deletedMatches: roomToClear ? [roomToClear] : [],
           closedRoomIds: roomToClear ? [roomToClear] : [],
-          activeMatches: filteredMatches,
+          activeMatches: [],
           updatedAt: Date.now()
         }, activeGroupId || 'group_junvill').catch(() => {});
       }
+
+      // Notificar a toda la interfaz que la partida P2P se cerró
+      window.dispatchEvent(new CustomEvent('junvill_clear_p2p_match', { detail: { roomId: roomToClear } }));
     } catch (e) {}
-  }, [currentUser?.id, activeGroup, activeGroupId, activeP2PGame?.roomId]);
+  }, [currentUser?.id, activeGroup, activeGroupId, activeP2PGame?.roomId, users]);
 
   // Invitaciones dirigidas al usuario actual (Entrantes infalibles normalizadas)
   const pendingInvitationsForMe = familyInvitations.filter(inv => {
@@ -1128,17 +1200,34 @@ export const UserProvider = ({ children }) => {
   // Rechazar Reto Familiar
   const declineFamilyInvitation = (invitationId) => {
     const inv = familyInvitations.find(i => i.id === invitationId);
+    addTombstoneInv(invitationId);
+    if (inv?.roomId) {
+      addTombstoneRoom(inv.roomId);
+    }
     const remainingInvs = familyInvitations.filter(i => i.id !== invitationId);
     setFamilyInvitations(remainingInvs);
+    familyInvitationsRef.current = remainingInvs;
     try {
       localStorage.setItem(INVITATIONS_STORAGE_KEY, JSON.stringify(remainingInvs));
     } catch (e) {}
+
+    // Actualizar estado reactivo de grupos
+    setGroups(prev => {
+      const nextGroups = prev.map(g => ({
+        ...g,
+        activeInvitations: (g.activeInvitations || []).filter(i => i.id !== invitationId),
+        deletedInvitations: Array.from(new Set([...(g.deletedInvitations || []), invitationId]))
+      }));
+      try { localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(nextGroups)); } catch (e) {}
+      return nextGroups;
+    });
 
     if (activeGroup) {
       cloudSync.pushGroupToCloud({
         ...activeGroup,
         deletedInvitations: [invitationId],
         deletedMatches: inv?.roomId ? [inv.roomId] : [],
+        closedRoomIds: inv?.roomId ? [inv.roomId] : [],
         activeInvitations: remainingInvs,
         updatedAt: Date.now()
       }, activeGroupId || 'group_junvill').catch(() => {});
@@ -1159,6 +1248,8 @@ export const UserProvider = ({ children }) => {
       const cloudData = await cloudSync.fetchCloudGroup(activeGroupId || 'group_junvill');
       if (cloudData) {
         const now = Date.now();
+        const localTombRooms = new Set(getLocalTombstoneRooms());
+        const localTombInvs = new Set(getLocalTombstoneInvs());
 
         // Actualizar retos e invitaciones
         if (Array.isArray(cloudData.activeInvitations)) {
@@ -1166,9 +1257,13 @@ export const UserProvider = ({ children }) => {
             const combined = [...cloudData.activeInvitations, ...prev];
             const map = new Map();
             combined.forEach(inv => {
-              if (inv && inv.id) map.set(inv.id, inv);
+              if (inv && inv.id && !localTombInvs.has(inv.id)) {
+                if (!inv.roomId || !localTombRooms.has(String(inv.roomId).toUpperCase().replace(/[^A-Z0-9]/g, ''))) {
+                  map.set(inv.id, inv);
+                }
+              }
             });
-            const updated = Array.from(map.values()).filter(inv => (now - (inv.createdAt || 0)) < 600000);
+            const updated = Array.from(map.values()).filter(inv => inv.status === 'pending' && (now - (inv.createdAt || 0)) < 300000);
             try { localStorage.setItem(INVITATIONS_STORAGE_KEY, JSON.stringify(updated)); } catch (e) {}
             return updated;
           });
@@ -1181,11 +1276,14 @@ export const UserProvider = ({ children }) => {
             const updated = prev.map(g => {
               if (g.id === targetId) {
                 const mergedUsers = cloudSync.mergeUsers(g.users || [], cloudData.users);
+                const filteredMatches = (cloudData.activeMatches || g.activeMatches || []).filter(m => 
+                  m && m.roomId && !localTombRooms.has(String(m.roomId).toUpperCase().replace(/[^A-Z0-9]/g, ''))
+                );
                 return {
                   ...g,
                   ...cloudData,
                   users: mergedUsers,
-                  activeMatches: cloudData.activeMatches || g.activeMatches || [],
+                  activeMatches: filteredMatches,
                   updatedAt: Math.max(g.updatedAt || 0, cloudData.updatedAt || 0, now)
                 };
               }
@@ -1242,6 +1340,8 @@ export const UserProvider = ({ children }) => {
         const curUser = currentUserRef.current;
         const curInvs = familyInvitationsRef.current || [];
         const curP2P = activeP2PGameRef.current;
+        const tombRooms = new Set(getLocalTombstoneRooms());
+        const tombInvs = new Set(getLocalTombstoneInvs());
 
         const updatedUsers = (curGroup.users || []).map(u => {
           if (curUser && (u.id === curUser.id || normalizeUserKey(u.name || u.id) === normalizeUserKey(curUser.name || curUser.id))) {
@@ -1249,50 +1349,96 @@ export const UserProvider = ({ children }) => {
           }
           return u;
         });
+
+        const validInvs = curInvs.filter(inv => 
+          inv && inv.id && !tombInvs.has(inv.id) && inv.status === 'pending' && (now - (inv.createdAt || 0)) < 300000 &&
+          (!inv.roomId || !tombRooms.has(String(inv.roomId).toUpperCase().replace(/[^A-Z0-9]/g, '')))
+        );
+
+        let validMatches = [];
+        if (curP2P && curP2P.roomId && !tombRooms.has(String(curP2P.roomId).toUpperCase().replace(/[^A-Z0-9]/g, '')) && !curP2P.isGameOver && curP2P.status !== 'cancelled' && curP2P.status !== 'abandoned') {
+          validMatches = [curP2P];
+        }
+
         return { 
           ...curGroup, 
           users: updatedUsers, 
-          activeInvitations: curInvs.filter(inv => (now - (inv.createdAt || 0)) < 600000),
-          activeMatches: curP2P ? [curP2P] : (curGroup.activeMatches || []),
+          activeInvitations: validInvs,
+          activeMatches: validMatches,
+          closedRoomIds: Array.from(tombRooms).slice(-100),
+          deletedMatches: Array.from(tombRooms).slice(-100),
+          deletedInvitations: Array.from(tombInvs).slice(-100),
           updatedAt: now 
         };
       },
       (updatedCloudGroup) => {
         if (!updatedCloudGroup || !updatedCloudGroup.id) return;
+        const now = Date.now();
+
+        // 1. Integrar tombstones recibidos de la nube
+        const incomingClosedRooms = [
+          ...(Array.isArray(updatedCloudGroup.closedRoomIds) ? updatedCloudGroup.closedRoomIds : []),
+          ...(Array.isArray(updatedCloudGroup.deletedMatches) ? updatedCloudGroup.deletedMatches : [])
+        ];
+        incomingClosedRooms.forEach(r => addTombstoneRoom(r));
+
+        const incomingDeletedInvs = Array.isArray(updatedCloudGroup.deletedInvitations) ? updatedCloudGroup.deletedInvitations : [];
+        incomingDeletedInvs.forEach(i => addTombstoneInv(i));
+
+        const localTombRooms = new Set(getLocalTombstoneRooms());
+        const localTombInvs = new Set(getLocalTombstoneInvs());
         
-        // Sincronizar retos recibidos en la nube
+        // 2. Sincronizar retos recibidos en la nube (filtrando tombstones)
         if (Array.isArray(updatedCloudGroup.activeInvitations)) {
-          const now = Date.now();
+          const cloudValidInvs = updatedCloudGroup.activeInvitations.filter(inv => 
+            inv && inv.id && !localTombInvs.has(inv.id) && inv.status === 'pending' && (now - (inv.createdAt || 0)) < 300000 &&
+            (!inv.roomId || !localTombRooms.has(String(inv.roomId).toUpperCase().replace(/[^A-Z0-9]/g, '')))
+          );
           setFamilyInvitations(prev => {
-            const combined = [...updatedCloudGroup.activeInvitations, ...prev];
+            const validPrev = prev.filter(inv => 
+              inv && inv.id && !localTombInvs.has(inv.id) && inv.status === 'pending' && (now - (inv.createdAt || 0)) < 300000 &&
+              (!inv.roomId || !localTombRooms.has(String(inv.roomId).toUpperCase().replace(/[^A-Z0-9]/g, '')))
+            );
+            const combined = [...cloudValidInvs, ...validPrev];
             const map = new Map();
             combined.forEach(inv => {
               if (inv && inv.id) map.set(inv.id, inv);
             });
-            const updated = Array.from(map.values()).filter(inv => (now - (inv.createdAt || 0)) < 600000);
+            const updated = Array.from(map.values());
             try { localStorage.setItem(INVITATIONS_STORAGE_KEY, JSON.stringify(updated)); } catch (e) {}
             return updated;
           });
         }
 
-        // Sincronizar partidas activas / asíncronas
+        // 3. Sincronizar partidas activas / asíncronas (filtrando tombstones)
         const curUser = currentUserRef.current;
         if (Array.isArray(updatedCloudGroup.activeMatches) && curUser) {
-          const now = Date.now();
-          const sortedMatches = [...updatedCloudGroup.activeMatches].sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
+          const validMatches = updatedCloudGroup.activeMatches.filter(m => {
+            if (!m || !m.roomId) return false;
+            const cleanId = String(m.roomId).toUpperCase().replace(/[^A-Z0-9]/g, '');
+            if (localTombRooms.has(cleanId)) return false;
+            if (m.isGameOver || m.status === 'cancelled' || m.status === 'abandoned' || m.status === 'completed') return false;
+            return (now - (m.updatedAt || 0)) < 1800000;
+          });
+
+          const sortedMatches = [...validMatches].sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
           const myKey = normalizeUserKey(curUser.name || curUser.id);
           const myMatch = sortedMatches.find(m => {
-            if (!m || (now - (m.updatedAt || 0)) > 7200000) return false;
             const oppKey = normalizeUserKey(m.opponent?.name || m.opponent?.id || '');
             const whiteKey = normalizeUserKey(m.playerWhite?.name || m.playerWhite?.id || m.hostUser?.name || m.hostUser?.id || '');
             const blackKey = normalizeUserKey(m.playerBlack?.name || m.playerBlack?.id || m.guestUser?.name || m.guestUser?.id || '');
             return (whiteKey === myKey || blackKey === myKey || oppKey === myKey || m.userId === curUser.id);
           });
           const curP2P = activeP2PGameRef.current;
-          if (myMatch && (!curP2P || (myMatch.updatedAt || 0) > (curP2P.updatedAt || 0))) {
+          if (myMatch && curP2P && (myMatch.updatedAt || 0) > (curP2P.updatedAt || 0)) {
             setActiveP2PGame(myMatch);
             try {
               localStorage.setItem(`junvill_ongoing_p2p_game_v1_${curUser.id}`, JSON.stringify(myMatch));
+            } catch (e) {}
+          } else if (!myMatch && curP2P && localTombRooms.has(String(curP2P.roomId).toUpperCase().replace(/[^A-Z0-9]/g, ''))) {
+            setActiveP2PGame(null);
+            try {
+              localStorage.removeItem(`junvill_ongoing_p2p_game_v1_${curUser.id}`);
             } catch (e) {}
           }
         }
@@ -1304,7 +1450,18 @@ export const UserProvider = ({ children }) => {
             // CRDT Merge: Combinar los usuarios locales con los de la nube sin perder avance de ninguno
             mergedUsers = cloudSync.mergeUsers(targetG.users, updatedCloudGroup.users || []);
           }
-          const mergedG = { ...targetG, ...updatedCloudGroup, users: mergedUsers, updatedAt: Math.max(targetG?.updatedAt || 0, updatedCloudGroup.updatedAt || 0) };
+          const filteredMatches = (updatedCloudGroup.activeMatches || []).filter(m => 
+            m && m.roomId && !localTombRooms.has(String(m.roomId).toUpperCase().replace(/[^A-Z0-9]/g, ''))
+          );
+          const mergedG = { 
+            ...targetG, 
+            ...updatedCloudGroup, 
+            users: mergedUsers, 
+            activeMatches: filteredMatches,
+            closedRoomIds: Array.from(localTombRooms).slice(-100),
+            deletedInvitations: Array.from(localTombInvs).slice(-100),
+            updatedAt: Math.max(targetG?.updatedAt || 0, updatedCloudGroup.updatedAt || 0) 
+          };
 
           const exists = prev.some(g => g.id === updatedCloudGroup.id);
           let nextGroups;

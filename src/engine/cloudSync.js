@@ -391,11 +391,32 @@ class CloudSyncService {
             ? this.mergeUsers(currentGroup.users, cloudGroup.users)
             : (currentGroup.users || []);
 
-          // Fusionar retos familiares activos (más recientes primero)
+          // Fusionar tombstones acumulados
+          const closedRoomIds = new Set([
+            ...(Array.isArray(currentGroup.closedRoomIds) ? currentGroup.closedRoomIds : []),
+            ...(Array.isArray(currentGroup.deletedMatches) ? currentGroup.deletedMatches : []),
+            ...(Array.isArray(cloudGroup.closedRoomIds) ? cloudGroup.closedRoomIds : []),
+            ...(Array.isArray(cloudGroup.deletedMatches) ? cloudGroup.deletedMatches : [])
+          ].map(r => String(r || '').toUpperCase().replace(/[^A-Z0-9]/g, '')).filter(Boolean));
+
+          const deletedInvIds = new Set([
+            ...(Array.isArray(currentGroup.deletedInvitations) ? currentGroup.deletedInvitations : []),
+            ...(Array.isArray(currentGroup.dismissedInvitationIds) ? currentGroup.dismissedInvitationIds : []),
+            ...(Array.isArray(cloudGroup.deletedInvitations) ? cloudGroup.deletedInvitations : []),
+            ...(Array.isArray(cloudGroup.dismissedInvitationIds) ? cloudGroup.dismissedInvitationIds : [])
+          ].filter(Boolean));
+
+          // Fusionar retos familiares activos (más recientes primero, sin revivir eliminados)
           const existingInvs = Array.isArray(currentGroup.activeInvitations) ? currentGroup.activeInvitations : [];
           const cloudInvs = Array.isArray(cloudGroup.activeInvitations) ? cloudGroup.activeInvitations : [];
           const now = Date.now();
-          const combinedInvs = [...cloudInvs, ...existingInvs].filter(i => (now - (i.createdAt || 0)) < 600000);
+          const combinedInvs = [...cloudInvs, ...existingInvs].filter(i => {
+            if (!i || !i.id) return false;
+            if (deletedInvIds.has(i.id)) return false;
+            if (i.status && i.status !== 'pending') return false;
+            if (i.roomId && closedRoomIds.has(String(i.roomId).toUpperCase().replace(/[^A-Z0-9]/g, ''))) return false;
+            return (now - (i.createdAt || 0)) < 300000;
+          });
           combinedInvs.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
           const pairInvMap = new Map();
           const mergedInvs = [];
@@ -413,13 +434,16 @@ class CloudSyncService {
             }
           });
 
-          // Fusionar partidas activas / asíncronas con confirmación mutua en BD
+          // Fusionar partidas activas / asíncronas con confirmación mutua en BD (sin revivir eliminadas)
           const existingMatches = Array.isArray(currentGroup.activeMatches) ? currentGroup.activeMatches : [];
           const cloudMatches = Array.isArray(cloudGroup.activeMatches) ? cloudGroup.activeMatches : [];
           const matchMap = new Map();
           [...cloudMatches, ...existingMatches].forEach(m => {
             if (m && m.roomId) {
               const cleanId = String(m.roomId).toUpperCase().replace(/[^A-Z0-9]/g, '');
+              if (closedRoomIds.has(cleanId)) return;
+              if (m.isGameOver || m.status === 'cancelled' || m.status === 'abandoned' || m.status === 'completed') return;
+
               const prev = matchMap.get(cleanId);
               if (!prev) {
                 const hasGuest = Boolean(m.guestUser);
@@ -484,7 +508,7 @@ class CloudSyncService {
               }
             }
           });
-          const mergedMatches = Array.from(matchMap.values()).filter(m => !m.isGameOver && (now - (m.updatedAt || 0)) < 7200000);
+          const mergedMatches = Array.from(matchMap.values()).filter(m => !m.isGameOver && !closedRoomIds.has(m.roomId) && (now - (m.updatedAt || 0)) < 1800000);
           mergedMatches.sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
 
           const updatedGroup = {
@@ -493,6 +517,9 @@ class CloudSyncService {
             users: mergedUsers,
             activeInvitations: mergedInvs,
             activeMatches: mergedMatches,
+            closedRoomIds: Array.from(closedRoomIds).slice(-100),
+            deletedMatches: Array.from(closedRoomIds).slice(-100),
+            deletedInvitations: Array.from(deletedInvIds).slice(-100),
             updatedAt: Math.max(currentGroup.updatedAt || 0, cloudGroup.updatedAt || 0, Date.now())
           };
 
