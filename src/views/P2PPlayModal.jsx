@@ -457,13 +457,9 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                 try {
                   const localMoveCount = getFenMoveCount(localFen);
                   const incomingMoveCount = match.moveCount ?? getFenMoveCount(match.fen);
-                  const timeSinceLastLocalMove = Date.now() - (lastLocalMoveTimeRef.current || 0);
 
-                  const isStrictlyMoreAdvanced = incomingMoveCount > localMoveCount;
-                  const isOpponentMove = (match.lastMoveSenderId && curUser?.id && match.lastMoveSenderId !== curUser.id) &&
-                                         (timeSinceLastLocalMove > 300 || isStrictlyMoreAdvanced);
-
-                  if (isStrictlyMoreAdvanced || isOpponentMove) {
+                  // Regla monótona inmutable: solo se aceptan posiciones con avance real en el conteo de jugadas
+                  if (incomingMoveCount > localMoveCount) {
                     const nextG = new Chess(match.fen);
                     setGame(nextG);
                     gameRef.current = nextG;
@@ -972,6 +968,9 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
       const turn = game.turn();
       if (turn === 'w') {
         setWhiteTime(prev => {
+          if (assignedColor === 'white' && (prev === 30 || prev === 15 || prev === 5)) {
+            try { audioManager?.playWarning?.(); } catch (e) {}
+          }
           if (prev <= 1) {
             clearInterval(timer);
             if (mode === 'playing' && !isInterrupted && !isP2PPaused && !isWaitingForOpponent && isGameStarted) handleTimeOut('w');
@@ -981,6 +980,9 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
         });
       } else {
         setBlackTime(prev => {
+          if (assignedColor === 'black' && (prev === 30 || prev === 15 || prev === 5)) {
+            try { audioManager?.playWarning?.(); } catch (e) {}
+          }
           if (prev <= 1) {
             clearInterval(timer);
             if (mode === 'playing' && !isInterrupted && !isP2PPaused && !isWaitingForOpponent && isGameStarted) handleTimeOut('b');
@@ -992,13 +994,21 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [mode, game, timeControl, isP2PPaused, isInterrupted, isHostActive, isOpponentConnected]);
+  }, [mode, game, timeControl, isP2PPaused, isInterrupted, isHostActive, isOpponentConnected, assignedColor]);
 
   const handleTimeOut = (color) => {
     if (isP2PPaused || isInterrupted) return;
-    audioManager.playWarning();
+    try { audioManager?.playWarning?.(); } catch (e) {}
     const isMe = (color === 'w' && assignedColor === 'white') || (color === 'b' && assignedColor === 'black');
-    setGameResultReason(isMe ? 'Tiempo agotado. Victoria para el rival ⏱️' : '¡Tiempo agotado del rival! Victoria para ti 🏆');
+    const myName = currentUser?.name || 'Tú';
+    const oppName = opponentProfile?.name || 'Tu rival';
+
+    if (isMe) {
+      setGameResultReason(`⏱️ DERROTA POR TIEMPO: Tu reloj llegó a 00:00. Victoria para ${oppName} 🏆`);
+    } else {
+      setGameResultReason(`⏱️ VICTORIA POR TIEMPO: El reloj de ${oppName} llegó a 00:00. ¡Victoria para ti! 🏆`);
+    }
+
     setMode('gameover');
     if (clearActiveP2PGame) clearActiveP2PGame();
     if (!isMe) {
@@ -1014,7 +1024,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
       const winner = currentGame.turn() === 'w' ? 'black' : 'white';
       const isMeWinner = winner === assignedColor;
       audioManager.playVictory();
-      setGameResultReason(isMeWinner ? '¡Jaque Mate! Has ganado la partida 🏆' : 'Jaque Mate. El rival ha ganado.');
+      setGameResultReason(isMeWinner ? '👑 ¡JAQUE MATE! Has ganado la partida 🏆' : `👑 JAQUE MATE: ${opponentProfile?.name || 'El rival'} ha ganado.`);
       setMode('gameover');
       if (clearActiveP2PGame) clearActiveP2PGame();
       if (isMeWinner) {
@@ -1026,9 +1036,9 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
     } else if (currentGame.isDraw()) {
       audioManager.playMove();
       let reason = 'Empate';
-      if (currentGame.isStalemate()) reason = 'Tablas por Rey Ahogado';
-      else if (currentGame.isThreefoldRepetition()) reason = 'Tablas por Triple Repetición';
-      else if (currentGame.isInsufficientMaterial()) reason = 'Tablas por Material Insuficiente';
+      if (currentGame.isStalemate()) reason = '🤝 TABLAS: Rey Ahogado (No hay movimientos legales)';
+      else if (currentGame.isThreefoldRepetition()) reason = '🤝 TABLAS: Triple Repetición de Posición';
+      else if (currentGame.isInsufficientMaterial()) reason = '🤝 TABLAS: Material Insuficiente para Mate';
       setGameResultReason(reason);
       setMode('gameover');
       if (clearActiveP2PGame) clearActiveP2PGame();
@@ -2533,19 +2543,28 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                   />
                 </div>
 
-                {/* Reloj Negras */}
+              {/* Reloj Rival / Arriba */}
                 {timeControl > 0 && (
                   <div style={{
-                    background: game.turn() === (assignedColor === 'white' ? 'b' : 'w') ? '#3b82f6' : '#0a0f1d',
+                    background: (game.turn() === (assignedColor === 'white' ? 'b' : 'w')) 
+                      ? ((assignedColor === 'white' ? blackTime : whiteTime) <= 15 ? '#ef4444' : ((assignedColor === 'white' ? blackTime : whiteTime) <= 45 ? '#f59e0b' : '#3b82f6')) 
+                      : '#0a0f1d',
                     color: '#ffffff',
-                    padding: '4px 10px',
-                    borderRadius: '6px',
+                    padding: (game.turn() === (assignedColor === 'white' ? 'b' : 'w') && (assignedColor === 'white' ? blackTime : whiteTime) <= 15) ? '6px 14px' : '4px 10px',
+                    borderRadius: '8px',
                     fontFamily: 'monospace',
                     fontWeight: '900',
-                    fontSize: '1rem',
-                    border: '1px solid rgba(255, 255, 255, 0.15)'
+                    fontSize: (game.turn() === (assignedColor === 'white' ? 'b' : 'w') && (assignedColor === 'white' ? blackTime : whiteTime) <= 15) ? '1.25rem' : '1rem',
+                    border: (game.turn() === (assignedColor === 'white' ? 'b' : 'w') && (assignedColor === 'white' ? blackTime : whiteTime) <= 15) ? '2px solid #ffffff' : '1px solid rgba(255, 255, 255, 0.15)',
+                    animation: (game.turn() === (assignedColor === 'white' ? 'b' : 'w') && (assignedColor === 'white' ? blackTime : whiteTime) <= 15) ? 'urgentClockPulse 0.8s infinite alternate' : 'none',
+                    boxShadow: (game.turn() === (assignedColor === 'white' ? 'b' : 'w') && (assignedColor === 'white' ? blackTime : whiteTime) <= 15) ? '0 0 20px rgba(239, 68, 68, 0.9)' : 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    transition: 'all 0.2s ease'
                   }}>
-                    {Math.floor((assignedColor === 'white' ? blackTime : whiteTime) / 60)}:{((assignedColor === 'white' ? blackTime : whiteTime) % 60).toString().padStart(2, '0')}
+                    {(game.turn() === (assignedColor === 'white' ? 'b' : 'w') && (assignedColor === 'white' ? blackTime : whiteTime) <= 30) && <span>⏱️</span>}
+                    <span>{Math.floor((assignedColor === 'white' ? blackTime : whiteTime) / 60)}:{((assignedColor === 'white' ? blackTime : whiteTime) % 60).toString().padStart(2, '0')}</span>
                   </div>
                 )}
               </div>
@@ -2569,6 +2588,51 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                       p2pRef.current?.send({ type: 'PASS_DICE_TURN' });
                     }}
                   />
+                </div>
+              )}
+
+              {/* ALERTA VISUAL DE TIEMPO BAJO (< 45s en mi turno) */}
+              {mode === 'playing' && timeControl > 0 && (assignedColor === 'black' ? game.turn() === 'b' : game.turn() === 'w') && (assignedColor === 'white' ? whiteTime : blackTime) <= 45 && (assignedColor === 'white' ? whiteTime : blackTime) > 0 && (
+                <div style={{
+                  background: (assignedColor === 'white' ? whiteTime : blackTime) <= 15 
+                    ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.45) 0%, rgba(220, 38, 38, 0.35) 100%)' 
+                    : 'linear-gradient(135deg, rgba(245, 158, 11, 0.35) 0%, rgba(217, 119, 6, 0.25) 100%)',
+                  border: `2px solid ${(assignedColor === 'white' ? whiteTime : blackTime) <= 15 ? '#ef4444' : '#f59e0b'}`,
+                  borderRadius: '10px',
+                  padding: '8px 14px',
+                  marginBottom: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  color: '#ffffff',
+                  fontWeight: '900',
+                  fontSize: '0.86rem',
+                  animation: (assignedColor === 'white' ? whiteTime : blackTime) <= 15 ? 'urgentClockPulse 0.7s infinite alternate' : 'amberClockPulse 1s infinite alternate',
+                  boxShadow: (assignedColor === 'white' ? whiteTime : blackTime) <= 15 ? '0 0 25px rgba(239, 68, 68, 0.85)' : '0 0 14px rgba(245, 158, 11, 0.5)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '1.5rem', animation: 'bounce 0.5s infinite' }}>⏱️</span>
+                    <div>
+                      <div style={{ color: (assignedColor === 'white' ? whiteTime : blackTime) <= 15 ? '#fecaca' : '#fef08a', fontSize: '0.92rem', fontWeight: '900' }}>
+                        {(assignedColor === 'white' ? whiteTime : blackTime) <= 15 ? '¡ALERTA CRÍTICA DE TIEMPO!' : '¡POCO TIEMPO RESTANTE!'}
+                      </div>
+                      <div style={{ fontSize: '0.76rem', color: '#f1f5f9' }}>
+                        Te quedan solo <b>{assignedColor === 'white' ? whiteTime : blackTime} segundos</b> para mover.
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{
+                    background: (assignedColor === 'white' ? whiteTime : blackTime) <= 15 ? '#ef4444' : '#f59e0b',
+                    color: '#ffffff',
+                    padding: '4px 12px',
+                    borderRadius: '8px',
+                    fontFamily: 'monospace',
+                    fontSize: '1.25rem',
+                    fontWeight: '900',
+                    border: '1.5px solid #ffffff'
+                  }}>
+                    {Math.floor((assignedColor === 'white' ? whiteTime : blackTime) / 60)}:{(((assignedColor === 'white' ? whiteTime : blackTime) % 60)).toString().padStart(2, '0')}
+                  </div>
                 </div>
               )}
 
@@ -2721,19 +2785,30 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                   />
                 </div>
 
-                {/* Reloj Blancas */}
+                {/* Reloj Jugador Local / Abajo */}
                 {timeControl > 0 && (
                   <div style={{
-                    background: game.turn() === (assignedColor === 'white' ? 'w' : 'b') ? '#3b82f6' : '#0a0f1d',
+                    background: (game.turn() === (assignedColor === 'white' ? 'w' : 'b')) 
+                      ? ((assignedColor === 'white' ? whiteTime : blackTime) <= 15 ? '#ef4444' : ((assignedColor === 'white' ? whiteTime : blackTime) <= 45 ? '#f59e0b' : '#3b82f6')) 
+                      : '#0a0f1d',
                     color: '#ffffff',
-                    padding: '4px 10px',
-                    borderRadius: '6px',
+                    padding: (game.turn() === (assignedColor === 'white' ? 'w' : 'b') && (assignedColor === 'white' ? whiteTime : blackTime) <= 15) ? '8px 18px' : ((game.turn() === (assignedColor === 'white' ? 'w' : 'b') && (assignedColor === 'white' ? whiteTime : blackTime) <= 45) ? '6px 14px' : '4px 10px'),
+                    borderRadius: '8px',
                     fontFamily: 'monospace',
                     fontWeight: '900',
-                    fontSize: '1rem',
-                    border: '1px solid rgba(255, 255, 255, 0.15)'
+                    fontSize: (game.turn() === (assignedColor === 'white' ? 'w' : 'b') && (assignedColor === 'white' ? whiteTime : blackTime) <= 15) ? '1.45rem' : ((game.turn() === (assignedColor === 'white' ? 'w' : 'b') && (assignedColor === 'white' ? whiteTime : blackTime) <= 45) ? '1.25rem' : '1.05rem'),
+                    border: (game.turn() === (assignedColor === 'white' ? 'w' : 'b') && (assignedColor === 'white' ? whiteTime : blackTime) <= 15) ? '2.5px solid #ffffff' : ((game.turn() === (assignedColor === 'white' ? 'w' : 'b') && (assignedColor === 'white' ? whiteTime : blackTime) <= 45) ? '2px solid #fde047' : '1px solid rgba(255, 255, 255, 0.15)'),
+                    animation: (game.turn() === (assignedColor === 'white' ? 'w' : 'b') && (assignedColor === 'white' ? whiteTime : blackTime) <= 15) ? 'urgentClockPulse 0.6s infinite alternate' : ((game.turn() === (assignedColor === 'white' ? 'w' : 'b') && (assignedColor === 'white' ? whiteTime : blackTime) <= 45) ? 'amberClockPulse 1s infinite alternate' : 'none'),
+                    boxShadow: (game.turn() === (assignedColor === 'white' ? 'w' : 'b') && (assignedColor === 'white' ? whiteTime : blackTime) <= 15) ? '0 0 32px rgba(239, 68, 68, 1), 0 0 15px rgba(255, 255, 255, 0.8)' : ((game.turn() === (assignedColor === 'white' ? 'w' : 'b') && (assignedColor === 'white' ? whiteTime : blackTime) <= 45) ? '0 0 18px rgba(245, 158, 11, 0.9)' : 'none'),
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'all 0.2s ease'
                   }}>
-                    {Math.floor((assignedColor === 'white' ? whiteTime : blackTime) / 60)}:{((assignedColor === 'white' ? whiteTime : blackTime) % 60).toString().padStart(2, '0')}
+                    {(game.turn() === (assignedColor === 'white' ? 'w' : 'b') && (assignedColor === 'white' ? whiteTime : blackTime) <= 30) && (
+                      <span style={{ fontSize: '1.25rem', animation: 'bounce 0.5s infinite' }}>⏱️</span>
+                    )}
+                    <span>{Math.floor((assignedColor === 'white' ? whiteTime : blackTime) / 60)}:{((assignedColor === 'white' ? whiteTime : blackTime) % 60).toString().padStart(2, '0')}</span>
                   </div>
                 )}
               </div>
