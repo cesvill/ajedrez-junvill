@@ -142,6 +142,34 @@ export const PlayView = ({
   const [usedHintsCount, setUsedHintsCount] = useState(() => (isResumingSaved && initialSaved?.usedHintsCount) || 0);
   const [usedTakebacksCount, setUsedTakebacksCount] = useState(() => (isResumingSaved && initialSaved?.usedTakebacksCount) || 0);
 
+  // Control de Silencio / Voz de Recomendaciones en Partida
+  const [isVoiceActive, setIsVoiceActive] = useState(() => {
+    if (currentUser?.coachSettings?.soundEnabled !== undefined) {
+      return currentUser.coachSettings.soundEnabled;
+    }
+    return true;
+  });
+
+  const toggleVoice = () => {
+    setIsVoiceActive(prev => {
+      const next = !prev;
+      if (!next) {
+        voiceEngine.stop();
+      }
+      if (currentUser?.coachSettings) {
+        try {
+          updateCurrentUser({
+            coachSettings: {
+              ...currentUser.coachSettings,
+              soundEnabled: next
+            }
+          });
+        } catch (e) {}
+      }
+      return next;
+    });
+  };
+
   // Modalidad de Juego: 'bot' (Contra IA) | 'pass_and_play' (2 Jugadores local)
   const [gameMode, setGameMode] = useState(() => (isResumingSaved && initialSaved?.gameMode) || 'bot');
   // Variantes Lúdicas (Fase 4): 'standard' | 'dice_chess' | 'king_of_the_hill'
@@ -633,7 +661,9 @@ export const PlayView = ({
                   text: `¡Cuidado! ${botToPlay.name} jugó ${result.san} y amenaza directamente a tu ${pieceName} en ${worstThreat.to.toUpperCase()}. ¡Protégela o retírala!`,
                   severity: 'danger'
                 });
-                voiceEngine.speak(`¡Cuidado! ${botToPlay.name} amenaza a tu ${pieceName} en ${worstThreat.to.toUpperCase()}.`, activeCoach.id);
+                if (isVoiceActive) {
+                  voiceEngine.speak(`¡Cuidado! ${botToPlay.name} amenaza a tu ${pieceName} en ${worstThreat.to.toUpperCase()}.`, activeCoach.id);
+                }
               }
             } catch (e) {}
           }
@@ -769,7 +799,9 @@ export const PlayView = ({
         text: hint.text,
         severity: 'info'
       });
-      voiceEngine.speak(hint.text, activeCoach.id);
+      if (isVoiceActive) {
+        voiceEngine.speak(hint.text, activeCoach.id);
+      }
     }
   };
 
@@ -781,7 +813,9 @@ export const PlayView = ({
         text: explanation,
         severity: 'info'
       });
-      voiceEngine.speak(explanation, activeCoach.id);
+      if (isVoiceActive) {
+        voiceEngine.speak(explanation, activeCoach.id);
+      }
     }
   };
 
@@ -2005,6 +2039,26 @@ export const PlayView = ({
                 <span>Pensando...</span>
               </div>
             )}
+            {/* Botón Silenciar / Activar Sonido de Recomendaciones */}
+            <button
+              onClick={toggleVoice}
+              className="btn-secondary"
+              style={{
+                padding: '5px 8px',
+                fontSize: '0.76rem',
+                height: '32px',
+                gap: '4px',
+                border: isVoiceActive ? '1.5px solid #10b981' : '1.5px solid #ef4444',
+                background: isVoiceActive ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)'
+              }}
+              title={isVoiceActive ? "Voz de recomendaciones activada. Clic para silenciar sonido" : "Voz de recomendaciones silenciada. Clic para activar sonido"}
+            >
+              {isVoiceActive ? <Volume2 size={14} color="#10b981" /> : <VolumeX size={14} color="#ef4444" />}
+              <span className="hide-mobile-compact" style={{ fontWeight: '800', color: isVoiceActive ? '#10b981' : '#ef4444' }}>
+                {isVoiceActive ? 'Voz ON' : 'Silencio'}
+              </span>
+            </button>
+
             <button
               onClick={toggleFullscreen}
               className="btn-secondary"
@@ -2121,15 +2175,42 @@ export const PlayView = ({
             <AvatarIcon avatarId={activeCoach.id} size={46} />
           </div>
           <div className="coach-content">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
               <div className="coach-name">{activeCoach.name} • {activeCoach.title}</div>
-              <button
-                onClick={() => voiceEngine.speak(`${coachMessage.title}. ${coachMessage.text}`, activeCoach.id)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary)', padding: '2px' }}
-                title="Escuchar consejo en voz alta"
-              >
-                <Volume2 size={17} />
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <button
+                  type="button"
+                  onClick={toggleVoice}
+                  style={{
+                    background: isVoiceActive ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+                    border: `1.5px solid ${isVoiceActive ? '#10b981' : '#ef4444'}`,
+                    borderRadius: 'var(--radius-sm, 6px)',
+                    cursor: 'pointer',
+                    color: isVoiceActive ? '#10b981' : '#ef4444',
+                    padding: '2px 6px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    fontSize: '0.72rem',
+                    fontWeight: '800'
+                  }}
+                  title={isVoiceActive ? "Voz activada. Clic para silenciar recomendaciones" : "Voz silenciada. Clic para activar recomendaciones"}
+                >
+                  {isVoiceActive ? <Volume2 size={13} /> : <VolumeX size={13} />}
+                  <span>{isVoiceActive ? 'Voz ON' : 'Silenciado'}</span>
+                </button>
+
+                {isVoiceActive && (
+                  <button
+                    type="button"
+                    onClick={() => voiceEngine.speak(`${coachMessage.title}. ${coachMessage.text}`, activeCoach.id)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary)', padding: '2px' }}
+                    title="Escuchar consejo en voz alta"
+                  >
+                    <Volume2 size={16} />
+                  </button>
+                )}
+              </div>
             </div>
             <div style={{ fontWeight: '800', fontSize: '0.98rem', marginBottom: '4px', color: coachMessage.severity === 'danger' ? 'var(--color-danger)' : 'var(--text-parchment-main)' }}>
               {coachMessage.title}

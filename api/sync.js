@@ -13,54 +13,48 @@ function normalizeUserKey(raw) {
     .replace(/^(user_|usr_)/, '');
 }
 
-const CLOUD_ENDPOINTS = [
-  (gid) => `https://api.cl1p.net/junvill_sync_prod_${gid || 'group_junvill'}_v2`,
-  (gid) => `https://api.cl1p.net/ajedrez_junvill_cloud_${gid || 'group_junvill'}_v2`
-];
+const DURABLE_STORAGE_OBJECT_ID = 'ff808181a067127101a09bdcf4d70b8f';
+const RESTFUL_URL = `https://api.restful-api.dev/objects/${DURABLE_STORAGE_OBJECT_ID}`;
 
 async function fetchFromDurableCloud(groupId) {
   const gid = groupId || 'group_junvill';
-  for (const getUrl of CLOUD_ENDPOINTS) {
-    try {
-      const url = getUrl(gid);
-      const res = await fetch(url, {
-        headers: { 'Accept': 'application/json' },
-        signal: AbortSignal.timeout(3500)
-      });
-      if (res.ok) {
-        const text = await res.text();
-        if (text && text.trim().startsWith('{')) {
-          const parsed = JSON.parse(text);
-          if (parsed && parsed.users && Array.isArray(parsed.users)) {
-            inMemoryCloudStore[gid] = parsed;
-            return parsed;
-          }
-        }
+  
+  // 1. Intentar consultar el contenedor duradero central
+  try {
+    const res = await fetch(RESTFUL_URL, {
+      headers: { 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(3500)
+    });
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.data && json.data.users && Array.isArray(json.data.users)) {
+        inMemoryCloudStore[gid] = json.data;
+        return json.data;
       }
-    } catch (e) {
-      // Intentar siguiente endpoint
     }
+  } catch (e) {
+    // Intentar respaldo en memoria
   }
+
   return inMemoryCloudStore[gid] || null;
 }
 
 async function saveToDurableCloud(groupId, data) {
   const gid = groupId || 'group_junvill';
-  const str = JSON.stringify(data);
   inMemoryCloudStore[gid] = data;
 
-  for (const getUrl of CLOUD_ENDPOINTS) {
-    try {
-      const url = getUrl(gid);
-      await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: str,
-        signal: AbortSignal.timeout(3500)
-      });
-    } catch (e) {
-      // Silencioso
-    }
+  try {
+    await fetch(RESTFUL_URL, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: `junvill_${gid}_v5`,
+        data: data
+      }),
+      signal: AbortSignal.timeout(4000)
+    });
+  } catch (e) {
+    // Silencioso
   }
 }
 

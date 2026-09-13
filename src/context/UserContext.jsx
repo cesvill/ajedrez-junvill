@@ -647,10 +647,9 @@ export const UserProvider = ({ children }) => {
     }
   });
 
-  // Derivaciones limpias y deduplicadas
   const activeGroup = useMemo(() => groups.find(g => g.id === activeGroupId) || groups[0] || DEFAULT_FAMILY_GROUPS[0], [groups, activeGroupId]);
   const isGroupUnlocked = activeGroup ? unlockedGroupIds.includes(activeGroup.id) : false;
-  const users = useMemo(() => activeGroup ? cloudSync.mergeUsers(DEFAULT_JUNVILL_USERS, activeGroup.users || []) : DEFAULT_JUNVILL_USERS, [activeGroup]);
+  const users = useMemo(() => activeGroup ? cloudSync.mergeUsers(activeGroup.users || [], DEFAULT_JUNVILL_USERS) : DEFAULT_JUNVILL_USERS, [activeGroup]);
   const currentUser = useMemo(() => {
     if (!users || users.length === 0) return DEFAULT_JUNVILL_USERS[0];
     const found = users.find(u => 
@@ -1232,12 +1231,20 @@ export const UserProvider = ({ children }) => {
         }
 
         setGroups(prev => {
+          const targetG = prev.find(g => g.id === updatedCloudGroup.id);
+          let mergedUsers = updatedCloudGroup.users || [];
+          if (targetG && Array.isArray(targetG.users)) {
+            // CRDT Merge: Combinar los usuarios locales con los de la nube sin perder avance de ninguno
+            mergedUsers = cloudSync.mergeUsers(targetG.users, updatedCloudGroup.users || []);
+          }
+          const mergedG = { ...targetG, ...updatedCloudGroup, users: mergedUsers, updatedAt: Math.max(targetG?.updatedAt || 0, updatedCloudGroup.updatedAt || 0) };
+
           const exists = prev.some(g => g.id === updatedCloudGroup.id);
           let nextGroups;
           if (exists) {
-            nextGroups = prev.map(g => g.id === updatedCloudGroup.id ? updatedCloudGroup : g);
+            nextGroups = prev.map(g => g.id === updatedCloudGroup.id ? mergedG : g);
           } else {
-            nextGroups = [...prev, updatedCloudGroup];
+            nextGroups = [...prev, mergedG];
           }
           try {
             localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(nextGroups));
@@ -1557,17 +1564,26 @@ export const UserProvider = ({ children }) => {
           const updatedUsers = currentUsers.map(u => {
             if (u.id === userId || normalizeUserKey(u.id || u.name) === normKey) {
               userFound = true;
-              return { ...u, ...updates, updatedAt: now };
+              const updatedU = { ...u, ...updates, updatedAt: now };
+              try {
+                localStorage.setItem(`ajedrez_junvill_user_backup_${u.id}`, JSON.stringify(updatedU));
+                if (normKey) localStorage.setItem(`ajedrez_junvill_user_backup_${normKey}`, JSON.stringify(updatedU));
+              } catch (e) {}
+              return updatedU;
             }
             return u;
           });
 
           if (!userFound) {
-            const baseUser = DEFAULT_JUNVILL_USERS.find(du => du.id === userId || normalizeUserKey(du.id || du.name) === normKey) || { id: userId, name: userId };
-            updatedUsers.push({ ...baseUser, ...updates, updatedAt: now });
+            const baseUser = DEFAULT_JUNVILL_USERS.find(du => du.id === userId || normalizeUserKey(du.id || du.name) === normKey) || { id: userId, name: userId, role: 'student' };
+            const newU = { ...baseUser, ...updates, updatedAt: now };
+            updatedUsers.push(newU);
+            try {
+              localStorage.setItem(`ajedrez_junvill_user_backup_${userId}`, JSON.stringify(newU));
+            } catch (e) {}
           }
 
-          const deduplicated = deduplicateAndMergeUsers(DEFAULT_JUNVILL_USERS, updatedUsers);
+          const deduplicated = deduplicateAndMergeUsers(updatedUsers, DEFAULT_JUNVILL_USERS);
           const updatedG = { ...g, users: deduplicated, updatedAt: now };
           cloudSync.pushGroupToCloud(updatedG, effectiveGroupId).catch(() => {});
           try {
