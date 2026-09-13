@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { familySignaling } from '../engine/familySignaling';
 import { audioManager } from '../engine/audio';
-import { cloudSync, normalizeUserKey, deduplicateAndMergeUsers } from '../engine/cloudSync';
+import { cloudSync, normalizeUserKey, deduplicateAndMergeUsers, recoverAllLocalUsersFromStorage } from '../engine/cloudSync';
 
 const UserContext = createContext();
 
@@ -548,28 +548,36 @@ export const DEFAULT_FAMILY_GROUPS = [
 ];
 
 export const UserProvider = ({ children }) => {
-  // 1. ESTADO DE GRUPOS FAMILIARES CON PERSISTENCIA INMEDIATA
+  // 1. ESTADO DE GRUPOS FAMILIARES CON PERSISTENCIA INMEDIATA & RECUPERACIÓN PROFUNDA
   const [groups, setGroups] = useState(() => {
     try {
+      const recoveredLocal = recoverAllLocalUsersFromStorage();
       const savedGroups = localStorage.getItem(GROUPS_STORAGE_KEY);
+      let baseGroups = DEFAULT_FAMILY_GROUPS;
       if (savedGroups) {
         const parsed = JSON.parse(savedGroups);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const normalized = parsed.map(g => {
-            if (!g.password) g.password = DEFAULT_GENERIC_PASSWORD;
-            if (g.id === 'group_junvill') {
-              if (!g.adminEmail) g.adminEmail = 'junvill13@gmail.com';
-              // Fusión y deduplicación canónica estricta
-              g.users = cloudSync.mergeUsers(g.users || [], DEFAULT_JUNVILL_USERS);
-            } else {
-              g.users = cloudSync.mergeUsers(g.users || [], []);
-            }
-            return g;
-          });
-          return normalized;
+          baseGroups = parsed;
         }
       }
-      return DEFAULT_FAMILY_GROUPS;
+
+      const normalized = baseGroups.map(g => {
+        if (!g.password) g.password = DEFAULT_GENERIC_PASSWORD;
+        if (g.id === 'group_junvill') {
+          if (!g.adminEmail) g.adminEmail = 'junvill13@gmail.com';
+          // Fusión CRDT: combinar estado actual, histórico recuperado del dispositivo y defaults
+          g.users = cloudSync.mergeUsers(g.users || [], recoveredLocal, DEFAULT_JUNVILL_USERS);
+        } else {
+          g.users = cloudSync.mergeUsers(g.users || [], []);
+        }
+        return g;
+      });
+
+      try {
+        localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(normalized));
+      } catch (e) {}
+
+      return normalized;
     } catch (e) {
       console.error('Error cargando grupos:', e);
       return DEFAULT_FAMILY_GROUPS;
@@ -659,6 +667,31 @@ export const UserProvider = ({ children }) => {
     );
     return found || users[0] || DEFAULT_JUNVILL_USERS[0];
   }, [users, activeUserId]);
+
+  // Sincronización inmediata con la Nube Central al iniciar la aplicación (Auto-Pull Máximo Avance)
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const cloudData = await cloudSync.fetchCloudGroup(activeGroupId || 'group_junvill');
+        if (cloudData && cloudData.users && mounted) {
+          setGroups(prev => {
+            const targetId = activeGroupId || 'group_junvill';
+            const updated = prev.map(g => {
+              if (g.id === targetId) {
+                const mergedUsers = cloudSync.mergeUsers(g.users || [], cloudData.users || []);
+                return { ...g, ...cloudData, users: mergedUsers, updatedAt: Math.max(g.updatedAt || 0, cloudData.updatedAt || 0) };
+              }
+              return g;
+            });
+            try { localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(updated)); } catch (e) {}
+            return updated;
+          });
+        }
+      } catch (e) {}
+    })();
+    return () => { mounted = false; };
+  }, [activeGroupId]);
 
   // Sincronización en tiempo real de invitaciones, mensajes y presencia entre pestañas y dispositivos
   useEffect(() => {

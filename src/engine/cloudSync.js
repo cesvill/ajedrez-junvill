@@ -10,6 +10,45 @@ export function normalizeUserKey(nameOrId = '') {
   return str || 'unknown';
 }
 
+export function recoverAllLocalUsersFromStorage() {
+  const recoveredUsers = [];
+  try {
+    if (typeof localStorage === 'undefined') return [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key) continue;
+      if (
+        key.startsWith('ajedrez_junvill_') ||
+        key.startsWith('junvill_') ||
+        key.includes('user') ||
+        key.includes('group')
+      ) {
+        try {
+          const raw = localStorage.getItem(key);
+          if (!raw || (!raw.trim().startsWith('{') && !raw.trim().startsWith('['))) continue;
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            parsed.forEach(item => {
+              if (item && item.users && Array.isArray(item.users)) {
+                recoveredUsers.push(...item.users);
+              } else if (item && (item.id || item.name) && (item.lessonProgress || item.stars !== undefined || item.elo)) {
+                recoveredUsers.push(item);
+              }
+            });
+          } else if (parsed && typeof parsed === 'object') {
+            if (parsed.users && Array.isArray(parsed.users)) {
+              recoveredUsers.push(...parsed.users);
+            } else if ((parsed.id || parsed.name) && (parsed.lessonProgress || parsed.stars !== undefined || parsed.elo)) {
+              recoveredUsers.push(parsed);
+            }
+          }
+        } catch (e) {}
+      }
+    }
+  } catch (e) {}
+  return recoveredUsers;
+}
+
 export function deduplicateAndMergeUsers(...userLists) {
   const allUsers = userLists.flat().filter(Boolean);
   const buckets = new Map();
