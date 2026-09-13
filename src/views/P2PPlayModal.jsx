@@ -313,6 +313,9 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
             elo: curUser.elo || 600
           };
 
+          const currentMatchFen = gameRef.current ? gameRef.current.fen() : null;
+          const currentMoveCount = currentMatchFen ? getFenMoveCount(currentMatchFen) : 0;
+
           if (hostActive) {
             cloudSync.pushGroupToCloud({
               activeMatches: [{
@@ -320,7 +323,14 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                 hostUser: userSummary,
                 hostReady: true,
                 hostHeartbeat: Date.now(),
-                hostStatus: 'ready'
+                hostStatus: 'ready',
+                ...(currentMatchFen ? {
+                  fen: currentMatchFen,
+                  lastMove: lastMoveRef.current,
+                  moveCount: currentMoveCount,
+                  turn: gameRef.current ? gameRef.current.turn() : 'w',
+                  assignedColor: assignedColorRef.current || 'white'
+                } : {})
               }]
             }, activeGroup?.id || 'group_junvill');
           } else {
@@ -330,7 +340,14 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                 guestUser: userSummary,
                 guestReady: true,
                 guestHeartbeat: Date.now(),
-                guestStatus: 'ready'
+                guestStatus: 'ready',
+                ...(currentMatchFen ? {
+                  fen: currentMatchFen,
+                  lastMove: lastMoveRef.current,
+                  moveCount: currentMoveCount,
+                  turn: gameRef.current ? gameRef.current.turn() : 'b',
+                  assignedColor: assignedColorRef.current || 'black'
+                } : {})
               }]
             }, activeGroup?.id || 'group_junvill');
           }
@@ -442,7 +459,11 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                   const incomingMoveCount = match.moveCount ?? getFenMoveCount(match.fen);
                   const timeSinceLastLocalMove = Date.now() - (lastLocalMoveTimeRef.current || 0);
 
-                  if (incomingMoveCount > localMoveCount) {
+                  const isStrictlyMoreAdvanced = incomingMoveCount > localMoveCount;
+                  const isOpponentMove = (match.lastMoveSenderId && curUser?.id && match.lastMoveSenderId !== curUser.id) &&
+                                         (timeSinceLastLocalMove > 300 || isStrictlyMoreAdvanced);
+
+                  if (isStrictlyMoreAdvanced || isOpponentMove) {
                     const nextG = new Chess(match.fen);
                     setGame(nextG);
                     gameRef.current = nextG;
