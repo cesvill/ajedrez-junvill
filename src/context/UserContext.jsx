@@ -923,10 +923,9 @@ export const UserProvider = ({ children }) => {
       }
     }
 
-    const userObjUpdatedAt = (typeof userIdOrUser === 'object' && userIdOrUser.updatedAt) ? userIdOrUser.updatedAt : 0;
-    const mostRecent = Math.max(lastHbTime, localTime, cloudLastActive, userObjUpdatedAt);
-    // Considerar en línea si se ha comunicado en los últimos 5 minutos (300s) para soportar navegación y móviles
-    return (Date.now() - mostRecent) < 300000;
+    const mostRecent = Math.max(lastHbTime, localTime, cloudLastActive);
+    // Considerar en línea únicamente si su última actividad/latido fue en los últimos 90 segundos (90s)
+    return (Date.now() - mostRecent) < 90000;
   }, [currentUser?.id, presenceHeartbeats, users]);
 
   // Enviar Mensaje Directo a un familiar

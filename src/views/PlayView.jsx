@@ -1282,7 +1282,7 @@ export const PlayView = ({
                     <div>
                       <div style={{ fontWeight: '900', fontSize: '1.05rem', color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span>¡{inv.fromUser?.name || 'Un familiar'} te está retando!</span>
-                        <OnlineBadge isOnline={true} size="sm" />
+                        <OnlineBadge isOnline={isUserOnline(inv.fromUser)} size="sm" />
                       </div>
                       <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: '2px' }}>
                         Modalidad: <strong style={{ color: '#38bdf8' }}>{inv.variantName || 'Ajedrez Tradicional'}</strong> • ⏱️ {Math.round((inv.timeControl || 300) / 60)}m • Sala: <code>{inv.roomId}</code>
@@ -1360,7 +1360,7 @@ export const PlayView = ({
                     <div>
                       <div style={{ fontWeight: '900', fontSize: '1.05rem', color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span>Sala creada por {m.hostUser?.name || 'Familiar'}</span>
-                        <OnlineBadge isOnline={true} size="sm" />
+                        <OnlineBadge isOnline={isUserOnline(m.hostUser)} size="sm" />
                       </div>
                       <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: '2px' }}>
                         Sala: <code style={{ color: '#fde047', fontWeight: '900' }}>{m.roomId}</code> • ⏱️ {Math.round((m.timeControl || 300) / 60)}m
