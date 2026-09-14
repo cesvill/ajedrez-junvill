@@ -21,7 +21,8 @@ export const Header = ({
   onOpenBugReport, 
   onOpenManual,
   onOpenP2P,
-  onOpenFamilyChat
+  onOpenFamilyChat,
+  onOpenCuby3x3
 }) => {
   const { currentUser, activeGroup, users, forceCloudSync, unreadMessagesCount } = useUser();
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -460,7 +461,21 @@ export const Header = ({
                   </div>
                 </button>
 
-                {/* 3.1. Juego en Línea & Retos P2P */}
+                {/* 3.1. Ajedrez 3x3 Cuby Puzle */}
+                <button
+                  type="button"
+                  className="header-dropdown-item item-gold"
+                  onClick={() => { setIsToolsMenuOpen(false); if (onOpenCuby3x3) onOpenCuby3x3(); }}
+                  style={{ background: 'rgba(234, 179, 8, 0.12)', border: '1px solid rgba(234, 179, 8, 0.3)' }}
+                >
+                  <span style={{ fontSize: '1.2rem' }}>🧩</span>
+                  <div className="item-text">
+                    <span className="item-title" style={{ color: '#facc15' }}>Ajedrez 3x3 (Puzle Cuby)</span>
+                    <span className="item-sub">Desafío mental de 5 piezas</span>
+                  </div>
+                </button>
+
+                {/* 3.2. Juego en Línea & Retos P2P */}
                 <button
                   type="button"
                   className="header-dropdown-item"

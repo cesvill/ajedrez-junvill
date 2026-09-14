@@ -23,6 +23,7 @@ import { BugReportModal } from './components/BugReport/BugReportModal';
 import { BugReportFloatingButton } from './components/BugReport/BugReportFloatingButton';
 import { FamilyGatekeeperModal } from './components/FamilyGroups/FamilyGatekeeperModal';
 import { ManualModal } from './components/Manual/ManualModal';
+import { ChessCuby3x3Modal } from './components/ChessCuby3x3/ChessCuby3x3Modal';
 import { ErrorBoundary } from './components/ErrorBoundary/ErrorBoundary';
 import { parseUrlState, syncUrl } from './engine/urlRouter';
 import { getLessonById } from './curriculum/lessonsData';
@@ -55,6 +56,7 @@ export const App = () => {
   const [isPgnOpen, setIsPgnOpen] = useState(false);
   const [isP2POpen, setIsP2POpen] = useState(false);
   const [isBugReportOpen, setIsBugReportOpen] = useState(false);
+  const [isCuby3x3Open, setIsCuby3x3Open] = useState(false);
   const [isFamilyChatOpen, setIsFamilyChatOpen] = useState(false);
   const [chatTargetUser, setChatTargetUser] = useState(null);
   const [bugReportContext, setBugReportContext] = useState({});
@@ -83,6 +85,10 @@ export const App = () => {
       setIsP2POpen(true);
     } else if (modal === 'p2p') {
       setIsP2POpen(true);
+    }
+
+    if (modal === 'cuby3x3' || view === 'cuby3x3' || modal === 'cuby') {
+      setIsCuby3x3Open(true);
     }
 
     if (lessonId) {
@@ -216,6 +222,7 @@ export const App = () => {
         onOpenBugReport={() => handleOpenBugReport()}
         onOpenManual={() => setIsManualOpen(true)}
         onOpenP2P={(customRoomId, mode) => handleOpenP2P(customRoomId, mode)}
+        onOpenCuby3x3={() => setIsCuby3x3Open(true)}
       />
 
       {/* 0. BANNER FLOTANTE GLOBAL DE RETO ENTRANTE */}
@@ -285,6 +292,7 @@ export const App = () => {
             onOpenAvatarBuilder={() => setIsAvatarBuilderOpen(true)}
             onOpenBugReport={handleOpenBugReport}
             onOpenP2P={(customRoomId, mode) => handleOpenP2P(customRoomId, mode)}
+            onOpenCuby3x3={() => setIsCuby3x3Open(true)}
             onStartLesson={handleStartLesson}
             onStartBotGame={handleStartBotMatch}
           />
@@ -300,6 +308,7 @@ export const App = () => {
         {activeTab === 'problemas' && (
           <PuzzlesView
             onOpenBugReport={handleOpenBugReport}
+            onOpenCuby3x3={() => setIsCuby3x3Open(true)}
           />
         )}
 
@@ -320,6 +329,7 @@ export const App = () => {
             onExitToMenu={() => handleTabChange('inicio')}
             onOpenBugReport={handleOpenBugReport}
             onOpenFamilyChat={(user) => handleOpenFamilyChat(user)}
+            onOpenCuby3x3={() => setIsCuby3x3Open(true)}
           />
         )}
 
@@ -472,6 +482,12 @@ export const App = () => {
         isOpen={isManualOpen}
         onClose={() => setIsManualOpen(false)}
         initialSection={activeTab}
+      />
+
+      {/* Modal del Minijuego Ajedrez 3x3: Desafío de 5 Piezas (Puzle Cuby) */}
+      <ChessCuby3x3Modal
+        isOpen={isCuby3x3Open}
+        onClose={() => setIsCuby3x3Open(false)}
       />
       </div>
     </ErrorBoundary>

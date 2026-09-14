@@ -40,7 +40,9 @@ export const PlayView = ({
   onOpenRobots, 
   onExitToMenu, 
   onExitMatch,
-  onOpenBugReport 
+  onOpenBugReport,
+  onOpenFamilyChat,
+  onOpenCuby3x3
 }) => {
   const { currentUser, activeGroup, users, isUserOnline, updateCurrentUser, recordGameResult, recordBotWin, pendingInvitationsForMe, acceptFamilyInvitation, declineFamilyInvitation, sendFamilyInvitation, activeP2PGame, clearActiveP2PGame, refreshInvitationsNow, isRefreshingInvitations } = useUser();
   const [isPauseMenuOpen, setIsPauseMenuOpen] = useState(false);
@@ -1715,6 +1717,31 @@ export const PlayView = ({
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '12px' }}>
+            {/* MINIJUEGO DESTACADO: AJEDREZ 3X3 (PUZLE CUBY) */}
+            <div
+              onClick={() => onOpenCuby3x3 && onOpenCuby3x3()}
+              style={{
+                background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.22) 0%, rgba(202, 138, 4, 0.35) 100%)',
+                border: '2px solid #eab308',
+                borderRadius: '14px',
+                padding: '16px',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                boxShadow: '0 4px 16px rgba(234, 179, 8, 0.25)'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <span style={{ fontSize: '1.6rem' }}>🧩</span>
+                <span style={{ fontSize: '0.68rem', background: '#eab308', color: '#0f172a', padding: '2px 8px', borderRadius: '9999px', fontWeight: '900' }}>
+                  ¡NUEVO PUZLE!
+                </span>
+              </div>
+              <h4 style={{ margin: '0 0 4px', fontSize: '0.96rem', color: '#fef08a', fontWeight: '900' }}>Ajedrez 3x3 (Puzle Cuby)</h4>
+              <p style={{ margin: 0, fontSize: '0.74rem', color: '#cbd5e1' }}>5 piezas, 4 huecos libres, cálculo mental, cartas encadenadas y pujas.</p>
+            </div>
+
             <div
               onClick={() => handleSelectPassAndPlay('standard')}
               style={{

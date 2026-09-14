@@ -8,7 +8,7 @@ import { audioManager } from '../engine/audio';
 import confetti from 'canvas-confetti';
 import { Zap, SkipForward, Lightbulb, CheckCircle2, RotateCcw, ArrowRight, Trophy } from 'lucide-react';
 
-export const PuzzlesView = () => {
+export const PuzzlesView = ({ onOpenBugReport, onOpenCuby3x3 }) => {
   const { currentUser, recordPuzzleSuccess } = useUser();
   const activeCoach = getCoachById(currentUser?.coachSettings?.coachAvatar || 'coach_aurelio');
   const allPuzzles = TRAINING_CATEGORIES.flatMap(c => c.puzzles);
@@ -79,6 +79,61 @@ export const PuzzlesView = () => {
 
   return (
     <div className="game-responsive-container">
+      {/* BANNER DESTACADO: AJEDREZ 3X3 (PUZLE CUBY) */}
+      <div style={{
+        gridColumn: '1 / -1',
+        background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.22) 0%, rgba(202, 138, 4, 0.35) 100%)',
+        border: '2px solid #eab308',
+        borderRadius: '16px',
+        padding: '14px 20px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '12px',
+        boxShadow: '0 4px 20px rgba(234, 179, 8, 0.25)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{
+            width: '42px',
+            height: '42px',
+            borderRadius: '12px',
+            background: '#eab308',
+            color: '#0f172a',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '1.5rem',
+            fontWeight: '900'
+          }}>
+            🧩
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '900', color: '#fef08a' }}>
+                ¡Nuevo Minijuego: Ajedrez 3x3 (Puzle Cuby)!
+              </h3>
+              <span style={{ fontSize: '0.68rem', background: '#3b82f6', color: 'white', fontWeight: '900', padding: '2px 8px', borderRadius: '9999px' }}>
+                5 Piezas
+              </span>
+            </div>
+            <p style={{ margin: '2px 0 0', fontSize: '0.76rem', color: '#cbd5e1' }}>
+              Cálculo mental puro: traslada las 5 piezas a casillas libres para replicar las tarjetas meta sin capturas.
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          className="btn-gold"
+          onClick={() => onOpenCuby3x3 && onOpenCuby3x3()}
+          style={{ padding: '8px 18px', fontSize: '0.84rem', fontWeight: '900', gap: '6px' }}
+        >
+          <span>Jugar Ajedrez 3x3 🚀</span>
+          <ArrowRight size={15} />
+        </button>
+      </div>
+
       {/* COLUMNA IZQUIERDA: CABECERA Y TABLERO */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <div style={{
