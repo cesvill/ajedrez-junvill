@@ -34,18 +34,25 @@ async function fetchFromDurableCloud(groupId) {
       headers: { 'Accept': 'application/json' },
       signal: AbortSignal.timeout(3500)
     });
-    if (res.ok) {
-      const json = await res.json();
-      if (json && json.data && json.data.users && Array.isArray(json.data.users)) {
-        inMemoryCloudStore[gid] = json.data;
-        return json.data;
+      if (res.ok) {
+        const json = await res.json();
+        if (json && json.data && json.data.users && Array.isArray(json.data.users)) {
+          const existing = inMemoryCloudStore[gid] || {};
+          inMemoryCloudStore[gid] = {
+            ...json.data,
+            ...existing,
+            users: mergeUsers(json.data.users, existing.users || []),
+            bugReports: (existing.bugReports && existing.bugReports.length > 0) ? existing.bugReports : (json.data.bugReports || []),
+            familyMessages: (existing.familyMessages && existing.familyMessages.length > 0) ? existing.familyMessages : (json.data.familyMessages || [])
+          };
+          return inMemoryCloudStore[gid];
+        }
       }
+    } catch (e) {
+      // Intentar respaldo en memoria
     }
-  } catch (e) {
-    // Intentar respaldo en memoria
-  }
 
-  return inMemoryCloudStore[gid] || null;
+    return inMemoryCloudStore[gid] || null;
 }
 
 async function saveToDurableCloud(groupId, data) {
@@ -433,7 +440,20 @@ export default async function handler(req, res) {
       const bugMap = new Map();
       [...existingBugs, ...newBugs].forEach(b => {
         if (b && (b.reportId || b.id)) {
-          bugMap.set(b.reportId || b.id, b);
+          const id = b.reportId || b.id;
+          const prev = bugMap.get(id);
+          if (!prev) {
+            bugMap.set(id, { ...b });
+          } else {
+            const isResolved = b.status === 'resolved' || b.status === 'fixed' || prev.status === 'resolved' || prev.status === 'fixed';
+            bugMap.set(id, {
+              ...prev,
+              ...b,
+              status: isResolved ? 'resolved' : (b.status || prev.status || 'submitted'),
+              resolvedAt: b.resolvedAt || prev.resolvedAt || (isResolved ? new Date().toISOString() : null),
+              resolvedBy: b.resolvedBy || prev.resolvedBy || (isResolved ? 'Asistente IA (Antigravity)' : null)
+            });
+          }
         }
       });
       const mergedBugs = Array.from(bugMap.values()).slice(0, 200);

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BOT_ROSTER } from '../../assets/botRoster';
-import { CHESS_VARIANTS } from '../../engine/variantsEngine';
+import { CHESS_VARIANTS, getVariantById } from '../../engine/variantsEngine';
 import { VariantRulesModal } from '../Variants/VariantRulesModal';
 import { useUser } from '../../context/UserContext';
 import { 
@@ -226,7 +226,7 @@ export const GameModeModal = ({
                     ¡{pendingInvitationsForMe[0].fromUser?.name} te ha retado a una partida!
                   </div>
                   <div style={{ fontSize: '0.74rem', color: 'var(--text-parchment-muted)' }}>
-                    ⏱️ {Math.round((pendingInvitationsForMe[0].timeControl || 300) / 60)} min • {pendingInvitationsForMe[0].withAssistance ? '💡 Con Ayudas' : '🛡️ Sin Ayudas'} • Sala: {pendingInvitationsForMe[0].roomId}
+                    Modalidad: <b style={{ color: '#38bdf8' }}>{getVariantById(pendingInvitationsForMe[0].gameVariant)?.name || pendingInvitationsForMe[0].gameVariant || 'Ajedrez Tradicional'}</b> • ⏱️ {pendingInvitationsForMe[0].timeControl === 0 ? 'Sin Tiempo' : `${Math.round((pendingInvitationsForMe[0].timeControl || 300) / 60)} min`} • {pendingInvitationsForMe[0].withAssistance ? '💡 Con Ayudas' : '🛡️ Sin Ayudas'} • Sala: {pendingInvitationsForMe[0].roomId}
                   </div>
                 </div>
               </div>

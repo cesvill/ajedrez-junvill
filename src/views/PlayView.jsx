@@ -912,8 +912,9 @@ export const PlayView = ({
     }
   };
 
-  const handleSendChallenge = ({ opponent, timeControl: tc, withAssistance: wa, gameVariant: gv, customMessage: cm }) => {
-    const inv = sendFamilyInvitation(opponent, tc, wa, null, gv, cm);
+  const handleSendChallenge = ({ opponent, timeControl: tc, withAssistance: wa, gameVariant: gv, variantId: vid, customMessage: cm, handicapConfig: hc }) => {
+    const finalVariant = gv || vid || 'standard';
+    const inv = sendFamilyInvitation(opponent || challengeOpponent, tc, wa, null, finalVariant, cm, hc);
     setChallengeOpponent(null);
     if (inv && onOpenP2P) {
       onOpenP2P(inv.roomId, inv.isMutualMatch ? 'join' : 'host');
@@ -1330,7 +1331,7 @@ export const PlayView = ({
                         <OnlineBadge isOnline={isUserOnline(inv.fromUser)} size="sm" />
                       </div>
                       <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: '2px' }}>
-                        Modalidad: <strong style={{ color: '#38bdf8' }}>{inv.variantName || 'Ajedrez Tradicional'}</strong> • ⏱️ {Math.round((inv.timeControl || 300) / 60)}m • Sala: <code>{inv.roomId}</code>
+                        Modalidad: <strong style={{ color: '#38bdf8' }}>{getVariantById(inv.gameVariant || inv.variantId)?.name || inv.variantName || inv.gameVariant || 'Ajedrez Tradicional'}</strong> • ⏱️ {inv.timeControl === 0 ? 'Sin Tiempo' : `${Math.round((inv.timeControl || 300) / 60)}m`} • Sala: <code>{inv.roomId}</code>
                       </div>
                     </div>
                   </div>
@@ -1981,7 +1982,7 @@ export const PlayView = ({
                 ¡{pendingInvitationsForMe[0].fromUser?.name || 'Un familiar'} te ha retado a una partida!
               </div>
               <div style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
-                ⏱️ {Math.round((pendingInvitationsForMe[0].timeControl || 300) / 60)}m • Sala: {pendingInvitationsForMe[0].roomId}
+                ⏱️ {pendingInvitationsForMe[0].timeControl === 0 ? 'Sin Tiempo' : `${Math.round((pendingInvitationsForMe[0].timeControl || 300) / 60)}m`} • Modalidad: <b style={{ color: '#38bdf8' }}>{getVariantById(pendingInvitationsForMe[0].gameVariant)?.name || pendingInvitationsForMe[0].gameVariant || 'Ajedrez Tradicional'}</b> • Sala: {pendingInvitationsForMe[0].roomId}
               </div>
             </div>
           </div>
@@ -2962,19 +2963,20 @@ export const PlayView = ({
           onClose={() => setChallengeOpponent(null)}
           opponent={challengeOpponent}
           isOpponentOnline={challengeOpponent ? isUserOnline(challengeOpponent) : false}
-          onSendChallenge={({ variantId, timeControl, withAssistance, customMessage, handicapConfig }) => {
+          onSendChallenge={({ variantId, gameVariant, timeControl, withAssistance, customMessage, handicapConfig }) => {
+            const chosenVariant = gameVariant || variantId || 'standard';
             const createdInv = sendFamilyInvitation(
               challengeOpponent,
               timeControl,
               withAssistance,
               null,
-              variantId,
+              chosenVariant,
               customMessage,
               handicapConfig
             );
             setChallengeOpponent(null);
             if (createdInv && !createdInv.isMutualMatch && onOpenP2P) {
-              onOpenP2P(challengeOpponent, createdInv.roomId, 'create');
+              onOpenP2P(createdInv.roomId, 'host');
             }
           }}
         />

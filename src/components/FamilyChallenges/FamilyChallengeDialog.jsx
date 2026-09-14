@@ -5,89 +5,19 @@ import { DynamicAvatar } from '../AvatarCreator/DynamicAvatar';
 import { OnlineBadge } from '../FamilyPresence/OnlineBadge';
 import { Swords, Clock, ShieldCheck, Sparkles, X, MessageSquare, Send, Dice5, Trophy, Zap } from 'lucide-react';
 
-export const MINIGAMES_LIST = [
-  {
-    id: 'standard',
-    name: 'Ajedrez Tradicional',
-    subtitle: 'Reglamentario FIDE (32 piezas)',
-    icon: '♟️',
-    color: '#3b82f6',
-    bg: 'rgba(59, 130, 246, 0.15)',
-    description: 'Partida estándar clásica con todas las reglas oficiales.'
-  },
-  {
-    id: 'dice_chess',
-    name: 'Dados Mágicos',
-    subtitle: 'El dado elige qué pieza mueves',
-    icon: '🎲',
-    color: '#ec4899',
-    bg: 'rgba(236, 72, 153, 0.15)',
-    description: 'En cada turno un dado indica qué pieza mover. ¡Diversión familiar asegurada!'
-  },
-  {
-    id: 'king_of_the_hill',
-    name: 'Rey de la Colina',
-    subtitle: 'Lleva tu rey a las 4 casillas centrales',
-    icon: '⛰️👑',
-    color: '#f59e0b',
-    bg: 'rgba(245, 158, 11, 0.15)',
-    description: 'El primer rey en pisar d4, d5, e4 o e5 gana de inmediato.'
-  },
-  {
-    id: 'pawn_wars_pure',
-    name: 'Guerra de Peones Pura',
-    subtitle: '8 Peones vs 8 Peones (Sin Reyes)',
-    icon: '⚔️♟️',
-    color: '#10b981',
-    bg: 'rgba(16, 185, 129, 0.15)',
-    description: 'Sin reyes ni jaques. El primero que corone o capture todos los peones gana.'
-  },
-  {
-    id: 'pawns_vs_knights',
-    name: 'Peones vs Caballos (PECA)',
-    subtitle: '8 Peones Blancos vs 2 Caballos Negros',
-    icon: '🐴♟️',
-    color: '#8b5cf6',
-    bg: 'rgba(139, 92, 246, 0.15)',
-    description: 'Los peones asaltan la meta mientras los caballos defienden con horquillas.'
-  },
-  {
-    id: 'rooks_sweeper',
-    name: 'La Torre Cazadora',
-    subtitle: '8 Peones vs 1 Torre Negra',
-    icon: '🏰♟️',
-    color: '#f97316',
-    bg: 'rgba(249, 115, 22, 0.15)',
-    description: '¿Podrán los peones coordinarse o la torre limpiará todas las columnas?'
-  },
-  {
-    id: 'bishops_duel',
-    name: 'Alfiles Cruzados',
-    subtitle: '8 Peones vs 2 Alfiles',
-    icon: '♗♟️',
-    color: '#06b6d4',
-    bg: 'rgba(6, 182, 212, 0.15)',
-    description: 'Entrenamiento táctico de diagonales largas y rupturas con peones.'
-  },
-  {
-    id: 'queens_duel',
-    name: 'Duelo de Damas y Peones',
-    subtitle: '1 Dama + 8 Peones por bando',
-    icon: '👸♟️',
-    color: '#e11d48',
-    bg: 'rgba(225, 29, 72, 0.15)',
-    description: 'Juego de alta velocidad con ataques dobles masivos y coronaciones relámpago.'
-  },
-  {
-    id: 'fischer_960',
-    name: 'Ajedrez 960 (Fischer)',
-    subtitle: 'Piezas iniciales aleatorias simétricas',
-    icon: '🎲♟️',
-    color: '#a855f7',
-    bg: 'rgba(168, 85, 247, 0.15)',
-    description: 'Sin memoria de aperturas: pura visión táctica e intuición.'
-  }
-];
+export const MINIGAMES_LIST = CHESS_VARIANTS.map(v => ({
+  id: v.id,
+  name: v.name,
+  subtitle: v.subtitle,
+  category: v.category,
+  icon: v.icon,
+  badge: v.badge,
+  badgeColor: v.badgeColor || v.borderColor,
+  color: v.borderColor,
+  bg: v.borderGradient || 'rgba(255, 255, 255, 0.05)',
+  description: v.description,
+  startingFen: v.startingFen
+}));
 
 export const FamilyChallengeDialog = ({ 
   isOpen, 
@@ -96,8 +26,9 @@ export const FamilyChallengeDialog = ({
   isOpponentOnline = false,
   onSendChallenge 
 }) => {
+  const [selectedCategory, setSelectedCategory] = useState('all'); // 'all' | 'popular' | 'learning' | 'intermediate_learning'
   const [selectedVariant, setSelectedVariant] = useState('standard');
-  const [timeControl, setTimeControl] = useState(300); // 300 seg (5 min)
+  const [timeControl, setTimeControl] = useState(300); // 300 seg (5 min) o 0 (Sin tiempo)
   const [withAssistance, setWithAssistance] = useState(true);
   const [customMessage, setCustomMessage] = useState('');
 
@@ -117,10 +48,15 @@ export const FamilyChallengeDialog = ({
       timeControl,
       withAssistance,
       gameVariant: selectedVariant,
+      variantId: selectedVariant,
       customMessage: customMessage.trim()
     });
     onClose();
   };
+
+  const filteredGames = selectedCategory === 'all' 
+    ? MINIGAMES_LIST 
+    : MINIGAMES_LIST.filter(g => g.category === selectedCategory);
 
   const selectedGameInfo = MINIGAMES_LIST.find(g => g.id === selectedVariant) || MINIGAMES_LIST[0];
 
@@ -129,18 +65,18 @@ export const FamilyChallengeDialog = ({
       <div 
         className="modal-card" 
         style={{ 
-          maxWidth: '680px', 
+          maxWidth: '720px', 
           width: '100%', 
           maxHeight: '92vh', 
           overflowY: 'auto',
-          padding: '24px',
+          padding: '22px',
           background: 'var(--bg-parchment-card, #0f172a)',
           border: '2px solid var(--color-gold, #ca8a04)'
         }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Cabecera */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '12px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', paddingBottom: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
               width: '46px',
@@ -178,13 +114,43 @@ export const FamilyChallengeDialog = ({
         </div>
 
         {/* 1. SELECCIÓN DE MINIJUEGO O MODALIDAD */}
-        <div style={{ marginBottom: '18px' }}>
-          <label style={{ fontSize: '0.82rem', fontWeight: '900', color: 'var(--color-gold)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '8px' }}>
-            1. Elige el Tipo de Juego o Minijuego:
-          </label>
+        <div style={{ marginBottom: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
+            <label style={{ fontSize: '0.82rem', fontWeight: '900', color: 'var(--color-gold)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              1. Elige el Tipo de Juego o Minijuego (2 Jugadores):
+            </label>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: '8px' }}>
-            {MINIGAMES_LIST.map((game) => {
+            {/* Categorías / Filtros */}
+            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+              {[
+                { id: 'all', label: 'Todos (11)' },
+                { id: 'popular', label: '✨ Populares (4)' },
+                { id: 'learning', label: '🌱 Sin Reyes (5)' },
+                { id: 'intermediate_learning', label: '👑 Rey Escolta (2)' }
+              ].map(cat => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setSelectedCategory(cat.id)}
+                  style={{
+                    padding: '3px 8px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    background: selectedCategory === cat.id ? 'var(--color-gold)' : 'rgba(255, 255, 255, 0.08)',
+                    color: selectedCategory === cat.id ? '#0f172a' : '#cbd5e1',
+                    fontSize: '0.72rem',
+                    fontWeight: '800',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: '8px', maxHeight: '220px', overflowY: 'auto', paddingRight: '4px' }}>
+            {filteredGames.map((game) => {
               const isSelected = selectedVariant === game.id;
               return (
                 <button
@@ -208,6 +174,11 @@ export const FamilyChallengeDialog = ({
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                     <span style={{ fontSize: '1.4rem' }}>{game.icon}</span>
                     {isSelected && <span style={{ color: game.color, fontSize: '0.72rem', fontWeight: '900' }}>✓ Seleccionado</span>}
+                    {!isSelected && game.badge && (
+                      <span style={{ fontSize: '0.64rem', background: 'rgba(255,255,255,0.1)', color: '#cbd5e1', padding: '1px 5px', borderRadius: '4px', fontWeight: '700' }}>
+                        {game.badge}
+                      </span>
+                    )}
                   </div>
                   <div style={{ fontWeight: '800', fontSize: '0.86rem', color: isSelected ? '#ffffff' : '#e2e8f0', marginTop: '2px' }}>
                     {game.name}
@@ -224,17 +195,17 @@ export const FamilyChallengeDialog = ({
         {/* Explicación del juego seleccionado */}
         <div style={{
           background: selectedGameInfo.bg,
-          border: `1px solid ${selectedGameInfo.color}`,
-          borderRadius: '8px',
+          border: `1.5px solid ${selectedGameInfo.color}`,
+          borderRadius: '10px',
           padding: '10px 14px',
-          marginBottom: '18px',
+          marginBottom: '16px',
           fontSize: '0.80rem',
           color: '#e2e8f0',
           display: 'flex',
           alignItems: 'center',
           gap: '10px'
         }}>
-          <span style={{ fontSize: '1.6rem' }}>{selectedGameInfo.icon}</span>
+          <span style={{ fontSize: '1.6rem', flexShrink: 0 }}>{selectedGameInfo.icon}</span>
           <div>
             <strong style={{ color: selectedGameInfo.color }}>{selectedGameInfo.name}: </strong>
             <span>{selectedGameInfo.description}</span>

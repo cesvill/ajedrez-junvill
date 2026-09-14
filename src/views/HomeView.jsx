@@ -5,6 +5,7 @@ import { AvatarIcon } from '../assets/avatars';
 import { DynamicAvatar } from '../components/AvatarCreator/DynamicAvatar';
 import { OnlineBadge } from '../components/FamilyPresence/OnlineBadge';
 import { MINIGAMES_LIST } from '../components/FamilyChallenges/FamilyChallengeDialog';
+import { getVariantById } from '../engine/variantsEngine';
 import { FullBodyAvatar } from '../components/AvatarCreator/FullBodyAvatar';
 import { BOT_ROSTER, BotAvatarRenderer } from '../assets/botRoster';
 import { CURRICULUM_SECTIONS } from '../curriculum/lessonsData';
@@ -176,7 +177,7 @@ export const HomeView = ({
                     </span>
                   </div>
                   <div style={{ fontSize: '0.80rem', color: 'var(--text-parchment-muted)', marginTop: '2px' }}>
-                    ⏱️ {Math.round((inv.timeControl || 300) / 60)} min • {inv.withAssistance ? '💡 Con Ayudas' : '🛡️ Modo Clásico (Sin Ayudas)'} • Código: <b style={{ color: '#60a5fa', fontFamily: 'monospace' }}>{inv.roomId}</b>
+                    Modalidad: <strong style={{ color: '#38bdf8' }}>{getVariantById(inv.gameVariant)?.name || inv.gameVariant || 'Ajedrez Tradicional'}</strong> • ⏱️ {inv.timeControl === 0 ? 'Sin Tiempo' : `${Math.round((inv.timeControl || 300) / 60)} min`} • {inv.withAssistance ? '💡 Con Ayudas' : '🛡️ Modo Clásico (Sin Ayudas)'} • Código: <b style={{ color: '#60a5fa', fontFamily: 'monospace' }}>{inv.roomId}</b>
                   </div>
                 </div>
               </div>
@@ -413,7 +414,7 @@ export const HomeView = ({
                   ¡Reto de Ajedrez Recibido! ⚔️
                 </span>
                 <span style={{ fontSize: '0.76rem', color: '#facc15', fontWeight: '800' }}>
-                  ⏱️ {Math.round((pendingInvitationsForMe[0].timeControl || 300) / 60)} min
+                  ⏱️ {pendingInvitationsForMe[0].timeControl === 0 ? 'Sin Tiempo' : `${Math.round((pendingInvitationsForMe[0].timeControl || 300) / 60)} min`}
                 </span>
               </div>
 
@@ -422,7 +423,7 @@ export const HomeView = ({
               </h3>
 
               <div style={{ fontSize: '0.84rem', color: '#cbd5e1' }}>
-                Modalidad: <strong style={{ color: '#38bdf8' }}>{pendingInvitationsForMe[0].gameVariant || 'Ajedrez Tradicional'}</strong> • Sala: <code style={{ color: '#facc15' }}>{pendingInvitationsForMe[0].roomId}</code>
+                Modalidad: <strong style={{ color: '#38bdf8' }}>{getVariantById(pendingInvitationsForMe[0].gameVariant)?.name || pendingInvitationsForMe[0].gameVariant || 'Ajedrez Tradicional'}</strong> • Sala: <code style={{ color: '#facc15' }}>{pendingInvitationsForMe[0].roomId}</code>
               </div>
             </div>
           </div>

@@ -23,6 +23,7 @@ import { BugReportModal } from './components/BugReport/BugReportModal';
 import { BugReportFloatingButton } from './components/BugReport/BugReportFloatingButton';
 import { FamilyGatekeeperModal } from './components/FamilyGroups/FamilyGatekeeperModal';
 import { ManualModal } from './components/Manual/ManualModal';
+import { getVariantById } from './engine/variantsEngine';
 import { ChessCuby3x3Modal } from './components/ChessCuby3x3/ChessCuby3x3Modal';
 import { ErrorBoundary } from './components/ErrorBoundary/ErrorBoundary';
 import { parseUrlState, syncUrl } from './engine/urlRouter';
@@ -249,7 +250,7 @@ export const App = () => {
                 ¡{pendingInvitationsForMe[0].fromUser?.name || 'Un familiar'} te ha retado a una partida de Ajedrez!
               </div>
               <div style={{ fontSize: '0.78rem', color: '#e2e8f0', marginTop: '2px' }}>
-                ⏱️ {Math.round((pendingInvitationsForMe[0].timeControl || 300) / 60)} min • Modalidad: <b style={{ color: '#38bdf8' }}>{pendingInvitationsForMe[0].gameVariant || 'Ajedrez Tradicional'}</b> • Sala: <b style={{ fontFamily: 'monospace', color: '#facc15' }}>{pendingInvitationsForMe[0].roomId}</b>
+                ⏱️ {pendingInvitationsForMe[0].timeControl === 0 ? 'Sin Tiempo' : `${Math.round((pendingInvitationsForMe[0].timeControl || 300) / 60)} min`} • Modalidad: <b style={{ color: '#38bdf8' }}>{getVariantById(pendingInvitationsForMe[0].gameVariant)?.name || pendingInvitationsForMe[0].gameVariant || 'Ajedrez Tradicional'}</b> • Sala: <b style={{ fontFamily: 'monospace', color: '#facc15' }}>{pendingInvitationsForMe[0].roomId}</b>
               </div>
             </div>
           </div>

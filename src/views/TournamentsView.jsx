@@ -92,19 +92,21 @@ export const TournamentsView = () => {
   const handlePlayerMove = (moveResult, newFen) => {
     if (game.turn() === 'b' || matchState !== 'playing') return;
 
+    const playerGame = new Chess(newFen || game.fen());
+    setGame(playerGame);
     setLastMove(moveResult);
 
-    if (game.isGameOver()) {
-      handleMatchOver();
+    if (playerGame.isGameOver()) {
+      handleMatchOver(playerGame);
       return;
     }
 
     setIsBotThinking(true);
     setTimeout(() => {
-      if (game.isGameOver()) return;
-      const botMove = getBestBotMove(game.fen(), activeTourney?.id === 'tourney_fide' ? 4 : 2);
+      if (playerGame.isGameOver()) return;
+      const botMove = getBestBotMove(playerGame.fen(), activeTourney?.id === 'tourney_fide' ? 4 : 2);
       if (botMove) {
-        const nextGame = new Chess(game.fen());
+        const nextGame = new Chess(playerGame.fen());
         nextGame.move(botMove);
         setGame(nextGame);
         setLastMove(botMove);
@@ -113,6 +115,8 @@ export const TournamentsView = () => {
         if (nextGame.isGameOver()) {
           handleMatchOver(nextGame);
         }
+      } else {
+        setIsBotThinking(false);
       }
     }, 500);
   };
@@ -126,12 +130,20 @@ export const TournamentsView = () => {
         setRound(2);
         setMatchState('bracket');
       } else {
-        audioManager.playWarning();
-        setMatchState('lost');
-        recordGameResult('loss', -5, 60);
+        setMatchState('won');
+        if (addRewards && activeTourney) {
+          addRewards(activeTourney.rewardStars, activeTourney.rewardGems);
+        }
+        if (recordGameResult) {
+          recordGameResult('win', 25, 90);
+        }
       }
     } else {
+      audioManager.playWarning();
       setMatchState('lost');
+      if (recordGameResult) {
+        recordGameResult('loss', -5, 60);
+      }
     }
   };
 

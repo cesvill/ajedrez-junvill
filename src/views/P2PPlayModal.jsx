@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Chess } from 'chess.js';
+import { createChessGame, isKinglessFen } from '../engine/kinglessEngine';
 import { ChessBoard } from '../components/ChessBoard/ChessBoard';
 import { SafeChat } from '../components/SafeChat/SafeChat';
 import { AvatarIcon } from '../assets/avatars';
@@ -122,7 +123,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
   const [incomingHandicapOffer, setIncomingHandicapOffer] = useState(null);
 
   // Estado del juego
-  const [game, setGame] = useState(() => new Chess());
+  const [game, setGame] = useState(() => createChessGame());
   const [lastMove, setLastMove] = useState(null);
   const [opponentProfile, setOpponentProfile] = useState({ name: 'Rival P2P', avatar: 'knight', elo: 600 });
   const [whitePlayerProfile, setWhitePlayerProfile] = useState(null);
@@ -284,7 +285,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
 
             if (incomingMoveCount > localMoveCount && data.fen !== localFen) {
               try {
-                const nextG = new Chess(data.fen);
+                const nextG = createChessGame(data.fen);
                 setGame(nextG);
                 gameRef.current = nextG;
                 if (data.lastMove) setLastMove(data.lastMove);
@@ -297,7 +298,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                 if (nextG.isCheckmate() || nextG.isCheck()) audioManager?.playCheck?.();
                 else if (data.lastMove?.captured) audioManager?.playCapture?.();
                 else audioManager?.playMove?.();
-                checkGameOver(nextG);
+                checkGameOver(nextG, data.lastMove);
               } catch (e) {}
             }
           }
@@ -480,7 +481,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
 
                   // Regla monótona inmutable: solo se aceptan posiciones con avance real en el conteo de jugadas
                   if (incomingMoveCount > localMoveCount) {
-                    const nextG = new Chess(match.fen);
+                    const nextG = createChessGame(match.fen);
                     setGame(nextG);
                     gameRef.current = nextG;
                     if (match.lastMove) setLastMove(match.lastMove);
@@ -494,7 +495,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                     if (nextG.isCheckmate() || nextG.isCheck()) audioManager?.playCheck?.();
                     else if (match.lastMove?.captured) audioManager?.playCapture?.();
                     else audioManager?.playMove?.();
-                    checkGameOver(nextG);
+                    checkGameOver(nextG, match.lastMove);
                   }
                 } catch (errSyncMove) {
                   console.warn('Error al aplicar jugada de nube:', errSyncMove);
@@ -591,6 +592,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
             const guestColor = hostColor === 'white' ? 'black' : 'white';
             setAssignedColor(hostColor);
             setIsP2PPaused(true);
+            const effectiveTimeControl = (savedMatch.timeControl !== undefined && savedMatch.timeControl !== null) ? savedMatch.timeControl : ((timeControl !== undefined && timeControl !== null) ? timeControl : 300);
             p2p.send({
               type: 'MATCH_RESUME_SYNC',
               profile: {
@@ -602,7 +604,8 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
               fen: savedMatch.fen || game.fen(),
               whiteTime: savedMatch.whiteTime ?? whiteTime,
               blackTime: savedMatch.blackTime ?? blackTime,
-              timeControl: savedMatch.timeControl || timeControl,
+              timeControl: effectiveTimeControl,
+              gameVariant: savedMatch.gameVariant || gameVariant || 'standard',
               assignedColor: guestColor,
               lastMove: savedMatch.lastMove || lastMove,
               withAssistance: savedMatch.withAssistance !== undefined ? savedMatch.withAssistance : withAssistance,
@@ -617,6 +620,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
               setAssignedColor(myFinalColor);
             }
             const guestFinalColor = myFinalColor === 'white' ? 'black' : 'white';
+            const effectiveTimeControl = (timeControl !== undefined && timeControl !== null) ? timeControl : 300;
 
             p2p.send({
               type: 'PROFILE_SYNC',
@@ -626,8 +630,10 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                 avatarConfig: currentUser?.avatarConfig,
                 elo: currentUser?.elo || 600,
                 color: guestFinalColor,
-                timeControl,
-                withAssistance
+                timeControl: effectiveTimeControl,
+                withAssistance,
+                gameVariant: gameVariant || 'standard',
+                startingFen: gameRef.current ? gameRef.current.fen() : undefined
               }
             });
           }
@@ -649,7 +655,8 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
         lastMove,
         whiteTime,
         blackTime,
-        timeControl,
+        timeControl: (timeControl !== undefined && timeControl !== null) ? timeControl : 300,
+        gameVariant: gameVariant || 'standard',
         withAssistance,
         whitePlayer: assignedColor === 'white' ? currentUser : opponentProfile,
         blackPlayer: assignedColor === 'black' ? currentUser : opponentProfile,
@@ -736,13 +743,15 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
   const handleIncomingData = (data) => {
     if (data.type === 'MATCH_RESUME_SYNC') {
       try {
-        const loadedG = new Chess(data.fen);
+        const loadedG = createChessGame(data.fen);
         setGame(loadedG);
         gameRef.current = loadedG;
+        if (data.gameVariant) setGameVariant(data.gameVariant);
         setLastMove(data.lastMove || null);
-        setWhiteTime(data.whiteTime ?? data.timeControl ?? 300);
-        setBlackTime(data.blackTime ?? data.timeControl ?? 300);
-        setTimeControl(data.timeControl ?? 300);
+        const tc = (data.timeControl !== undefined && data.timeControl !== null) ? data.timeControl : 300;
+        setTimeControl(tc);
+        setWhiteTime(data.whiteTime ?? tc);
+        setBlackTime(data.blackTime ?? tc);
         setAssignedColor(data.assignedColor || 'black');
         if (data.profile) setOpponentProfile(data.profile);
         if (data.withAssistance !== undefined) setWithAssistance(data.withAssistance);
@@ -760,8 +769,9 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
           roomId: cleanRoom,
           opponent: data.profile || opponentProfile,
           fen: data.fen,
+          gameVariant: data.gameVariant || gameVariant || 'standard',
           assignedColor: data.assignedColor || 'black',
-          timeControl: data.timeControl ?? 300,
+          timeControl: tc,
           whiteTime: data.whiteTime,
           blackTime: data.blackTime,
           lastMove: data.lastMove,
@@ -786,16 +796,14 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
       }
       if (data.profile.gameVariant) {
         setGameVariant(data.profile.gameVariant);
-        if (data.profile.gameVariant !== 'standard') {
-          const variantFen = getStartingFenForVariant(data.profile.gameVariant);
-          const newVarG = new Chess(variantFen);
-          setGame(newVarG);
-          gameRef.current = newVarG;
-        }
+        const variantFen = data.profile.startingFen || getStartingFenForVariant(data.profile.gameVariant);
+        const newVarG = createChessGame(variantFen);
+        setGame(newVarG);
+        gameRef.current = newVarG;
       }
       if (!p2pRef.current?.isHost) {
         setAssignedColor(data.profile.color);
-        if (data.profile.timeControl) {
+        if (data.profile.timeControl !== undefined && data.profile.timeControl !== null) {
           setTimeControl(data.profile.timeControl);
           setWhiteTime(data.profile.timeControl);
           setBlackTime(data.profile.timeControl);
@@ -814,13 +822,16 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
       // Estado inicial recibido por espectador
       const { fullGameState } = data;
       if (fullGameState) {
-        const specG = new Chess(fullGameState.fen);
+        const specG = createChessGame(fullGameState.fen);
         setGame(specG);
         gameRef.current = specG;
+        if (fullGameState.gameVariant) setGameVariant(fullGameState.gameVariant);
         setLastMove(fullGameState.lastMove);
         setWhiteTime(fullGameState.whiteTime);
         setBlackTime(fullGameState.blackTime);
-        setTimeControl(fullGameState.timeControl);
+        if (fullGameState.timeControl !== undefined && fullGameState.timeControl !== null) {
+          setTimeControl(fullGameState.timeControl);
+        }
         if (fullGameState.withAssistance !== undefined) setWithAssistance(fullGameState.withAssistance);
         setWhitePlayerProfile(fullGameState.whitePlayer);
         setBlackPlayerProfile(fullGameState.blackPlayer);
@@ -832,14 +843,14 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
         const localMoveCount = getFenMoveCount(localFen);
         let targetFen = data.fen;
         if (!targetFen && data.move) {
-          const g = new Chess(localFen);
+          const g = createChessGame(localFen);
           g.move(data.move);
           targetFen = g.fen();
         }
         const incomingMoveCount = data.moveCount ?? getFenMoveCount(targetFen);
 
         if (incomingMoveCount > localMoveCount) {
-          updatedGame = new Chess(targetFen || localFen);
+          updatedGame = createChessGame(targetFen || localFen);
           if (updatedGame.isCheckmate() || updatedGame.isCheck()) audioManager.playCheck();
           else if (data.move?.captured) audioManager.playCapture();
           else audioManager.playMove();
@@ -857,6 +868,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
               roomId,
               opponent: opponentProfile,
               fen: updatedGame.fen(),
+              gameVariant: gameVariant || 'standard',
               assignedColor,
               timeControl,
               whiteTime: data.clocks?.white ?? whiteTime,
@@ -867,7 +879,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
               updatedAt: Date.now()
             });
           }
-          checkGameOver(updatedGame);
+          checkGameOver(updatedGame, data.move);
         }
       } catch (err) {
         console.error("Error aplicando jugada remota P2P:", err);
@@ -926,7 +938,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
     } else if (data.type === 'HANDICAP_ACCEPT') {
       setHandicapConfig(data.config);
       const newFen = getHandicapFen(data.config);
-      const newG = new Chess(newFen);
+      const newG = createChessGame(newFen);
       setGame(newG);
       gameRef.current = newG;
       setLastMove(null);
@@ -936,7 +948,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
     } else if (data.type === 'HANDICAP_REJECT') {
       setHandicapConfig(DEFAULT_HANDICAP_CONFIG);
       const newFen = getHandicapFen(DEFAULT_HANDICAP_CONFIG);
-      const newG = new Chess(newFen);
+      const newG = createChessGame(newFen);
       setGame(newG);
       gameRef.current = newG;
       setLastMove(null);
@@ -1066,10 +1078,34 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
     }
   };
 
-  const checkGameOver = (currentGame) => {
+  const checkGameOver = (currentGame, lastMoveObj) => {
+    // 1. Verificación de condiciones de victoria especiales según la variante
+    if (gameVariant && gameVariant !== 'standard') {
+      const variantWin = checkVariantWinCondition(currentGame, lastMoveObj, gameVariant);
+      if (variantWin && variantWin.isGameOver) {
+        audioManager.playVictory();
+        const myCol = assignedColorRef.current || assignedColor;
+        const isMeWinner = (variantWin.winner === myCol);
+        setGameResultReason(variantWin.reason || (isMeWinner ? '¡Victoria!' : 'Derrota'));
+        setMode('gameover');
+        if (clearActiveP2PGame) clearActiveP2PGame();
+        if (isMeWinner) {
+          recordGameResult('win', 20, 95);
+          confetti({ particleCount: 120, spread: 90 });
+        } else if (variantWin.winner === 'draw') {
+          recordGameResult('draw', 5, 75);
+        } else {
+          recordGameResult('loss', 2, 60);
+        }
+        return;
+      }
+    }
+
+    // 2. Jaque mate estándar o tablas
     if (currentGame.isCheckmate()) {
       const winner = currentGame.turn() === 'w' ? 'black' : 'white';
-      const isMeWinner = winner === assignedColor;
+      const myCol = assignedColorRef.current || assignedColor;
+      const isMeWinner = winner === myCol;
       audioManager.playVictory();
       setGameResultReason(isMeWinner ? '👑 ¡JAQUE MATE! Has ganado la partida 🏆' : `👑 JAQUE MATE: ${opponentProfile?.name || 'El rival'} ha ganado.`);
       setMode('gameover');
@@ -1110,7 +1146,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
     if (!isMyTurn) return false;
 
     try {
-      const updatedGame = new Chess(newFen || curGame.fen());
+      const updatedGame = createChessGame(newFen || curGame.fen());
       if (updatedGame.isCheckmate() || updatedGame.isCheck()) audioManager.playCheck();
       else if (moveResult?.captured) audioManager.playCapture();
       else audioManager.playMove();
@@ -1152,6 +1188,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
         bothConfirmed: true,
         opponent: opponentProfileRef.current || opponentProfile,
         fen: updatedGame.fen(),
+        gameVariant: gameVariant || 'standard',
         hostColor: isHost ? myColor : (myColor === 'white' ? 'black' : 'white'),
         guestColor: !isHost ? myColor : (myColor === 'white' ? 'black' : 'white'),
         assignedColor: myColor,
@@ -1299,9 +1336,10 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
 
   // Reiniciar / Revancha
   const restartP2PGame = () => {
-    const newFen = getHandicapFen(handicapConfig);
-    const newGame = new Chess(newFen);
+    const newFen = getStartingFenForVariant(gameVariant, handicapConfig);
+    const newGame = createChessGame(newFen);
     setGame(newGame);
+    gameRef.current = newGame;
     setLastMove(null);
     setWhiteTime(timeControl);
     setBlackTime(timeControl);
@@ -1352,17 +1390,31 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
       setStatusMessage(`¡Sala ${cleanId} iniciada! Esperando a que tu amigo o familiar ingrese a la partida...`);
     }
 
+    // Inicializar tablero con la variante elegida
+    let currentBoardGame = gameRef.current;
+    if (!currentBoardGame || currentBoardGame.history().length === 0) {
+      const startFen = getStartingFenForVariant(gameVariant, handicapConfig);
+      const initialG = createChessGame(startFen);
+      setGame(initialG);
+      gameRef.current = initialG;
+      currentBoardGame = initialG;
+    }
+
     // Pre-cargar estado guardado si existe
     try {
       const rawSaved = localStorage.getItem(`junvill_p2p_room_${cleanId}`);
       if (rawSaved) {
         const parsed = JSON.parse(rawSaved);
         if (parsed.fen) {
-          setGame(new Chess(parsed.fen));
+          const loadedG = createChessGame(parsed.fen);
+          setGame(loadedG);
+          gameRef.current = loadedG;
+          currentBoardGame = loadedG;
           if (parsed.whiteTime !== undefined) setWhiteTime(parsed.whiteTime);
           if (parsed.blackTime !== undefined) setBlackTime(parsed.blackTime);
-          if (parsed.timeControl) setTimeControl(parsed.timeControl);
+          if (parsed.timeControl !== undefined && parsed.timeControl !== null) setTimeControl(parsed.timeControl);
           if (parsed.assignedColor) setAssignedColor(parsed.assignedColor);
+          if (parsed.gameVariant) setGameVariant(parsed.gameVariant);
           if (parsed.lastMove) setLastMove(parsed.lastMove);
           if (parsed.opponent) setOpponentProfile(parsed.opponent);
           setIsP2PPaused(true);
@@ -1372,6 +1424,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
 
     const chosenColor = assignedColor === 'black' ? 'black' : 'white';
     setAssignedColor(chosenColor);
+    const effectiveTime = (timeControl !== undefined && timeControl !== null) ? timeControl : 300;
 
     // Registrar sala anfitriona en Nube Central (/api/sync) para conexión garantizada con confirmación en BD
     const hostPayload = {
@@ -1394,13 +1447,15 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
         avatar: 'teen_gamer',
         elo: 600
       },
-      fen: game.fen(),
+      fen: currentBoardGame ? currentBoardGame.fen() : getStartingFenForVariant(gameVariant, handicapConfig),
+      gameVariant: gameVariant || 'standard',
+      handicapConfig,
       hostColor: chosenColor,
       guestColor: chosenColor === 'white' ? 'black' : 'white',
       assignedColor: chosenColor,
-      timeControl: timeControl || 300,
-      whiteTime: timeControl || 300,
-      blackTime: timeControl || 300,
+      timeControl: effectiveTime,
+      whiteTime: effectiveTime,
+      blackTime: effectiveTime,
       turn: 'w',
       isWaiting: true,
       updatedAt: Date.now()
@@ -1438,12 +1493,18 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
     if (directInv && directInv.fromUser) {
       setOpponentProfile(directInv.fromUser);
       setAssignedColor('black');
-      if (directInv.timeControl) {
+      if (directInv.timeControl !== undefined && directInv.timeControl !== null) {
         setTimeControl(directInv.timeControl);
         setWhiteTime(directInv.timeControl);
         setBlackTime(directInv.timeControl);
       }
-      if (directInv.gameVariant) setGameVariant(directInv.gameVariant);
+      if (directInv.gameVariant) {
+        setGameVariant(directInv.gameVariant);
+        const vFen = getStartingFenForVariant(directInv.gameVariant, directInv.handicapConfig);
+        const vG = createChessGame(vFen);
+        setGame(vG);
+        gameRef.current = vG;
+      }
       if (directInv.withAssistance !== undefined) setWithAssistance(directInv.withAssistance);
       setIsOpponentConnected(true);
       setIsConnecting(false);
@@ -1470,11 +1531,14 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
       if (rawSaved) {
         const parsed = JSON.parse(rawSaved);
         if (parsed.fen) {
-          setGame(new Chess(parsed.fen));
+          const loadedG = createChessGame(parsed.fen);
+          setGame(loadedG);
+          gameRef.current = loadedG;
           if (parsed.whiteTime !== undefined) setWhiteTime(parsed.whiteTime);
           if (parsed.blackTime !== undefined) setBlackTime(parsed.blackTime);
-          if (parsed.timeControl) setTimeControl(parsed.timeControl);
+          if (parsed.timeControl !== undefined && parsed.timeControl !== null) setTimeControl(parsed.timeControl);
           if (parsed.assignedColor) setAssignedColor(parsed.assignedColor);
+          if (parsed.gameVariant) setGameVariant(parsed.gameVariant);
           if (parsed.lastMove) setLastMove(parsed.lastMove);
           if (parsed.opponent) setOpponentProfile(parsed.opponent);
           setIsP2PPaused(true);
@@ -1488,11 +1552,15 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
         setOpponentProfile(remoteMatch.hostUser);
         const guestColor = remoteMatch.guestColor || (remoteMatch.hostColor === 'black' ? 'white' : (remoteMatch.assignedColor === 'white' ? 'black' : 'white'));
         setAssignedColor(guestColor);
-        setTimeControl(remoteMatch.timeControl || 300);
-        setWhiteTime(remoteMatch.whiteTime || 300);
-        setBlackTime(remoteMatch.blackTime || 300);
-        const loadedG = new Chess(remoteMatch.fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+        const tc = (remoteMatch.timeControl !== undefined && remoteMatch.timeControl !== null) ? remoteMatch.timeControl : 300;
+        setTimeControl(tc);
+        setWhiteTime(remoteMatch.whiteTime ?? tc);
+        setBlackTime(remoteMatch.blackTime ?? tc);
+        if (remoteMatch.gameVariant) setGameVariant(remoteMatch.gameVariant);
+        const startingFenForRemote = remoteMatch.fen || getStartingFenForVariant(remoteMatch.gameVariant || 'standard');
+        const loadedG = createChessGame(startingFenForRemote);
         setGame(loadedG);
+        gameRef.current = loadedG;
         setIsConnecting(false);
         setIsOpponentConnected(true);
         setIsInterrupted(false);
@@ -1745,7 +1813,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                       ¡{pendingInvitationsForMe[0].fromUser?.name || 'Un familiar'} te ha retado a jugar!
                     </div>
                     <div style={{ fontSize: '0.78rem', color: '#cbd5e1', marginTop: '2px' }}>
-                      Modalidad: <b style={{ color: '#38bdf8' }}>{pendingInvitationsForMe[0].gameVariant || 'Ajedrez Tradicional'}</b> • Sala: <b style={{ color: '#60a5fa', fontFamily: 'monospace' }}>{pendingInvitationsForMe[0].roomId}</b> • ⏱️ {Math.round((pendingInvitationsForMe[0].timeControl || 300) / 60)} min
+                      Modalidad: <b style={{ color: '#38bdf8' }}>{getVariantById(pendingInvitationsForMe[0].gameVariant)?.name || pendingInvitationsForMe[0].gameVariant || 'Ajedrez Tradicional'}</b> • Sala: <b style={{ color: '#60a5fa', fontFamily: 'monospace' }}>{pendingInvitationsForMe[0].roomId}</b> • ⏱️ {pendingInvitationsForMe[0].timeControl === 0 ? 'Sin Tiempo' : `${Math.round((pendingInvitationsForMe[0].timeControl || 300) / 60)} min`}
                     </div>
                   </div>
                 </div>
@@ -1800,7 +1868,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                       Partida P2P en Pausa vs {activeP2PGame.opponent?.name || 'Familiar'}
                     </div>
                     <div style={{ fontSize: '0.78rem', color: '#cbd5e1', marginTop: '2px' }}>
-                      Sala: <b style={{ color: '#60a5fa', fontFamily: 'monospace', letterSpacing: '1px' }}>{activeP2PGame.roomId}</b> • Relojes guardados ({Math.floor((activeP2PGame.whiteTime || 300)/60)}:{String((activeP2PGame.whiteTime || 300)%60).padStart(2, '0')} / {Math.floor((activeP2PGame.blackTime || 300)/60)}:{String((activeP2PGame.blackTime || 300)%60).padStart(2, '0')})
+                      Modalidad: <b style={{ color: '#38bdf8' }}>{getVariantById(activeP2PGame.gameVariant)?.name || activeP2PGame.gameVariant || 'Ajedrez Tradicional'}</b> • Sala: <b style={{ color: '#60a5fa', fontFamily: 'monospace', letterSpacing: '1px' }}>{activeP2PGame.roomId}</b> • {activeP2PGame.timeControl === 0 ? 'Sin Tiempo' : `Relojes guardados (${Math.floor((activeP2PGame.whiteTime || 300)/60)}:${String((activeP2PGame.whiteTime || 300)%60).padStart(2, '0')} / ${Math.floor((activeP2PGame.blackTime || 300)/60)}:${String((activeP2PGame.blackTime || 300)%60).padStart(2, '0')})`}
                     </div>
                   </div>
                 </div>
@@ -1812,11 +1880,16 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                       const clean = P2PEngine.cleanRoomId(activeP2PGame.roomId);
                       setInputRoomId(clean);
                       setRoomId(clean);
-                      if (activeP2PGame.fen) setGame(new Chess(activeP2PGame.fen));
+                      if (activeP2PGame.fen) {
+                        const resumedG = createChessGame(activeP2PGame.fen);
+                        setGame(resumedG);
+                        gameRef.current = resumedG;
+                      }
                       if (activeP2PGame.whiteTime !== undefined) setWhiteTime(activeP2PGame.whiteTime);
                       if (activeP2PGame.blackTime !== undefined) setBlackTime(activeP2PGame.blackTime);
-                      if (activeP2PGame.timeControl) setTimeControl(activeP2PGame.timeControl);
+                      if (activeP2PGame.timeControl !== undefined && activeP2PGame.timeControl !== null) setTimeControl(activeP2PGame.timeControl);
                       if (activeP2PGame.assignedColor) setAssignedColor(activeP2PGame.assignedColor);
+                      if (activeP2PGame.gameVariant) setGameVariant(activeP2PGame.gameVariant);
                       if (activeP2PGame.opponent) setOpponentProfile(activeP2PGame.opponent);
                       setMode('playing');
                       setIsP2PPaused(true);
@@ -1967,7 +2040,8 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                       {[
                         { secs: 180, label: '3 min' },
                         { secs: 300, label: '5 min' },
-                        { secs: 600, label: '10 min' }
+                        { secs: 600, label: '10 min' },
+                        { secs: 0, label: '♾️ Sin Tiempo' }
                       ].map(t => (
                         <button
                           key={t.secs}
@@ -2242,11 +2316,12 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                       <label style={{ fontSize: '0.76rem', fontWeight: '800', color: '#e2e8f0', display: 'block', marginBottom: '4px' }}>
                         Tiempo:
                       </label>
-                      <div style={{ display: 'flex', gap: '4px' }}>
+                      <div style={{ display: 'flex', gap: '3px' }}>
                         {[
                           { secs: 180, label: '3m' },
                           { secs: 300, label: '5m' },
-                          { secs: 600, label: '10m' }
+                          { secs: 600, label: '10m' },
+                          { secs: 0, label: '♾️' }
                         ].map(t => (
                           <button
                             key={t.secs}
@@ -2260,15 +2335,62 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                               border: 'none',
                               borderRadius: '6px',
                               padding: '6px 2px',
-                              fontSize: '0.78rem',
+                              fontSize: '0.74rem',
                               fontWeight: '800'
                             }}
+                            title={t.secs === 0 ? 'Sin límite de tiempo' : `${t.secs / 60} minutos`}
                           >
                             {t.label}
                           </button>
                         ))}
                       </div>
                     </div>
+                  </div>
+
+                  {/* Selector de Modalidad / Mini-juego */}
+                  <div>
+                    <label style={{ fontSize: '0.76rem', fontWeight: '800', color: '#e2e8f0', display: 'block', marginBottom: '4px' }}>
+                      Modalidad / Mini-juego:
+                    </label>
+                    <select
+                      value={gameVariant}
+                      onChange={(e) => {
+                        const newVar = e.target.value;
+                        setGameVariant(newVar);
+                        const vFen = getStartingFenForVariant(newVar, handicapConfig);
+                        const newVarG = createChessGame(vFen);
+                        setGame(newVarG);
+                        gameRef.current = newVarG;
+                      }}
+                      disabled={isHostActive}
+                      style={{
+                        width: '100%',
+                        padding: '8px 10px',
+                        background: '#0a0f1d',
+                        border: '1.5px solid rgba(59, 130, 246, 0.5)',
+                        borderRadius: '8px',
+                        color: '#f8fafc',
+                        fontSize: '0.82rem',
+                        fontWeight: '800',
+                        outline: 'none'
+                      }}
+                    >
+                      <optgroup label="✨ Populares">
+                        {CHESS_VARIANTS.filter(v => v.category === 'popular').map(v => (
+                          <option key={v.id} value={v.id}>{v.icon} {v.name}</option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="🌱 Sin Reyes (Aprendizaje)">
+                        {CHESS_VARIANTS.filter(v => v.category === 'learning').map(v => (
+                          <option key={v.id} value={v.id}>{v.icon} {v.name}</option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="👑 Rey Escolta">
+                        {CHESS_VARIANTS.filter(v => v.category === 'intermediate_learning').map(v => (
+                          <option key={v.id} value={v.id}>{v.icon} {v.name}</option>
+                        ))}
+                      </optgroup>
+                    </select>
                   </div>
 
                   {!isHostActive ? (

@@ -169,11 +169,27 @@ export const BugReportModal = ({ isOpen, onClose, contextData = {} }) => {
           const combinedMap = new Map();
           [...local, ...cloudData.bugReports].forEach(r => {
             if (r && (r.reportId || r.id)) {
-              combinedMap.set(r.reportId || r.id, r);
+              const id = r.reportId || r.id;
+              const prev = combinedMap.get(id);
+              if (!prev) {
+                combinedMap.set(id, r);
+              } else {
+                const isResolved = r.status === 'resolved' || r.status === 'fixed' || prev.status === 'resolved' || prev.status === 'fixed';
+                combinedMap.set(id, {
+                  ...prev,
+                  ...r,
+                  status: isResolved ? 'resolved' : (r.status || prev.status || 'submitted'),
+                  resolvedAt: r.resolvedAt || prev.resolvedAt || (isResolved ? new Date().toISOString() : null),
+                  resolvedBy: r.resolvedBy || prev.resolvedBy || (isResolved ? 'Asistente IA (Antigravity)' : null)
+                });
+              }
             }
           });
           const merged = Array.from(combinedMap.values());
           setSavedReports(merged);
+          try {
+            localStorage.setItem('junvill_bug_reports', JSON.stringify(merged));
+          } catch (e) {}
         }
       }).catch(() => {});
     }
