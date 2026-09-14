@@ -392,91 +392,92 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" style={{ zIndex: 130, padding: '10px' }} onClick={onClose}>
+    <div className="modal-overlay" style={{ zIndex: 130, padding: '8px' }} onClick={onClose}>
       <div 
         className="modal-card" 
         style={{
-          maxWidth: '920px',
+          maxWidth: '860px',
           width: '100%',
-          maxHeight: '94vh',
+          maxHeight: '95vh',
           background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
           border: '2px solid #eab308',
-          borderRadius: '20px',
-          padding: '20px',
+          borderRadius: '18px',
+          padding: '14px 18px',
           boxShadow: '0 25px 60px rgba(0,0,0,0.85)',
           overflowY: 'auto',
           color: '#f8fafc',
           display: 'flex',
           flexDirection: 'column',
-          gap: '16px'
+          gap: '10px'
         }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* =========================================================================
             1. CABECERA Y SELECTOR DE REGLAS
            ========================================================================= */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{
-              width: '44px',
-              height: '44px',
-              borderRadius: '12px',
+              width: '40px',
+              height: '40px',
+              borderRadius: '10px',
               background: 'linear-gradient(135deg, #eab308 0%, #ca8a04 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '1.5rem',
-              boxShadow: '0 4px 14px rgba(234, 179, 8, 0.4)'
+              fontSize: '1.4rem',
+              boxShadow: '0 4px 12px rgba(234, 179, 8, 0.4)',
+              flexShrink: 0
             }}>
               🧩
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: '900', color: '#facc15' }}>
+                <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '900', color: '#facc15' }}>
                   Ajedrez 3x3: Desafío de 5 Piezas
                 </h2>
-                <span style={{ fontSize: '0.70rem', background: '#3b82f6', color: 'white', fontWeight: '900', padding: '2px 8px', borderRadius: '9999px' }}>
+                <span style={{ fontSize: '0.68rem', background: '#3b82f6', color: 'white', fontWeight: '900', padding: '1px 7px', borderRadius: '9999px' }}>
                   Puzle Cuby
                 </span>
               </div>
-              <p style={{ margin: '2px 0 0', fontSize: '0.76rem', color: '#94a3b8' }}>
+              <p style={{ margin: '1px 0 0', fontSize: '0.74rem', color: '#94a3b8' }}>
                 Reordena las 5 piezas usando sus movimientos oficiales hacia casillas libres. ¡Sin capturas!
               </p>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <button
               type="button"
               className="btn-secondary"
               onClick={() => setIsRulesOpen(true)}
-              style={{ padding: '7px 12px', fontSize: '0.78rem', gap: '5px', borderColor: 'rgba(234, 179, 8, 0.4)', color: '#fde047' }}
+              style={{ padding: '5px 10px', fontSize: '0.74rem', gap: '4px', borderColor: 'rgba(234, 179, 8, 0.4)', color: '#fde047' }}
             >
-              <HelpCircle size={15} />
+              <HelpCircle size={14} />
               <span>Reglas</span>
             </button>
             <button
               type="button"
               className="btn-secondary"
               onClick={() => setIsMuted(!isMuted)}
-              style={{ padding: '7px 10px', fontSize: '0.78rem' }}
+              style={{ padding: '5px 8px', fontSize: '0.74rem' }}
               title={isMuted ? 'Activar sonido' : 'Silenciar'}
             >
-              {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+              {isMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
             </button>
             <button
               type="button"
               className="btn-secondary"
               onClick={onClose}
-              style={{ padding: '7px 10px', fontSize: '0.78rem' }}
+              style={{ padding: '5px 8px', fontSize: '0.74rem' }}
             >
-              <X size={16} />
+              <X size={15} />
             </button>
           </div>
         </div>
 
         {/* SELECTOR DE MODO DE JUEGO */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '8px' }}>
           <button
             type="button"
             onClick={() => {
@@ -487,19 +488,23 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
               background: gameMode === 'adventure' ? 'linear-gradient(135deg, rgba(234, 179, 8, 0.25) 0%, rgba(202, 138, 4, 0.35) 100%)' : 'rgba(30, 41, 59, 0.6)',
               border: `1.5px solid ${gameMode === 'adventure' ? '#facc15' : 'rgba(148, 163, 184, 0.2)'}`,
               borderRadius: '10px',
-              padding: '10px',
+              padding: '8px 10px',
               color: gameMode === 'adventure' ? '#fef08a' : '#94a3b8',
               fontWeight: '900',
-              fontSize: '0.82rem',
+              fontSize: '0.78rem',
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '6px',
+              gap: '2px',
               cursor: 'pointer'
             }}
           >
-            <Trophy size={16} color="#facc15" />
-            <span>Reto Encadenado</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <Trophy size={14} color="#facc15" />
+              <span>Reto Encadenado</span>
+            </div>
+            <span style={{ fontSize: '0.64rem', opacity: 0.8, fontWeight: '700' }}>👤 Puzle Solitario</span>
           </button>
 
           <button
@@ -514,19 +519,23 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
               background: gameMode === 'time_attack' ? 'linear-gradient(135deg, rgba(236, 72, 153, 0.25) 0%, rgba(190, 24, 93, 0.35) 100%)' : 'rgba(30, 41, 59, 0.6)',
               border: `1.5px solid ${gameMode === 'time_attack' ? '#f472b6' : 'rgba(148, 163, 184, 0.2)'}`,
               borderRadius: '10px',
-              padding: '10px',
+              padding: '8px 10px',
               color: gameMode === 'time_attack' ? '#fbcfe8' : '#94a3b8',
               fontWeight: '900',
-              fontSize: '0.82rem',
+              fontSize: '0.78rem',
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '6px',
+              gap: '2px',
               cursor: 'pointer'
             }}
           >
-            <Hourglass size={16} color="#f472b6" />
-            <span>Reloj de Arena (60s)</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <Hourglass size={14} color="#f472b6" />
+              <span>Reloj de Arena (60s)</span>
+            </div>
+            <span style={{ fontSize: '0.64rem', opacity: 0.8, fontWeight: '700' }}>⏳ Solitario Contrarreloj</span>
           </button>
 
           <button
@@ -541,19 +550,23 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
               background: gameMode === 'competitive' ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.25) 0%, rgba(29, 78, 216, 0.35) 100%)' : 'rgba(30, 41, 59, 0.6)',
               border: `1.5px solid ${gameMode === 'competitive' ? '#60a5fa' : 'rgba(148, 163, 184, 0.2)'}`,
               borderRadius: '10px',
-              padding: '10px',
+              padding: '8px 10px',
               color: gameMode === 'competitive' ? '#bfdbfe' : '#94a3b8',
               fontWeight: '900',
-              fontSize: '0.82rem',
+              fontSize: '0.78rem',
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '6px',
+              gap: '2px',
               cursor: 'pointer'
             }}
           >
-            <Swords size={16} color="#60a5fa" />
-            <span>Duelo con Pujas (vs Bot)</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <Swords size={14} color="#60a5fa" />
+              <span>Duelo con Pujas</span>
+            </div>
+            <span style={{ fontSize: '0.64rem', opacity: 0.8, fontWeight: '700' }}>🤖 vs Robot IA</span>
           </button>
         </div>
 
@@ -681,8 +694,8 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
            ========================================================================= */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: '20px',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+          gap: '14px',
           alignItems: 'center',
           justifyContent: 'center'
         }}>
@@ -691,29 +704,29 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: '12px'
+            gap: '8px'
           }}>
             <div style={{
               width: '100%',
-              maxWidth: '280px',
+              maxWidth: 'min(260px, 32vh)',
               background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
               border: '2px solid #eab308',
-              borderRadius: '16px',
-              padding: '16px',
+              borderRadius: '14px',
+              padding: '12px 14px',
               boxShadow: '0 8px 24px rgba(234, 179, 8, 0.2)',
               position: 'relative',
               textAlign: 'center'
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontSize: '0.72rem', background: '#eab308', color: '#0f172a', fontWeight: '900', padding: '2px 8px', borderRadius: '4px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <span style={{ fontSize: '0.70rem', background: '#eab308', color: '#0f172a', fontWeight: '900', padding: '2px 7px', borderRadius: '4px' }}>
                   TARJETA #{cardIndex + 1}
                 </span>
-                <span style={{ fontSize: '0.74rem', color: '#facc15', fontWeight: '800' }}>
+                <span style={{ fontSize: '0.72rem', color: '#facc15', fontWeight: '800' }}>
                   Par: {currentCard.optimalMoves || currentOptimalSolution.minMoves || 4} jugadas
                 </span>
               </div>
 
-              <h3 style={{ margin: '0 0 10px', fontSize: '1rem', fontWeight: '900', color: '#f8fafc' }}>
+              <h3 style={{ margin: '0 0 8px', fontSize: '0.92rem', fontWeight: '900', color: '#f8fafc' }}>
                 {currentCard.title}
               </h3>
 
@@ -728,7 +741,7 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
                 border: '1.5px solid #64748b',
                 aspectRatio: '1',
                 width: '100%',
-                maxWidth: '180px',
+                maxWidth: 'min(150px, 18vh)',
                 margin: '0 auto',
                 transform: `rotate(${cardRotation}deg) scaleX(${cardFlipped ? -1 : 1})`,
                 transition: 'transform 0.3s ease'
@@ -744,13 +757,16 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        position: 'relative'
+                        position: 'relative',
+                        aspectRatio: '1'
                       }}
                     >
-                      {pKey && (
-                        <div style={{ width: '80%', height: '80%' }}>
+                      {pKey ? (
+                        <div style={{ width: '80%', height: '80%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <PieceIcon piece={CUBY_PIECES[pKey]?.code || pKey.toLowerCase()} color="w" />
                         </div>
+                      ) : (
+                        <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'rgba(0,0,0,0.15)' }} />
                       )}
                     </div>
                   );
@@ -759,15 +775,15 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
 
               {/* Controles de Rotación y Modo Espejo (Niveles 2 y 3) */}
               {(ruleLevel >= 2) && (
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', marginTop: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', marginTop: '10px' }}>
                   <button
                     type="button"
                     className="btn-secondary"
                     onClick={handleRotateCard}
-                    style={{ padding: '6px 10px', fontSize: '0.72rem', gap: '4px' }}
+                    style={{ padding: '5px 8px', fontSize: '0.70rem', gap: '3px' }}
                     title="Girar tarjeta 90° (+1 jugada)"
                   >
-                    <RotateCcw size={13} />
+                    <RotateCcw size={12} />
                     <span>Girar 90° (+1)</span>
                   </button>
                   {ruleLevel >= 3 && (
@@ -775,10 +791,10 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
                       type="button"
                       className="btn-secondary"
                       onClick={handleFlipCard}
-                      style={{ padding: '6px 10px', fontSize: '0.72rem', gap: '4px' }}
+                      style={{ padding: '5px 8px', fontSize: '0.70rem', gap: '3px' }}
                       title="Efecto espejo reverso (+1 jugada)"
                     >
-                      <Shuffle size={13} />
+                      <Shuffle size={12} />
                       <span>Espejo (+1)</span>
                     </button>
                   )}
@@ -792,7 +808,7 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: '14px'
+            gap: '8px'
           }}>
             {/* Tablero 3x3 */}
             <div style={{
@@ -800,12 +816,12 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
               gridTemplateColumns: 'repeat(3, 1fr)',
               gap: '6px',
               background: 'linear-gradient(135deg, #78350f 0%, #451a03 100%)',
-              padding: '12px',
+              padding: '10px',
               borderRadius: '16px',
               border: '3px solid #f59e0b',
-              boxShadow: '0 12px 36px rgba(0,0,0,0.7)',
+              boxShadow: '0 10px 30px rgba(0,0,0,0.7)',
               width: '100%',
-              maxWidth: '340px',
+              maxWidth: 'min(300px, 34vh)',
               aspectRatio: '1'
             }}>
               {currentBoard.map((pKey, idx) => {
@@ -831,25 +847,26 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
                         : isLight 
                         ? '#fef3c7' 
                         : '#d97706',
-                      borderRadius: '10px',
+                      borderRadius: '8px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       position: 'relative',
                       cursor: pKey || isLegalDest ? 'pointer' : 'default',
                       boxShadow: isSelected ? 'inset 0 0 14px rgba(234, 179, 8, 0.8)' : 'none',
-                      transition: 'all 0.15s ease'
+                      transition: 'all 0.15s ease',
+                      aspectRatio: '1'
                     }}
                   >
                     {/* Etiqueta de Casilla (a1..c3) */}
                     <span style={{
                       position: 'absolute',
-                      top: '4px',
-                      left: '6px',
-                      fontSize: '0.66rem',
+                      top: '3px',
+                      left: '5px',
+                      fontSize: '0.64rem',
                       fontWeight: '800',
                       color: isLight ? '#92400e' : '#fef3c7',
-                      opacity: 0.6,
+                      opacity: 0.65,
                       userSelect: 'none'
                     }}>
                       {SQUARE_NAMES[idx]}
@@ -858,8 +875,8 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
                     {/* Pieza de Ajedrez */}
                     {pKey && (
                       <div style={{
-                        width: '85%',
-                        height: '85%',
+                        width: '82%',
+                        height: '82%',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -870,11 +887,21 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
                       </div>
                     )}
 
+                    {/* Punto sutil para casilla vacía disponible */}
+                    {!pKey && !isLegalDest && (
+                      <div style={{
+                        width: '7px',
+                        height: '7px',
+                        borderRadius: '50%',
+                        background: isLight ? 'rgba(146, 64, 14, 0.22)' : 'rgba(254, 243, 199, 0.28)'
+                      }} />
+                    )}
+
                     {/* Punto indicador de destino legal */}
                     {!pKey && isLegalDest && (
                       <div style={{
-                        width: '22px',
-                        height: '22px',
+                        width: '20px',
+                        height: '20px',
                         borderRadius: '50%',
                         background: '#10b981',
                         boxShadow: '0 0 10px rgba(16, 185, 129, 0.8)',
@@ -892,20 +919,20 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
               alignItems: 'center',
               justifyContent: 'space-between',
               width: '100%',
-              maxWidth: '340px',
-              padding: '8px 14px',
+              maxWidth: 'min(300px, 34vh)',
+              padding: '6px 12px',
               background: 'rgba(15, 23, 42, 0.8)',
               border: '1px solid rgba(148, 163, 184, 0.25)',
-              borderRadius: '10px',
-              fontSize: '0.80rem'
+              borderRadius: '8px',
+              fontSize: '0.78rem'
             }}>
               <div>
                 <span style={{ color: '#94a3b8' }}>Movimientos: </span>
-                <strong style={{ color: movesCount > (currentCard.optimalMoves || 4) ? '#ef4444' : '#facc15', fontSize: '0.94rem' }}>
+                <strong style={{ color: movesCount > (currentCard.optimalMoves || 4) ? '#ef4444' : '#facc15', fontSize: '0.90rem' }}>
                   {movesCount}
                 </strong>
                 {getTransformPenalty() > 0 && (
-                  <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}> (+{getTransformPenalty()} giros)</span>
+                  <span style={{ fontSize: '0.70rem', color: '#94a3b8' }}> (+{getTransformPenalty()} giros)</span>
                 )}
               </div>
 
@@ -916,16 +943,16 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
             </div>
 
             {/* Barra de Herramientas (Pista, Deshacer, Reiniciar) */}
-            <div style={{ display: 'flex', gap: '8px', width: '100%', maxWidth: '340px' }}>
+            <div style={{ display: 'flex', gap: '6px', width: '100%', maxWidth: 'min(300px, 34vh)' }}>
               <button
                 type="button"
                 className="btn-secondary"
                 onClick={handleUndo}
                 disabled={history.length === 0 || isSolved}
-                style={{ flex: 1, padding: '8px', fontSize: '0.76rem', justifyContent: 'center', gap: '4px' }}
+                style={{ flex: 1, padding: '6px', fontSize: '0.74rem', justifyContent: 'center', gap: '4px' }}
                 title="Deshacer última jugada"
               >
-                <RotateCcw size={14} />
+                <RotateCcw size={13} />
                 <span>Deshacer</span>
               </button>
 
@@ -933,7 +960,7 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
                 type="button"
                 className="btn-secondary"
                 onClick={handleResetCard}
-                style={{ flex: 1, padding: '8px', fontSize: '0.76rem', justifyContent: 'center', gap: '4px' }}
+                style={{ flex: 1, padding: '6px', fontSize: '0.74rem', justifyContent: 'center', gap: '4px' }}
                 title="Reiniciar tablero"
               >
                 <span>🔄 Reiniciar</span>
@@ -944,10 +971,10 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
                 className="btn-gold"
                 onClick={handleRequestHint}
                 disabled={isSolved}
-                style={{ flex: 1, padding: '8px', fontSize: '0.76rem', justifyContent: 'center', gap: '4px', fontWeight: '900' }}
+                style={{ flex: 1, padding: '6px', fontSize: '0.74rem', justifyContent: 'center', gap: '4px', fontWeight: '900' }}
                 title="Ver siguiente jugada óptima"
               >
-                <Lightbulb size={14} />
+                <Lightbulb size={13} />
                 <span>Pista</span>
               </button>
             </div>
