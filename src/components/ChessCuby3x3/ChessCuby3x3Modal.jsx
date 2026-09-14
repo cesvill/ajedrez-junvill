@@ -83,8 +83,6 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
   const [duelWinnerMessage, setDuelWinnerMessage] = useState('');
   const duelTimerRef = useRef(null);
 
-  if (!isOpen) return null;
-
   // Calcula la tarjeta transformada según la rotación y volteo elegidos por el usuario
   const getTransformedTargetBoard = useCallback(() => {
     let b = [...currentCard.target];
@@ -390,6 +388,8 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
   };
 
   const transformedTargetBoard = getTransformedTargetBoard();
+
+  if (!isOpen) return null;
 
   return (
     <div className="modal-overlay" style={{ zIndex: 130, padding: '10px' }} onClick={onClose}>

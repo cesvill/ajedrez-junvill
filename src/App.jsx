@@ -485,10 +485,12 @@ export const App = () => {
       />
 
       {/* Modal del Minijuego Ajedrez 3x3: Desafío de 5 Piezas (Puzle Cuby) */}
-      <ChessCuby3x3Modal
-        isOpen={isCuby3x3Open}
-        onClose={() => setIsCuby3x3Open(false)}
-      />
+      {isCuby3x3Open && (
+        <ChessCuby3x3Modal
+          isOpen={isCuby3x3Open}
+          onClose={() => setIsCuby3x3Open(false)}
+        />
+      )}
       </div>
     </ErrorBoundary>
   );
