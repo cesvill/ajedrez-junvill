@@ -1946,6 +1946,7 @@ export const PlayView = ({
             onStartMatch={handleStartMatch}
             onSelectP2P={onOpenP2P}
             onOpenRobotsView={onOpenRobots}
+            onOpenCuby3x3={onOpenCuby3x3}
             activeBot={activeBot || initialBotMatch || currentBot}
             ongoingGame={savedGame}
             onResumeOngoingGame={handleResumeSavedGame}
@@ -2976,6 +2977,21 @@ export const PlayView = ({
               onOpenP2P(challengeOpponent, createdInv.roomId, 'create');
             }
           }}
+        />
+      )}
+      {/* Modal de Selección de Modo y Variante */}
+      {isModeModalOpen && (
+        <GameModeModal
+          isOpen={isModeModalOpen}
+          onClose={() => setIsModeModalOpen(false)}
+          onStartMatch={handleStartMatch}
+          onSelectP2P={onOpenP2P}
+          onOpenRobotsView={onOpenRobots}
+          onOpenCuby3x3={onOpenCuby3x3}
+          activeBot={activeBot || initialBotMatch || currentBot}
+          ongoingGame={savedGame}
+          onResumeOngoingGame={handleResumeSavedGame}
+          onDiscardOngoingGame={handleDiscardSavedGame}
         />
       )}
     </div>

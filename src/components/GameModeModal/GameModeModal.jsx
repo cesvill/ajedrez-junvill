@@ -15,6 +15,7 @@ export const GameModeModal = ({
   onStartMatch,
   onSelectP2P,
   onOpenRobotsView,
+  onOpenCuby3x3,
   activeBot = null,
   ongoingGame = null,
   onResumeOngoingGame = null,
@@ -722,6 +723,67 @@ export const GameModeModal = ({
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* SECCIÓN 4: MINIJUEGOS DE PUZLE Y LÓGICA EN SOLITARIO */}
+          {onOpenCuby3x3 && (
+            <div>
+              <div style={{ fontSize: '0.80rem', fontWeight: '900', color: '#ec4899', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>🧩</span>
+                <span>Minijuegos de Lógica y Puzle (Cuby 3x3):</span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '10px' }}>
+                <div
+                  onClick={() => {
+                    handleClose();
+                    onOpenCuby3x3();
+                  }}
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.15) 0%, rgba(168, 85, 247, 0.15) 100%)',
+                    border: '1.5px solid #ec4899',
+                    borderRadius: 'var(--radius-md, 10px)',
+                    padding: '12px 14px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    transition: 'all 0.15s ease'
+                  }}
+                  className="variant-card-hover"
+                >
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '900', color: '#ec4899', fontSize: '0.94rem' }}>
+                        <span>🧩</span>
+                        <span>Ajedrez 3x3: Puzle Cuby</span>
+                      </div>
+                      <span style={{ fontSize: '0.66rem', background: '#ec4899', color: 'white', padding: '1px 6px', borderRadius: 'var(--radius-full)', fontWeight: '800' }}>
+                        5 Piezas · Lógica
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '0.74rem', color: 'var(--text-parchment-muted)', margin: '0 0 8px', lineHeight: '1.3' }}>
+                      Mini cuadrícula 3x3 con Rey, Dama, Torre, Alfil y Caballo. Resuelve retos de cartas con rotaciones, modo espejo y contrarreloj.
+                    </p>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+                    <button
+                      type="button"
+                      className="btn-primary"
+                      style={{ flex: 1, padding: '6px', fontSize: '0.76rem', justifyContent: 'center', background: 'linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%)', borderColor: '#ec4899' }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleClose();
+                        onOpenCuby3x3();
+                      }}
+                    >
+                      <span>¡Jugar Ajedrez 3x3 (Cuby)!</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
