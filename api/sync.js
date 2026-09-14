@@ -359,6 +359,7 @@ export default async function handler(req, res) {
               assignedColor: m.assignedColor || m.hostColor || 'white',
               status: m.status || (bothConfirmed || hasGuest ? 'active' : 'waiting'),
               isWaiting: !bothConfirmed && !hasGuest,
+              lastChatMessage: m.lastChatMessage || null,
               updatedAt: m.updatedAt || Date.now()
             });
           } else {
@@ -412,6 +413,9 @@ export default async function handler(req, res) {
               moveCount: Math.max(prevMoveCount, newMoveCount),
               status: isStatusActive ? 'active' : (m.status || prev.status || 'waiting'),
               isWaiting: !bothConfirmed && !isGuestPresent,
+              lastChatMessage: (m.lastChatMessage?.timestamp || 0) > (prev.lastChatMessage?.timestamp || 0)
+                ? m.lastChatMessage
+                : (prev.lastChatMessage || m.lastChatMessage || null),
               updatedAt: Math.max(prev.updatedAt || 0, m.updatedAt || 0)
             };
             matchMap.set(cleanId, merged);
@@ -427,12 +431,25 @@ export default async function handler(req, res) {
       const existingBugs = Array.isArray(existing.bugReports) ? existing.bugReports : [];
       const newBugs = Array.isArray(groupData.bugReports) ? groupData.bugReports : [];
       const bugMap = new Map();
-      [...newBugs, ...existingBugs].forEach(b => {
+      [...existingBugs, ...newBugs].forEach(b => {
         if (b && (b.reportId || b.id)) {
           bugMap.set(b.reportId || b.id, b);
         }
       });
       const mergedBugs = Array.from(bugMap.values()).slice(0, 200);
+
+      // Fusión de mensajes de chat familiar en la nube (Hasta 300 mensajes más recientes)
+      const existingMessages = Array.isArray(existing.familyMessages) ? existing.familyMessages : [];
+      const newMessages = Array.isArray(groupData.familyMessages) ? groupData.familyMessages : [];
+      const msgMap = new Map();
+      [...existingMessages, ...newMessages].forEach(m => {
+        if (m && (m.id || m.timestamp)) {
+          msgMap.set(m.id || `${m.timestamp}_${m.text}`, m);
+        }
+      });
+      const mergedMessages = Array.from(msgMap.values())
+        .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
+        .slice(-300);
 
       const mergedGroup = {
         ...existing,
@@ -445,6 +462,7 @@ export default async function handler(req, res) {
         deletedInvitations: Array.from(deletedInvIds).slice(-100),
         roomAliases: existing.roomAliases || groupData.roomAliases || {},
         bugReports: mergedBugs,
+        familyMessages: mergedMessages,
         updatedAt: Date.now()
       };
 

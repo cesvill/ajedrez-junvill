@@ -4,6 +4,7 @@ import { AvatarIcon } from '../../assets/avatars';
 import { DynamicAvatar } from '../AvatarCreator/DynamicAvatar';
 import { OnlineBadge } from '../FamilyPresence/OnlineBadge';
 import { audioManager } from '../../engine/audio';
+import { normalizeUserKey } from '../../engine/cloudSync';
 import { 
   X, Send, Swords, Smile, MessageSquare, Volume2, Sparkles, 
   ChevronRight, Heart, Flame, Trophy, Award 
@@ -44,49 +45,61 @@ export const FamilyChatDrawer = ({
     markMessagesAsRead 
   } = useUser();
 
-  const [activeChatUserId, setActiveChatUserId] = useState(targetUser?.id || null);
+  const [activeChatUserId, setActiveChatUserId] = useState(targetUser?.id || targetUser?.name || null);
   const [inputText, setInputText] = useState('');
   const [showEmotes, setShowEmotes] = useState(false);
   const messagesEndRef = useRef(null);
 
+  const curKey = normalizeUserKey(currentUser?.name || currentUser?.id || '');
+
   useEffect(() => {
-    if (targetUser?.id) {
-      setActiveChatUserId(targetUser.id);
-    } else if (!activeChatUserId && users.length > 1) {
-      const otherUser = users.find(u => u.id !== currentUser?.id);
-      if (otherUser) setActiveChatUserId(otherUser.id);
+    if (targetUser?.id || targetUser?.name) {
+      setActiveChatUserId(targetUser.id || targetUser.name);
+    } else if (!activeChatUserId && users && users.length > 1) {
+      const otherUser = users.find(u => normalizeUserKey(u.name || u.id) !== curKey);
+      if (otherUser) setActiveChatUserId(otherUser.id || otherUser.name);
     }
-  }, [targetUser, users, currentUser?.id]);
-
-  // Marcar como leídos
-  useEffect(() => {
-    if (isOpen && activeChatUserId && markMessagesAsRead) {
-      markMessagesAsRead(activeChatUserId);
-    }
-  }, [isOpen, activeChatUserId, familyMessages.length]);
-
-  // Scroll al final
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [familyMessages, activeChatUserId]);
-
-  if (!isOpen) return null;
+  }, [targetUser, users, currentUser?.id, currentUser?.name, curKey]);
 
   const otherFamilyMembers = (users && users.length > 1)
-    ? users.filter(u => u.id !== currentUser?.id)
+    ? users.filter(u => normalizeUserKey(u.name || u.id) !== curKey)
     : [
         { id: 'user_cesar', name: 'César', role: 'parent', title: 'Tutor Familiar', elo: 762 },
         { id: 'user_leti', name: 'Leti', role: 'student', title: 'Campeón Junior', elo: 800 },
         { id: 'user_martin', name: 'Martin', role: 'student', title: 'Campeón Junior', elo: 1495 }
-      ].filter(u => u.id !== currentUser?.id);
+      ].filter(u => normalizeUserKey(u.name || u.id) !== curKey);
 
-  const activeOpponent = (users || []).find(u => u.id === activeChatUserId) || otherFamilyMembers.find(u => u.id === activeChatUserId) || otherFamilyMembers[0];
+  const activeOpponent = (users || []).find(u => 
+    u.id === activeChatUserId || 
+    (activeChatUserId && normalizeUserKey(u.name || u.id) === normalizeUserKey(activeChatUserId))
+  ) || otherFamilyMembers.find(u => 
+    u.id === activeChatUserId || 
+    (activeChatUserId && normalizeUserKey(u.name || u.id) === normalizeUserKey(activeChatUserId))
+  ) || otherFamilyMembers[0];
 
-  // Filtrar mensajes entre el usuario actual y el familiar activo
-  const currentChatMessages = (familyMessages || []).filter(msg => 
-    (msg.fromUser?.id === currentUser?.id && msg.toUserId === activeOpponent?.id) ||
-    (msg.fromUser?.id === activeOpponent?.id && msg.toUserId === currentUser?.id)
-  );
+  const oppKey = normalizeUserKey(activeOpponent?.name || activeOpponent?.id || '');
+
+  // Marcar como leídos
+  useEffect(() => {
+    if (isOpen && activeOpponent && markMessagesAsRead) {
+      markMessagesAsRead(activeOpponent.id || activeOpponent.name);
+    }
+  }, [isOpen, activeOpponent, familyMessages?.length, markMessagesAsRead]);
+
+  // Scroll al final
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [familyMessages, activeChatUserId, activeOpponent]);
+
+  if (!isOpen) return null;
+
+  // Filtrar mensajes entre el usuario actual y el familiar activo con tolerancia a IDs/Nombres
+  const currentChatMessages = (familyMessages || []).filter(msg => {
+    if (!msg || !msg.text) return false;
+    const msgFromKey = normalizeUserKey(msg.fromUser?.name || msg.fromUser?.id || '');
+    const msgToKey = normalizeUserKey(msg.toUserName || msg.toUserId || '');
+    return (msgFromKey === curKey && msgToKey === oppKey) || (msgFromKey === oppKey && msgToKey === curKey);
+  });
 
   const handleSendMessage = (textToSend = null, isEmote = false) => {
     const text = (textToSend || inputText).trim();
@@ -177,8 +190,9 @@ export const FamilyChatDrawer = ({
             </div>
 
             {otherFamilyMembers.map(member => {
-              const isSelected = member.id === activeChatUserId;
-              const online = isUserOnline(member.id);
+              const memberKey = normalizeUserKey(member.name || member.id);
+              const isSelected = activeOpponent && (member.id === activeOpponent.id || memberKey === oppKey);
+              const online = isUserOnline(member);
               return (
                 <button
                   key={member.id}
@@ -273,7 +287,7 @@ export const FamilyChatDrawer = ({
                     </div>
                   ) : (
                     currentChatMessages.map(msg => {
-                      const isMe = msg.fromUser?.id === currentUser?.id;
+                      const isMe = normalizeUserKey(msg.fromUser?.name || msg.fromUser?.id || '') === curKey;
                       return (
                         <div
                           key={msg.id}

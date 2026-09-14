@@ -18,7 +18,8 @@ import {
   FileText,
   Trash2,
   Globe,
-  Clock
+  Clock,
+  RotateCcw
 } from 'lucide-react';
 
 export const PREDEFINED_BUG_TEMPLATES = [
@@ -149,6 +150,7 @@ export const BugReportModal = ({ isOpen, onClose, contextData = {} }) => {
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
   const [activeTab, setActiveTab] = useState('report'); // 'report' | 'consolidated'
   const [savedReports, setSavedReports] = useState([]);
+  const [filterStatus, setFilterStatus] = useState('all'); // 'all' | 'pending' | 'resolved'
 
   // Cargar reportes consolidados guardados (Local + Nube Central)
   useEffect(() => {
@@ -176,6 +178,39 @@ export const BugReportModal = ({ isOpen, onClose, contextData = {} }) => {
       }).catch(() => {});
     }
   }, [isOpen]);
+
+  // Alternar estado de resuelto / tratado de un reporte
+  const handleToggleResolveReport = (targetReportId) => {
+    const updated = savedReports.map(r => {
+      if ((r.reportId || r.id) === targetReportId) {
+        const isResolved = r.status === 'resolved' || r.status === 'fixed';
+        const newStatus = isResolved ? 'submitted' : 'resolved';
+        return {
+          ...r,
+          status: newStatus,
+          resolvedAt: newStatus === 'resolved' ? new Date().toISOString() : null,
+          resolvedBy: newStatus === 'resolved' ? (currentUser?.name || 'Administrador') : null
+        };
+      }
+      return r;
+    });
+
+    setSavedReports(updated);
+    try {
+      localStorage.setItem('junvill_bug_reports', JSON.stringify(updated));
+    } catch (e) {}
+
+    const targetReport = updated.find(r => (r.reportId || r.id) === targetReportId);
+    if (targetReport) {
+      cloudSync.pushGroupToCloud({
+        bugReports: [targetReport]
+      }, 'group_junvill').catch(() => {});
+    }
+
+    try {
+      audioManager?.playSuccess?.();
+    } catch (e) {}
+  };
 
   // Manejar selección de plantilla rápida de bug
   const handleSelectTemplate = (template) => {
@@ -452,10 +487,59 @@ export const BugReportModal = ({ isOpen, onClose, contextData = {} }) => {
         <div style={{ padding: '18px 20px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {activeTab === 'consolidated' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.84rem', color: '#94a3b8', fontWeight: '700' }}>
-                  Total de reportes registrados: {savedReports.length}
-                </span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                {/* Filtros de Estado */}
+                <div style={{ display: 'flex', gap: '6px', background: 'rgba(0,0,0,0.3)', padding: '3px', borderRadius: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setFilterStatus('all')}
+                    style={{
+                      padding: '4px 10px',
+                      fontSize: '0.74rem',
+                      fontWeight: '800',
+                      borderRadius: '6px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      background: filterStatus === 'all' ? 'var(--color-primary, #3b82f6)' : 'transparent',
+                      color: filterStatus === 'all' ? '#fff' : '#94a3b8'
+                    }}
+                  >
+                    Todos ({savedReports.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFilterStatus('pending')}
+                    style={{
+                      padding: '4px 10px',
+                      fontSize: '0.74rem',
+                      fontWeight: '800',
+                      borderRadius: '6px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      background: filterStatus === 'pending' ? '#ef4444' : 'transparent',
+                      color: filterStatus === 'pending' ? '#fff' : '#ef4444'
+                    }}
+                  >
+                    🔴 Sin Tratar ({savedReports.filter(r => r.status !== 'resolved' && r.status !== 'fixed').length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFilterStatus('resolved')}
+                    style={{
+                      padding: '4px 10px',
+                      fontSize: '0.74rem',
+                      fontWeight: '800',
+                      borderRadius: '6px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      background: filterStatus === 'resolved' ? '#10b981' : 'transparent',
+                      color: filterStatus === 'resolved' ? '#fff' : '#10b981'
+                    }}
+                  >
+                    🟢 Tratados ({savedReports.filter(r => r.status === 'resolved' || r.status === 'fixed').length})
+                  </button>
+                </div>
+
                 <div style={{ display: 'flex', gap: '8px' }}>
                   {savedReports.length > 0 && (
                     <>
@@ -486,47 +570,110 @@ export const BugReportModal = ({ isOpen, onClose, contextData = {} }) => {
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '380px', overflowY: 'auto' }}>
-                  {savedReports.map((rep, idx) => (
-                    <div
-                      key={rep.reportId || idx}
-                      style={{
-                        background: 'rgba(15, 23, 42, 0.7)',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                        borderRadius: '10px',
-                        padding: '12px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '6px'
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '0.72rem', background: '#ef4444', color: 'white', fontWeight: '900', padding: '2px 8px', borderRadius: '12px' }}>
-                          {rep.reportId}
-                        </span>
-                        <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
-                          {new Date(rep.timestamp).toLocaleString()}
-                        </span>
-                      </div>
+                  {savedReports
+                    .filter(rep => {
+                      const isResolved = rep.status === 'resolved' || rep.status === 'fixed';
+                      if (filterStatus === 'pending') return !isResolved;
+                      if (filterStatus === 'resolved') return isResolved;
+                      return true;
+                    })
+                    .map((rep, idx) => {
+                      const isResolved = rep.status === 'resolved' || rep.status === 'fixed';
+                      const repId = rep.reportId || rep.id || `REP-${idx}`;
+                      return (
+                        <div
+                          key={repId}
+                          style={{
+                            background: isResolved ? 'rgba(16, 185, 129, 0.08)' : 'rgba(15, 23, 42, 0.7)',
+                            border: `1.5px solid ${isResolved ? 'rgba(16, 185, 129, 0.35)' : 'rgba(239, 68, 68, 0.35)'}`,
+                            borderRadius: '10px',
+                            padding: '12px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '8px'
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{
+                                fontSize: '0.72rem',
+                                background: isResolved ? '#10b981' : '#ef4444',
+                                color: 'white',
+                                fontWeight: '900',
+                                padding: '2px 8px',
+                                borderRadius: '12px'
+                              }}>
+                                {isResolved ? '✅ RESUELTO' : '🔴 PENDIENTE'} • {repId}
+                              </span>
+                              {rep.userContext?.userName && (
+                                <span style={{ fontSize: '0.78rem', color: '#e2e8f0', fontWeight: '800' }}>
+                                  👤 {rep.userContext.userName}
+                                </span>
+                              )}
+                            </div>
+                            <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
+                              {new Date(rep.timestamp || rep.createdAt || Date.now()).toLocaleString()}
+                            </span>
+                          </div>
 
-                      <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#f8fafc' }}>
-                        {rep.lessonContext 
-                          ? `Lección ${rep.lessonContext.lessonNumber}: ${rep.lessonContext.lessonTitle} (Paso ${Number(rep.lessonContext.stepIndex || 0) + 1})`
-                          : rep.gameContext 
-                            ? `Partida vs ${rep.gameContext.bot}` 
-                            : 'Reporte General'}
-                      </div>
+                          <div style={{ fontSize: '0.85rem', fontWeight: '800', color: '#f8fafc' }}>
+                            {rep.lessonContext 
+                              ? `Lección ${rep.lessonContext.lessonNumber}: ${rep.lessonContext.lessonTitle} (Paso ${Number(rep.lessonContext.stepIndex || 0) + 1})`
+                              : rep.gameContext 
+                                ? `Partida vs ${rep.gameContext.bot}` 
+                                : 'Reporte General'}
+                          </div>
 
-                      <div style={{ fontSize: '0.82rem', color: '#cbd5e1', background: 'rgba(0, 0, 0, 0.3)', padding: '6px 8px', borderRadius: '6px' }}>
-                        "{rep.userComment}"
-                      </div>
+                          <div style={{ fontSize: '0.84rem', color: '#cbd5e1', background: 'rgba(0, 0, 0, 0.3)', padding: '8px 10px', borderRadius: '6px', borderLeft: `3px solid ${isResolved ? '#10b981' : '#ef4444'}` }}>
+                            "{rep.userComment || rep.description || 'Sin comentario adicional'}"
+                          </div>
 
-                      {rep.boardState?.fen && rep.boardState.fen !== 'N/A' && (
-                        <div style={{ fontSize: '0.70rem', fontFamily: 'monospace', color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          FEN: {rep.boardState.fen}
+                          {rep.boardState?.fen && rep.boardState.fen !== 'N/A' && (
+                            <div style={{ fontSize: '0.70rem', fontFamily: 'monospace', color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              FEN: {rep.boardState.fen}
+                            </div>
+                          )}
+
+                          {/* Barra de Acción de Resolución */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '4px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                            <div style={{ fontSize: '0.72rem', color: isResolved ? '#34d399' : '#f87171', fontWeight: '700' }}>
+                              {isResolved
+                                ? `Tratado y resuelto ${rep.resolvedAt ? `el ${new Date(rep.resolvedAt).toLocaleDateString()}` : ''}`
+                                : 'Aún no ha sido tratado'}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleResolveReport(repId)}
+                              style={{
+                                background: isResolved ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)',
+                                color: isResolved ? '#ef4444' : '#10b981',
+                                border: `1.5px solid ${isResolved ? '#ef4444' : '#10b981'}`,
+                                borderRadius: '6px',
+                                padding: '4px 10px',
+                                fontSize: '0.74rem',
+                                fontWeight: '800',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}
+                            >
+                              {isResolved ? (
+                                <>
+                                  <RotateCcw size={12} />
+                                  <span>Reabrir Bug</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Check size={12} />
+                                  <span>Marcar como Resuelto ✅</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  ))}
+                      );
+                    })}
                 </div>
               )}
             </div>

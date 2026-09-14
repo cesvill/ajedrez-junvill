@@ -21,9 +21,17 @@ export const GameModeModal = ({
   onDiscardOngoingGame = null
 }) => {
   const { pendingInvitationsForMe, acceptFamilyInvitation } = useUser();
-  const [selectedOpponent, setSelectedOpponent] = useState(null); // 'bot' | 'pass_and_play' | null
-  const [chosenBot, setChosenBot] = useState(activeBot || BOT_ROSTER[0]);
+  const [selectedOpponent, setSelectedOpponent] = useState(() => (activeBot ? 'bot' : null)); // 'bot' | 'pass_and_play' | null
+  const [chosenBot, setChosenBot] = useState(() => (activeBot || BOT_ROSTER[0]));
+  const [selectedColor, setSelectedColor] = useState('white'); // 'white' | 'black' | 'random'
   const [rulesVariantId, setRulesVariantId] = useState(null);
+
+  React.useEffect(() => {
+    if (activeBot) {
+      setChosenBot(activeBot);
+      setSelectedOpponent('bot');
+    }
+  }, [activeBot]);
 
   if (!isOpen) return null;
 
@@ -47,7 +55,8 @@ export const GameModeModal = ({
       onStartMatch({
         opponentMode: selectedOpponent || 'bot',
         bot: chosenBot,
-        variantId
+        variantId,
+        chosenColor: selectedColor
       });
     }
     if (!embedded) handleClose();
@@ -409,27 +418,95 @@ export const GameModeModal = ({
          ========================================================================= */}
       {selectedOpponent && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {/* Banner Informativo del Oponente Seleccionado */}
+          {/* Banner Informativo del Oponente Seleccionado y Selector de Color */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '10px 14px',
-            background: 'rgba(0, 0, 0, 0.25)',
-            borderRadius: '8px',
-            border: '1px solid var(--bg-parchment-border)'
+            padding: '12px 16px',
+            background: 'rgba(0, 0, 0, 0.35)',
+            borderRadius: '12px',
+            border: '1.5px solid var(--color-gold)',
+            flexWrap: 'wrap',
+            gap: '12px'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', fontWeight: '800', color: 'var(--text-parchment-main)' }}>
-              <span>🎯 Oponente:</span>
-              <span style={{ color: 'var(--color-gold)' }}>
-                {selectedOpponent === 'bot' 
-                  ? `Robot ${chosenBot.name} (${chosenBot.elo} Elo)` 
-                  : '2 Jugadores (Pasa y Juega)'}
-              </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '1.4rem' }}>{selectedOpponent === 'bot' ? '🤖' : '👥'}</span>
+              <div>
+                <div style={{ fontSize: '0.92rem', fontWeight: '900', color: 'var(--text-parchment-main)' }}>
+                  {selectedOpponent === 'bot' 
+                    ? `Partida vs ${chosenBot.name} (${chosenBot.elo} Elo)` 
+                    : 'Partida Local: 2 Jugadores (Pasa y Juega)'}
+                </div>
+                <div style={{ fontSize: '0.74rem', color: 'var(--text-parchment-muted)' }}>
+                  Elige con qué color jugar y la modalidad deseada:
+                </div>
+              </div>
             </div>
-            <span style={{ fontSize: '0.76rem', color: 'var(--text-parchment-muted)' }}>
-              Selecciona una modalidad para comenzar:
-            </span>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: '800', color: 'var(--color-gold)' }}>🎨 Color:</span>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedColor('white')}
+                  style={{
+                    background: selectedColor === 'white' ? 'var(--color-gold)' : 'rgba(255, 255, 255, 0.1)',
+                    color: selectedColor === 'white' ? '#000000' : 'var(--text-parchment-main)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    borderRadius: '6px',
+                    padding: '4px 10px',
+                    fontWeight: '900',
+                    fontSize: '0.76rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ⚪ Blancas
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedColor('black')}
+                  style={{
+                    background: selectedColor === 'black' ? 'var(--color-gold)' : 'rgba(255, 255, 255, 0.1)',
+                    color: selectedColor === 'black' ? '#000000' : 'var(--text-parchment-main)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    borderRadius: '6px',
+                    padding: '4px 10px',
+                    fontWeight: '900',
+                    fontSize: '0.76rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ⚫ Negras
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedColor('random')}
+                  style={{
+                    background: selectedColor === 'random' ? 'var(--color-gold)' : 'rgba(255, 255, 255, 0.1)',
+                    color: selectedColor === 'random' ? '#000000' : 'var(--text-parchment-main)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    borderRadius: '6px',
+                    padding: '4px 10px',
+                    fontWeight: '900',
+                    fontSize: '0.76rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  🎲 Azar
+                </button>
+              </div>
+
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setSelectedOpponent(null)}
+                style={{ padding: '4px 8px', fontSize: '0.72rem', marginLeft: '6px' }}
+                title="Cambiar tipo de oponente o robot"
+              >
+                Cambiar Oponente
+              </button>
+            </div>
           </div>
 
           {/* SECCIÓN 1: MODALIDADES PRINCIPALES Y POPULARES */}

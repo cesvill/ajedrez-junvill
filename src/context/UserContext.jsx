@@ -728,24 +728,71 @@ export const UserProvider = ({ children }) => {
     (async () => {
       try {
         const cloudData = await cloudSync.fetchCloudGroup(activeGroupId || 'group_junvill');
-        if (cloudData && cloudData.users && mounted) {
-          setGroups(prev => {
-            const targetId = activeGroupId || 'group_junvill';
-            const updated = prev.map(g => {
-              if (g.id === targetId) {
-                const mergedUsers = cloudSync.mergeUsers(g.users || [], cloudData.users || []);
-                return { ...g, ...cloudData, users: mergedUsers, updatedAt: Math.max(g.updatedAt || 0, cloudData.updatedAt || 0) };
-              }
-              return g;
+        if (cloudData && mounted) {
+          if (cloudData.users) {
+            setGroups(prev => {
+              const targetId = activeGroupId || 'group_junvill';
+              const updated = prev.map(g => {
+                if (g.id === targetId) {
+                  const mergedUsers = cloudSync.mergeUsers(g.users || [], cloudData.users || []);
+                  return { ...g, ...cloudData, users: mergedUsers, updatedAt: Math.max(g.updatedAt || 0, cloudData.updatedAt || 0) };
+                }
+                return g;
+              });
+              try { localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(updated)); } catch (e) {}
+              return updated;
             });
-            try { localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(updated)); } catch (e) {}
-            return updated;
-          });
+          }
+
+          if (Array.isArray(cloudData.familyMessages)) {
+            setFamilyMessages(prev => {
+              const combined = [...cloudData.familyMessages, ...prev];
+              const map = new Map();
+              combined.forEach(m => {
+                if (m && (m.id || m.timestamp)) {
+                  map.set(m.id || `${m.timestamp}_${m.text}`, m);
+                }
+              });
+              const updated = Array.from(map.values())
+                .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
+                .slice(-200);
+              try { localStorage.setItem(MESSAGES_STORAGE_KEY, JSON.stringify(updated)); } catch (e) {}
+              return updated;
+            });
+          }
         }
       } catch (e) {}
     })();
     return () => { mounted = false; };
   }, [activeGroupId]);
+
+  // Canal de difusión ultra-rápido (< 5ms) para mensajería familiar local
+  useEffect(() => {
+    let bc = null;
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        bc = new BroadcastChannel('junvill_messages_channel');
+        bc.onmessage = (event) => {
+          const msg = event.data;
+          if (!msg || (!msg.id && !msg.text)) return;
+          setFamilyMessages(prev => {
+            if (prev.some(m => m.id === msg.id || (m.timestamp === msg.timestamp && m.text === msg.text))) return prev;
+            const updated = [...prev, msg];
+            try { localStorage.setItem(MESSAGES_STORAGE_KEY, JSON.stringify(updated.slice(-200))); } catch (e) {}
+            return updated;
+          });
+          // Notificación sonora si el mensaje va dirigido al usuario actual
+          const curUser = currentUserRef.current;
+          if (curUser && normalizeUserKey(msg.toUserName || msg.toUserId) === normalizeUserKey(curUser.name || curUser.id)) {
+            try { audioManager?.playHint?.(); } catch (e) {}
+          }
+        };
+      }
+    } catch (e) {}
+    return () => {
+      try { bc?.close(); } catch (e) {}
+    };
+  }, []);
 
   // Sincronización en tiempo real de invitaciones, mensajes y presencia entre pestañas y dispositivos
   useEffect(() => {
@@ -1024,7 +1071,7 @@ export const UserProvider = ({ children }) => {
   const sendFamilyMessage = useCallback((toUser, text, isEmote = false) => {
     if (!currentUser || !toUser || !text) return null;
     const msgObj = {
-      id: `fmsg_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      id: `fmsg_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
       fromUser: {
         id: currentUser.id,
         name: currentUser.name,
@@ -1036,32 +1083,61 @@ export const UserProvider = ({ children }) => {
       text: String(text).trim(),
       isEmote: !!isEmote,
       timestamp: Date.now(),
-      read: true
+      read: false
     };
 
     setFamilyMessages(prev => {
+      if (prev.some(m => m.id === msgObj.id)) return prev;
       const updated = [...prev, msgObj];
       try {
-        localStorage.setItem('ajedrez_junvill_family_messages_v1', JSON.stringify(updated.slice(-200)));
+        localStorage.setItem(MESSAGES_STORAGE_KEY, JSON.stringify(updated.slice(-200)));
       } catch (e) {}
       return updated;
     });
 
+    // 1. Difusión instantánea (< 5ms) para pestañas locales
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('junvill_messages_channel');
+        bc.postMessage(msgObj);
+        bc.close();
+      }
+    } catch (e) {}
+
+    // 2. Persistir de inmediato en la Nube Central (/api/sync)
+    cloudSync.pushGroupToCloud({
+      familyMessages: [msgObj]
+    }, activeGroupId || 'group_junvill').catch(() => {});
+
+    // 3. Enviar por señalización WebRTC P2P
     familySignaling.sendMessage(toUser.id, msgObj);
     return msgObj;
-  }, [currentUser]);
+  }, [currentUser, activeGroupId]);
 
   const markMessagesAsRead = useCallback((withUserId) => {
+    if (!withUserId) return;
+    const targetKey = normalizeUserKey(typeof withUserId === 'object' ? (withUserId.name || withUserId.id) : withUserId);
     setFamilyMessages(prev => {
-      const updated = prev.map(m => (m.fromUser?.id === withUserId && !m.read) ? { ...m, read: true } : m);
+      const updated = prev.map(m => {
+        const senderKey = normalizeUserKey(m.fromUser?.name || m.fromUser?.id);
+        return (senderKey === targetKey && !m.read) ? { ...m, read: true } : m;
+      });
       try {
-        localStorage.setItem('ajedrez_junvill_family_messages_v1', JSON.stringify(updated));
+        localStorage.setItem(MESSAGES_STORAGE_KEY, JSON.stringify(updated));
       } catch (e) {}
       return updated;
     });
   }, []);
 
-  const unreadMessagesCount = familyMessages.filter(m => m.toUserId === currentUser?.id && !m.read).length;
+  const unreadMessagesCount = useMemo(() => {
+    if (!currentUser) return 0;
+    const myKey = normalizeUserKey(currentUser.name || currentUser.id);
+    return familyMessages.filter(m => {
+      const toKey = normalizeUserKey(m.toUserName || m.toUserId);
+      const fromKey = normalizeUserKey(m.fromUser?.name || m.fromUser?.id);
+      return toKey === myKey && fromKey !== myKey && !m.read;
+    }).length;
+  }, [familyMessages, currentUser]);
 
   // Enviar / Crear Reto Familiar (con soporte para minijuegos y variantes)
   const sendFamilyInvitation = (
@@ -1283,6 +1359,24 @@ export const UserProvider = ({ children }) => {
           });
         }
 
+        // Actualizar mensajes familiares
+        if (Array.isArray(cloudData.familyMessages)) {
+          setFamilyMessages(prev => {
+            const combined = [...cloudData.familyMessages, ...prev];
+            const map = new Map();
+            combined.forEach(m => {
+              if (m && (m.id || m.timestamp)) {
+                map.set(m.id || `${m.timestamp}_${m.text}`, m);
+              }
+            });
+            const updated = Array.from(map.values())
+              .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
+              .slice(-200);
+            try { localStorage.setItem(MESSAGES_STORAGE_KEY, JSON.stringify(updated)); } catch (e) {}
+            return updated;
+          });
+        }
+
         // Actualizar usuarios y presencia en línea inmediata
         if (Array.isArray(cloudData.users)) {
           setGroups(prev => {
@@ -1343,6 +1437,8 @@ export const UserProvider = ({ children }) => {
   familyInvitationsRef.current = familyInvitations;
   const activeP2PGameRef = useRef(activeP2PGame);
   activeP2PGameRef.current = activeP2PGame;
+  const familyMessagesRef = useRef(familyMessages);
+  familyMessagesRef.current = familyMessages;
 
   // 7. SINCRONIZACIÓN PERIÓDICA CON LA BASE DE DATOS CENTRAL EN LA NUBE (Latidos en vivo y presencia)
   useEffect(() => {
@@ -1379,6 +1475,7 @@ export const UserProvider = ({ children }) => {
           users: updatedUsers, 
           activeInvitations: validInvs,
           activeMatches: validMatches,
+          familyMessages: (familyMessagesRef.current || []).slice(-100),
           closedRoomIds: Array.from(tombRooms).slice(-100),
           deletedMatches: Array.from(tombRooms).slice(-100),
           deletedInvitations: Array.from(tombInvs).slice(-100),
@@ -1424,7 +1521,25 @@ export const UserProvider = ({ children }) => {
           });
         }
 
-        // 3. Sincronizar partidas activas / asíncronas (filtrando tombstones)
+        // 3. Sincronizar mensajes de chat familiar en la nube
+        if (Array.isArray(updatedCloudGroup.familyMessages)) {
+          setFamilyMessages(prev => {
+            const combined = [...updatedCloudGroup.familyMessages, ...prev];
+            const map = new Map();
+            combined.forEach(m => {
+              if (m && (m.id || m.timestamp)) {
+                map.set(m.id || `${m.timestamp}_${m.text}`, m);
+              }
+            });
+            const updated = Array.from(map.values())
+              .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
+              .slice(-200);
+            try { localStorage.setItem(MESSAGES_STORAGE_KEY, JSON.stringify(updated)); } catch (e) {}
+            return updated;
+          });
+        }
+
+        // 4. Sincronizar partidas activas / asíncronas (filtrando tombstones)
         const curUser = currentUserRef.current;
         if (Array.isArray(updatedCloudGroup.activeMatches) && curUser) {
           const validMatches = updatedCloudGroup.activeMatches.filter(m => {

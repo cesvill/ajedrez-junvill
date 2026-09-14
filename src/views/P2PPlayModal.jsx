@@ -154,6 +154,7 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
   const handleIncomingDataRef = useRef(null);
   const lastLocalMoveTimeRef = useRef(0);
   const lastMoveRef = useRef(lastMove);
+  const lastReceivedChatTimestampRef = useRef(0);
 
   useEffect(() => { isHostActiveRef.current = isHostActive; }, [isHostActive]);
   useEffect(() => { isOpponentConnectedRef.current = isOpponentConnected; }, [isOpponentConnected]);
@@ -252,12 +253,31 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
         bc = new BroadcastChannel('junvill_p2p_channel');
         bc.onmessage = (event) => {
           const data = event.data;
-          if (!data || data.type !== 'MOVE') return;
+          if (!data) return;
           const curUser = currentUserRef.current;
           if (data.senderId && curUser?.id && data.senderId === curUser.id) return;
 
           const cleanCurrent = P2PEngine.cleanRoomId(roomIdRef.current || roomId || inputRoomId || initialRoomId);
-          if (P2PEngine.cleanRoomId(data.roomId) === cleanCurrent && data.fen) {
+          if (P2PEngine.cleanRoomId(data.roomId) !== cleanCurrent) return;
+
+          if (data.type === 'SAFE_CHAT') {
+            audioManager?.playHint?.();
+            const msgTimestamp = data.timestamp || Date.now();
+            lastReceivedChatTimestampRef.current = Math.max(lastReceivedChatTimestampRef.current, msgTimestamp);
+            setChatMessages(prev => {
+              if (prev.some(m => (m.timestamp && m.timestamp === msgTimestamp) || (m.text === data.text && Math.abs((m.timestamp || 0) - msgTimestamp) < 1500))) return prev;
+              return [...prev, {
+                senderName: data.senderName || opponentProfileRef.current?.name || 'Rival',
+                text: data.text,
+                isEmote: !!data.isEmote,
+                isMe: false,
+                timestamp: msgTimestamp
+              }];
+            });
+            return;
+          }
+
+          if (data.type === 'MOVE' && data.fen) {
             const localFen = gameRef.current ? gameRef.current.fen() : '';
             const localMoveCount = getFenMoveCount(localFen);
             const incomingMoveCount = data.moveCount ?? getFenMoveCount(data.fen);
@@ -478,6 +498,27 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
                   }
                 } catch (errSyncMove) {
                   console.warn('Error al aplicar jugada de nube:', errSyncMove);
+                }
+              }
+
+              // Sincronizar chat deportivo seguro desde la Nube Central (/api/sync)
+              if (match.lastChatMessage && match.lastChatMessage.text) {
+                const lastChat = match.lastChatMessage;
+                const myKey = normalizeUserKey(curUser?.name || curUser?.id || '');
+                const senderKey = normalizeUserKey(lastChat.senderName || lastChat.senderId || '');
+                if (senderKey !== myKey && (lastChat.timestamp || 0) > lastReceivedChatTimestampRef.current) {
+                  lastReceivedChatTimestampRef.current = lastChat.timestamp || Date.now();
+                  audioManager?.playHint?.();
+                  setChatMessages(prev => {
+                    if (prev.some(m => (m.timestamp && m.timestamp === lastChat.timestamp) || (m.text === lastChat.text && Math.abs((m.timestamp || 0) - (lastChat.timestamp || 0)) < 1500))) return prev;
+                    return [...prev, {
+                      senderName: lastChat.senderName || opponentProfileRef.current?.name || 'Rival',
+                      text: lastChat.text,
+                      isEmote: !!lastChat.isEmote,
+                      isMe: false,
+                      timestamp: lastChat.timestamp
+                    }];
+                  });
                 }
               }
             }
@@ -841,12 +882,18 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
         safeText = safeText.text || safeText.emoji || '';
         if (safeText.isEmote !== undefined) isEmote = safeText.isEmote;
       }
-      setChatMessages(prev => [...prev, {
-        senderName: opponentProfile?.name || 'Rival',
-        text: String(safeText || ''),
-        isEmote,
-        isMe: false
-      }]);
+      const msgTimestamp = data.timestamp || Date.now();
+      lastReceivedChatTimestampRef.current = Math.max(lastReceivedChatTimestampRef.current, msgTimestamp);
+      setChatMessages(prev => {
+        if (prev.some(m => (m.timestamp && m.timestamp === msgTimestamp) || (m.text === safeText && Math.abs((m.timestamp || 0) - msgTimestamp) < 1500))) return prev;
+        return [...prev, {
+          senderName: opponentProfile?.name || 'Rival',
+          text: String(safeText || ''),
+          isEmote,
+          isMe: false,
+          timestamp: msgTimestamp
+        }];
+      });
     } else if (data.type === 'RESIGN') {
       audioManager.playVictory();
       setGameResultReason('¡El rival se ha rendido! Victoria para ti 🏆');
@@ -1155,7 +1202,6 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
 
   // Enviar mensaje de chat seguro
   const handleSendSafeChat = (rawMessage, isEmote = false) => {
-    if (!p2pRef.current) return;
     let text = rawMessage;
     let emote = isEmote;
     if (typeof rawMessage === 'object' && rawMessage !== null) {
@@ -1165,12 +1211,52 @@ export const P2PPlayModal = ({ isOpen, onClose, initialRoomId = null, initialMod
     const safeText = String(text || '');
     if (!safeText) return;
 
-    p2pRef.current.sendSafeChat(safeText, emote);
+    const chatTimestamp = Date.now();
+    const cleanRoom = P2PEngine.cleanRoomId(roomIdRef.current || roomId || inputRoomId || initialRoomId);
+
+    // 1. WebRTC DataChannel directo (< 50ms)
+    p2pRef.current?.sendSafeChat(safeText, emote);
+
+    // 2. BroadcastChannel para pestañas locales (< 5ms)
+    try {
+      if (typeof BroadcastChannel !== 'undefined' && cleanRoom) {
+        const bc = new BroadcastChannel('junvill_p2p_channel');
+        bc.postMessage({
+          type: 'SAFE_CHAT',
+          roomId: cleanRoom,
+          senderId: currentUser?.id,
+          senderName: currentUser?.name || 'Rival',
+          text: safeText,
+          isEmote: emote,
+          timestamp: chatTimestamp
+        });
+        bc.close();
+      }
+    } catch (e) {}
+
+    // 3. Persistir en Nube Central (/api/sync)
+    if (cleanRoom) {
+      cloudSync.pushGroupToCloud({
+        activeMatches: [{
+          roomId: cleanRoom,
+          lastChatMessage: {
+            senderId: currentUser?.id,
+            senderName: currentUser?.name || 'Rival',
+            text: safeText,
+            isEmote: emote,
+            timestamp: chatTimestamp
+          },
+          updatedAt: chatTimestamp
+        }]
+      }, activeGroup?.id || 'group_junvill').catch(() => {});
+    }
+
     setChatMessages(prev => [...prev, {
       senderName: currentUser?.name || 'Tú',
       text: safeText,
       isEmote: emote,
-      isMe: true
+      isMe: true,
+      timestamp: chatTimestamp
     }]);
   };
 

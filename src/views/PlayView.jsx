@@ -377,25 +377,24 @@ export const PlayView = ({
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [game, fenHistory, moveHistory, lastMove, isGameOver, gameMode, playerColor, botToPlay?.id, handicapConfig, usedHintsCount, usedTakebacksCount]);
 
-  // Inicializar o reiniciar partida con bot si viene prop explícito de un bot DISTINTO
+  // Inicializar o abrir modal de variantes con bot si viene prop explícito de un bot
   useEffect(() => {
-    if (activeBot) {
+    const targetB = activeBot || initialBotMatch;
+    if (targetB) {
       const saved = loadSavedGame();
-      if (!saved || saved.botId !== activeBot.id || saved.moveHistory?.length === 0) {
+      if (!saved || saved.botId !== targetB.id || saved.moveHistory?.length === 0) {
         setGameMode('bot');
-        setCurrentBot(activeBot);
-        setIsModeModalOpen(false);
-        setBotLevel(activeBot.difficultyLevel || 1);
-        setShowColorModal(true);
+        setCurrentBot(targetB);
+        setBotLevel(targetB.difficultyLevel || 1);
+        setIsModeModalOpen(true);
       } else {
-        // Reanudar partida guardada contra este bot sin abrir el modal de elegir color
+        // Reanudar partida guardada contra este bot
         setGameMode('bot');
-        setCurrentBot(activeBot);
+        setCurrentBot(targetB);
         setIsModeModalOpen(false);
-        setShowColorModal(false);
       }
     }
-  }, [activeBot]);
+  }, [activeBot?.id, initialBotMatch?.id]);
 
   const isPlayerTurn = gameMode === 'pass_and_play'
     ? true
@@ -976,20 +975,68 @@ export const PlayView = ({
     }
   };
 
-  const handleStartMatch = ({ opponentMode = 'bot', bot = null, variantId = 'standard' }) => {
+  const handleStartMatch = ({ opponentMode = 'bot', bot = null, variantId = 'standard', chosenColor = 'white' }) => {
+    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+
+    let finalColor = chosenColor;
+    if (chosenColor === 'random') {
+      finalColor = Math.random() > 0.5 ? 'white' : 'black';
+    }
+
     setGameVariant(variantId);
     setGameMode(opponentMode);
+    setPlayerColor(finalColor);
+    setIsModeModalOpen(false);
+    setShowColorModal(false);
+
+    const targetBot = bot || currentBot || BOT_ROSTER[0];
     if (bot) {
       setCurrentBot(bot);
       setBotLevel(bot.difficultyLevel || 1);
     }
-    setIsModeModalOpen(false);
 
-    if (opponentMode === 'bot') {
-      setShowColorModal(true);
+    const startingFen = getStartingFenForVariant(variantId, handicapConfig);
+    const newG = createChessGame(startingFen);
+    setGame(newG);
+    setFenHistory([startingFen]);
+    setMoveHistory([]);
+    setLastMove(null);
+    setIsGameOver(false);
+    setCurrentHintLevel(0);
+    setUsedHintsCount(0);
+    setUsedTakebacksCount(0);
+    setReviewData(null);
+    setIsBotThinking(false);
+    setAnimatingMove(null);
+    setCurrentDiceRoll(null);
+    setIsPlayingMatch(true);
+
+    const variantData = getVariantById(variantId);
+    const summary = getHandicapSummary(handicapConfig);
+
+    if (opponentMode === 'pass_and_play') {
+      setCoachMessage({
+        title: `${variantData.icon} 2 Jugadores: ${variantData.name}`,
+        text: handicapConfig.enabled 
+          ? `Partida iniciada (${summary}). Mueven las Blancas (Jugador 1).`
+          : `Partida de ${variantData.name} iniciada. Mueven las Blancas (Jugador 1). Ambos juegan en esta misma pantalla alternando turnos.`,
+        severity: 'neutral'
+      });
     } else {
-      handleSelectPassAndPlay(variantId);
-      setIsPlayingMatch(true);
+      setCoachMessage({
+        title: `${variantData.icon} ${variantData.name} vs ${targetBot.name}`,
+        text: finalColor === 'black' 
+          ? `Modalidad ${variantData.name}. Juegas con Negras. ${targetBot.name} moverá primero.${handicapConfig.enabled ? ` (${summary})` : ''}` 
+          : `${variantData.description} ${targetBot.greeting || '¡A jugar!'}${handicapConfig.enabled ? ` • Ventajas: ${summary}` : ''}`,
+        severity: 'neutral'
+      });
+
+      if (finalColor === 'black') {
+        setIsBotThinking(true);
+        setTimeout(() => {
+          executeBotMove(newG, startingFen);
+        }, 400);
+      }
     }
   };
 
@@ -1074,11 +1121,7 @@ export const PlayView = ({
   };
 
   const handleRestartGame = () => {
-    if (gameMode === 'pass_and_play') {
-      handleSelectPassAndPlay();
-    } else {
-      setShowColorModal(true);
-    }
+    setIsModeModalOpen(true);
   };
 
   const handleOpenReview = () => {
@@ -1647,7 +1690,7 @@ export const PlayView = ({
                   setCurrentBot(bot);
                   setBotLevel(bot.difficultyLevel || 1);
                   setGameMode('bot');
-                  setShowColorModal(true);
+                  setIsModeModalOpen(true);
                 }}
                 style={{
                   background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%)',
@@ -1763,7 +1806,7 @@ export const PlayView = ({
             <div
               onClick={() => {
                 setGameVariant('dice_chess');
-                setShowColorModal(true);
+                setIsModeModalOpen(true);
               }}
               style={{
                 background: 'rgba(30, 41, 59, 0.7)',
@@ -1784,7 +1827,7 @@ export const PlayView = ({
             <div
               onClick={() => {
                 setGameVariant('king_of_the_hill');
-                setShowColorModal(true);
+                setIsModeModalOpen(true);
               }}
               style={{
                 background: 'rgba(30, 41, 59, 0.7)',
@@ -1805,7 +1848,7 @@ export const PlayView = ({
             <div
               onClick={() => {
                 setGameVariant('pawn_wars_pure');
-                setShowColorModal(true);
+                setIsModeModalOpen(true);
               }}
               style={{
                 background: 'rgba(30, 41, 59, 0.7)',
@@ -1893,13 +1936,20 @@ export const PlayView = ({
           />
         )}
 
-        {showColorModal && (
+        {isModeModalOpen && (
           <GameModeModal
-            isOpen={showColorModal}
-            onClose={() => setShowColorModal(false)}
-            onSelectMode={handleStartGameWithColor}
-            opponentName={gameMode === 'pass_and_play' ? 'Jugador 2' : (botToPlay?.name || 'Robot')}
-            selectedVariant={gameVariant}
+            isOpen={isModeModalOpen}
+            onClose={() => {
+              setIsModeModalOpen(false);
+              if (!isPlayingMatch && onExitMatch) onExitMatch();
+            }}
+            onStartMatch={handleStartMatch}
+            onSelectP2P={onOpenP2P}
+            onOpenRobotsView={onOpenRobots}
+            activeBot={activeBot || initialBotMatch || currentBot}
+            ongoingGame={savedGame}
+            onResumeOngoingGame={handleResumeSavedGame}
+            onDiscardOngoingGame={handleDiscardSavedGame}
           />
         )}
       </div>
