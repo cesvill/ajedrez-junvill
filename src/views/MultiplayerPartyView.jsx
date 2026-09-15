@@ -95,8 +95,24 @@ const VARIANTS = [
 ];
 
 export const MultiplayerPartyView = ({ onBackToMenu }) => {
-  const [selectedVariant, setSelectedVariant] = useState('chaturaji');
-  const [game, setGame] = useState(() => new ChaturajiGame());
+  const getInitialVariant = () => {
+    try {
+      const v = new URLSearchParams(window.location.search).get('variant');
+      if (v && ['chaturaji', 'four_player', 'three_hex', 'three_circular'].includes(v)) {
+        return v;
+      }
+    } catch (e) {}
+    return 'chaturaji';
+  };
+
+  const [selectedVariant, setSelectedVariant] = useState(getInitialVariant);
+  const [game, setGame] = useState(() => {
+    const v = getInitialVariant();
+    if (v === 'four_player') return new FourPlayerGame('ffa');
+    if (v === 'three_hex') return new ThreePlayerHexGame();
+    if (v === 'three_circular') return new ThreePlayerCircularGame();
+    return new ChaturajiGame();
+  });
   const [botPlayers, setBotPlayers] = useState({
     // Por defecto: Jugador 1 es humano, el resto son bots para poder jugar solo de inmediato
     red: false,
@@ -127,6 +143,11 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
   const handleVariantChange = (vId) => {
     setSelectedVariant(vId);
     initGameForVariant(vId);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('variant', vId);
+      window.history.replaceState({}, '', url.toString());
+    } catch (e) {}
   };
 
   // Turno del bot automático

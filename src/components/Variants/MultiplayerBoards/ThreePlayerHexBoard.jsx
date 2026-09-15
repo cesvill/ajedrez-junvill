@@ -217,18 +217,26 @@ export const ThreePlayerHexBoard = ({
                       />
                     )}
 
-                    {/* Render de Pieza Centrada y con tamaño controlado */}
-                    {hasPiece && (
-                      <g transform={`translate(${(center.x - 13).toFixed(1)}, ${(center.y - 13).toFixed(1)})`}>
-                        <PieceIcon
-                          piece={cell.piece.type}
-                          color={cell.piece.owner}
-                          size={26}
-                          width={26}
-                          height={26}
-                        />
-                      </g>
-                    )}
+                    {/* Render de Pieza Centrada y con tamaño amplio y armónico */}
+                    {hasPiece && (() => {
+                      const isPawn = cell.piece.type === 'p';
+                      const pieceSize = isPawn ? 33 : 38;
+                      const half = pieceSize / 2;
+                      return (
+                        <g
+                          transform={`translate(${(center.x - half).toFixed(1)}, ${(center.y - half).toFixed(1)})`}
+                          style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}
+                        >
+                          <PieceIcon
+                            piece={cell.piece.type}
+                            color={cell.piece.owner}
+                            size={pieceSize}
+                            width={pieceSize}
+                            height={pieceSize}
+                          />
+                        </g>
+                      );
+                    })()}
                   </g>
                 );
               })
@@ -243,18 +251,19 @@ export const ThreePlayerHexBoard = ({
           <line x1={M_NW.x} y1={M_NW.y} x2={C.x} y2={C.y} stroke="#3d2612" strokeWidth="2.5" />
           <line x1={M_SW.x} y1={M_SW.y} x2={C.x} y2={C.y} stroke="#3d2612" strokeWidth="3" />
 
-          {/* Letras de columnas para bando Blanco en la base inferior */}
+          {/* Letras de columnas para bando Blanco en la base exterior fuera del tablero */}
           {['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].map((letter, idx) => {
             const { center } = getCellGeometry('A', idx, 0);
             return (
               <text
                 key={letter}
                 x={center.x}
-                y={center.y + 24}
-                fill="#fde047"
-                fontSize="12"
-                fontWeight="900"
+                y={738}
+                fill="#cbd5e1"
+                fontSize="15"
+                fontWeight="800"
                 textAnchor="middle"
+                style={{ textShadow: '0 2px 4px rgba(0,0,0,0.9)' }}
               >
                 {letter}
               </text>

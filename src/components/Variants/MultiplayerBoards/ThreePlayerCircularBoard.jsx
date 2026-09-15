@@ -178,18 +178,27 @@ export const ThreePlayerCircularBoard = ({
                     />
                   )}
 
-                  {/* Render de Pieza Centrada con tamaño exacto */}
-                  {hasPiece && (
-                    <g transform={`translate(${(center.x - 12).toFixed(1)}, ${(center.y - 12).toFixed(1)})`}>
-                      <PieceIcon
-                        piece={piece.type}
-                        color={piece.owner}
-                        size={24}
-                        width={24}
-                        height={24}
-                      />
-                    </g>
-                  )}
+                  {/* Render de Pieza Centrada con tamaño amplio y armónico */}
+                  {hasPiece && (() => {
+                    const isPawn = piece.type === 'p';
+                    const baseSize = Math.round(38 - ring * 2.0);
+                    const pieceSize = isPawn ? Math.max(24, Math.round(baseSize * 0.88)) : baseSize;
+                    const half = pieceSize / 2;
+                    return (
+                      <g
+                        transform={`translate(${(center.x - half).toFixed(1)}, ${(center.y - half).toFixed(1)})`}
+                        style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}
+                      >
+                        <PieceIcon
+                          piece={piece.type}
+                          color={piece.owner}
+                          size={pieceSize}
+                          width={pieceSize}
+                          height={pieceSize}
+                        />
+                      </g>
+                    );
+                  })()}
                 </g>
               );
             })
