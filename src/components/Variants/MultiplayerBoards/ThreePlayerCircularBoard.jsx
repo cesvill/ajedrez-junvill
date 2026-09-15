@@ -1,13 +1,20 @@
 import React, { useState, useMemo } from 'react';
 import { PieceIcon } from '../../../assets/pieces';
 import { THREE_CIRCULAR_PLAYERS } from '../../../engine/multiplayerChessEngine';
-import { Compass, RotateCw } from 'lucide-react';
 
 const PLAYER_INFO = {
   white: { name: 'Blanco', colorHex: '#f8fafc', bg: '#ffffff', text: '#0f172a', rays: '0-7' },
   black: { name: 'Negro', colorHex: '#334155', bg: '#1e293b', text: '#ffffff', rays: '8-15' },
   red: { name: 'Rojo', colorHex: '#ef4444', bg: '#ef4444', text: '#ffffff', rays: '16-23' }
 };
+
+const cx = 400;
+const cy = 400;
+const R_WELL = 100;
+const R_MAX = 370;
+const DELTA_R = (R_MAX - R_WELL) / 6;
+
+const toRad = (deg) => (deg * Math.PI) / 180;
 
 export const ThreePlayerCircularBoard = ({
   game,
@@ -49,22 +56,14 @@ export const ThreePlayerCircularBoard = ({
     }
   };
 
-  // Dimensiones SVG
-  const cx = 400;
-  const cy = 400;
-  const R_WELL = 65;
-  const R_MAX = 380;
-  const DELTA_R = (R_MAX - R_WELL) / 6;
-
-  const toRad = (deg) => (deg * Math.PI) / 180;
-
   const getArcGeometry = (ring, ray) => {
     // ring 0 es exterior, ring 5 es interior junto al pozo
     const rIn = R_WELL + (5 - ring) * DELTA_R;
     const rOut = R_WELL + (6 - ring) * DELTA_R;
 
-    const t1 = ray * 15;
-    const t2 = (ray + 1) * 15;
+    // Ray 0 inicia en 30° para que White (rays 0..7) quede centrado en el Sur (90°)
+    const t1 = 30 + ray * 15;
+    const t2 = 30 + (ray + 1) * 15;
 
     const p1 = { x: cx + rIn * Math.cos(toRad(t1)), y: cy + rIn * Math.sin(toRad(t1)) };
     const p2 = { x: cx + rOut * Math.cos(toRad(t1)), y: cy + rOut * Math.sin(toRad(t1)) };
@@ -75,11 +74,13 @@ export const ThreePlayerCircularBoard = ({
     const midT = (t1 + t2) / 2;
     const center = { x: cx + midR * Math.cos(toRad(midT)), y: cy + midR * Math.sin(toRad(midT)) };
 
-    // Path con arcos exactos
     const pathData = `M ${p1.x.toFixed(1)} ${p1.y.toFixed(1)} L ${p2.x.toFixed(1)} ${p2.y.toFixed(1)} A ${rOut.toFixed(1)} ${rOut.toFixed(1)} 0 0 1 ${p3.x.toFixed(1)} ${p3.y.toFixed(1)} L ${p4.x.toFixed(1)} ${p4.y.toFixed(1)} A ${rIn.toFixed(1)} ${rIn.toFixed(1)} 0 0 0 ${p1.x.toFixed(1)} ${p1.y.toFixed(1)} Z`;
 
     return { pathData, center };
   };
+
+  const LIGHT = '#ffffff';
+  const DARK  = '#94a3b8';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', width: '100%', maxWidth: '720px', margin: '0 auto' }}>
@@ -102,7 +103,7 @@ export const ThreePlayerCircularBoard = ({
             height: '40px',
             borderRadius: '50%',
             backgroundColor: PLAYER_INFO[activePlayer]?.colorHex,
-            border: '2px solid #94a3b8',
+            border: '2px solid #cbd5e1',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -138,8 +139,8 @@ export const ThreePlayerCircularBoard = ({
           viewBox="0 0 800 800"
           style={{ width: '100%', height: '100%', overflow: 'visible' }}
         >
-          {/* Borde exterior decorativo */}
-          <circle cx={cx} cy={cy} r={R_MAX + 5} fill="#0f172a" stroke="#334155" strokeWidth="4" />
+          {/* Borde exterior */}
+          <circle cx={cx} cy={cy} r={R_MAX + 5} fill="#334155" stroke="#1e293b" strokeWidth="4" />
 
           {/* 144 Cuñas Anulares */}
           {Array(6).fill(null).map((_, ring) => 
@@ -151,7 +152,7 @@ export const ThreePlayerCircularBoard = ({
               const isLegal = legalMoves.some(m => m.to.ring === ring && m.to.ray === ray);
               const hasPiece = !!piece;
 
-              let fill = isLight ? '#f1f5f9' : '#64748b';
+              let fill = isLight ? LIGHT : DARK;
               if (isSelected) fill = '#60a5fa';
               else if (isLegal) fill = hasPiece ? '#f87171' : '#4ade80';
 
@@ -160,8 +161,8 @@ export const ThreePlayerCircularBoard = ({
                   <path
                     d={pathData}
                     fill={fill}
-                    stroke="#1e293b"
-                    strokeWidth="0.8"
+                    stroke="#475569"
+                    strokeWidth="1"
                     style={{ transition: 'fill 0.15s ease' }}
                   />
 
@@ -172,16 +173,20 @@ export const ThreePlayerCircularBoard = ({
                       cy={center.y}
                       r="5"
                       fill="#15803d"
+                      stroke="#ffffff"
+                      strokeWidth="1.5"
                     />
                   )}
 
-                  {/* Render de Pieza Centrada */}
+                  {/* Render de Pieza Centrada con tamaño exacto */}
                   {hasPiece && (
-                    <g transform={`translate(${center.x - 16}, ${center.y - 16}) scale(0.72)`}>
+                    <g transform={`translate(${(center.x - 12).toFixed(1)}, ${(center.y - 12).toFixed(1)})`}>
                       <PieceIcon
                         piece={piece.type}
                         color={piece.owner}
-                        className="w-10 h-10"
+                        size={24}
+                        width={24}
+                        height={24}
                       />
                     </g>
                   )}
@@ -190,16 +195,36 @@ export const ThreePlayerCircularBoard = ({
             })
           )}
 
+          {/* 3 Líneas Divisorias de Jugadores (Verde brillante como en imagen oficial) */}
+          {[30, 150, 270].map(deg => {
+            const x1 = cx + R_WELL * Math.cos(toRad(deg));
+            const y1 = cy + R_WELL * Math.sin(toRad(deg));
+            const x2 = cx + (R_MAX + 5) * Math.cos(toRad(deg));
+            const y2 = cy + (R_MAX + 5) * Math.sin(toRad(deg));
+            return (
+              <line
+                key={deg}
+                x1={x1.toFixed(1)}
+                y1={y1.toFixed(1)}
+                x2={x2.toFixed(1)}
+                y2={y2.toFixed(1)}
+                stroke="#22c55e"
+                strokeWidth="4"
+                strokeLinecap="round"
+              />
+            );
+          })}
+
           {/* Pozo Central (The Well) */}
-          <circle cx={cx} cy={cy} r={R_WELL} fill="#020617" stroke="#38bdf8" strokeWidth="3" />
+          <circle cx={cx} cy={cy} r={R_WELL} fill="#020617" stroke="#22c55e" strokeWidth="3" />
           <text
             x={cx}
-            y={cy + 5}
+            y={cy + 7}
             textAnchor="middle"
-            fill="#38bdf8"
-            fontSize="14"
-            fontWeight="bold"
-            letterSpacing="1"
+            fill="#22c55e"
+            fontSize="18"
+            fontWeight="900"
+            letterSpacing="2"
           >
             POZO
           </text>
