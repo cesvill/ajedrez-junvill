@@ -42,7 +42,8 @@ export const PlayView = ({
   onExitMatch,
   onOpenBugReport,
   onOpenFamilyChat,
-  onOpenCuby3x3
+  onOpenCuby3x3,
+  onOpenMultiplayer
 }) => {
   const { currentUser, activeGroup, users, isUserOnline, updateCurrentUser, recordGameResult, recordBotWin, pendingInvitationsForMe, acceptFamilyInvitation, declineFamilyInvitation, sendFamilyInvitation, activeP2PGame, clearActiveP2PGame, refreshInvitationsNow, isRefreshingInvitations } = useUser();
   const [isPauseMenuOpen, setIsPauseMenuOpen] = useState(false);
@@ -1284,6 +1285,77 @@ export const PlayView = ({
             </button>
           </div>
         </div>
+
+        {/* BANNER DESTACADO: AJEDREZ DE 3 Y 4 JUGADORES */}
+        {onOpenMultiplayer && (
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.2) 0%, rgba(30, 41, 59, 0.95) 100%)',
+            border: '2px solid #38bdf8',
+            borderRadius: '18px',
+            padding: '18px 24px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '16px',
+            boxShadow: '0 8px 25px rgba(56, 189, 248, 0.25)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{
+                width: '52px',
+                height: '52px',
+                borderRadius: '14px',
+                background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.8rem',
+                boxShadow: '0 4px 12px rgba(2, 132, 199, 0.4)',
+                flexShrink: 0
+              }}>
+                👥
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <span style={{ background: '#38bdf8', color: '#0f172a', fontWeight: '900', fontSize: '0.72rem', padding: '2px 8px', borderRadius: '10px', textTransform: 'uppercase' }}>
+                    ¡NUEVAS MODALIDADES!
+                  </span>
+                  <span style={{ color: '#38bdf8', fontSize: '0.82rem', fontWeight: '800' }}>
+                    3 y 4 Jugadores
+                  </span>
+                </div>
+                <h3 style={{ margin: '0 0 2px', fontSize: '1.25rem', fontWeight: '900', color: '#f8fafc' }}>
+                  Ajedrez Multijugador: Chaturaji, Cruz 14×14, Hexagonal y Circular
+                </h3>
+                <p style={{ margin: 0, fontSize: '0.84rem', color: '#94a3b8' }}>
+                  ¡Entrena tú solo contra bots o juega en grupo en el mismo dispositivo!
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={onOpenMultiplayer}
+              style={{
+                background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                color: '#ffffff',
+                border: 'none',
+                padding: '12px 22px',
+                borderRadius: '12px',
+                fontWeight: '900',
+                fontSize: '0.94rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                cursor: 'pointer',
+                boxShadow: '0 4px 16px rgba(2, 132, 199, 0.4)'
+              }}
+            >
+              <Users size={18} />
+              <span>Entrar a Partidas de 3 y 4 Bandos ➔</span>
+            </button>
+          </div>
+        )}
 
         {/* 1. SECCIÓN: 📬 RETOS RECIBIDOS DE HUMANOS */}
         {pendingInvitationsForMe && pendingInvitationsForMe.length > 0 && (

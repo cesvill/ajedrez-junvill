@@ -25,6 +25,7 @@ import { FamilyGatekeeperModal } from './components/FamilyGroups/FamilyGatekeepe
 import { ManualModal } from './components/Manual/ManualModal';
 import { getVariantById } from './engine/variantsEngine';
 import { ChessCuby3x3Modal } from './components/ChessCuby3x3/ChessCuby3x3Modal';
+import { MultiplayerPartyView } from './views/MultiplayerPartyView';
 import { ErrorBoundary } from './components/ErrorBoundary/ErrorBoundary';
 import { parseUrlState, syncUrl } from './engine/urlRouter';
 import { getLessonById } from './curriculum/lessonsData';
@@ -32,7 +33,7 @@ import { getBotById } from './assets/botRoster';
 
 export const App = () => {
   const { currentUser, activeGroup, isGroupUnlocked, pendingInvitationsForMe, acceptFamilyInvitation, declineFamilyInvitation } = useUser();
-  const [activeTab, setActiveTab] = useState(() => parseUrlState()?.view || 'inicio'); // 'inicio' | 'aprender' | 'problemas' | 'robots' | 'jugar' | 'torneos' | 'yo'
+  const [activeTab, setActiveTab] = useState(() => parseUrlState()?.view || 'inicio'); // 'inicio' | 'aprender' | 'problemas' | 'robots' | 'jugar' | 'torneos' | 'yo' | 'multijugador'
   const [activeLesson, setActiveLesson] = useState(null);
   const [activeBotMatch, setActiveBotMatch] = useState(null);
 
@@ -121,7 +122,7 @@ export const App = () => {
       if (modal === 'avatar') setIsAvatarBuilderOpen(true);
     }
 
-    if (['inicio', 'aprender', 'jugar', 'robots', 'problemas', 'torneos', 'yo'].includes(view)) {
+    if (['inicio', 'aprender', 'jugar', 'robots', 'problemas', 'torneos', 'yo', 'multijugador'].includes(view)) {
       setActiveTab(view);
     }
   }, []);
@@ -331,6 +332,7 @@ export const App = () => {
             onOpenBugReport={handleOpenBugReport}
             onOpenFamilyChat={(user) => handleOpenFamilyChat(user)}
             onOpenCuby3x3={() => setIsCuby3x3Open(true)}
+            onOpenMultiplayer={() => handleTabChange('multijugador')}
           />
         )}
 
@@ -343,6 +345,12 @@ export const App = () => {
         {activeTab === 'yo' && (
           <AvatarStudioView
             onOpenAvatarBuilder={() => setIsAvatarBuilderOpen(true)}
+          />
+        )}
+
+        {activeTab === 'multijugador' && (
+          <MultiplayerPartyView
+            onBackToMenu={() => handleTabChange('inicio')}
           />
         )}
       </main>

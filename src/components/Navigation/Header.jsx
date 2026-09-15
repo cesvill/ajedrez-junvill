@@ -73,6 +73,7 @@ export const Header = ({
     { id: 'problemas', label: 'Problemas', icon: Puzzle, desc: 'Puzzles tácticos diarios y jaques mate', color: '#fbbf24', bg: 'rgba(251, 191, 36, 0.15)' },
     { id: 'robots', label: 'Robots', icon: Bot, desc: '6 bots con personalidades y Elo dinámico', color: '#a78bfa', bg: 'rgba(167, 139, 250, 0.15)' },
     { id: 'jugar', label: 'Jugar', icon: Swords, desc: 'Partidas P2P familiares y 10 minijuegos', color: '#f87171', bg: 'rgba(248, 113, 113, 0.15)' },
+    { id: 'multijugador', label: 'Multi-Bando (3-4)', icon: Users, desc: 'Ajedrez de 3 y 4: Chaturaji, Cruz 14x14, Hex y Circular', color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.15)' },
     { id: 'torneos', label: 'Torneos', icon: Trophy, desc: 'Copas, campeonatos y tabla de clasificación', color: '#fb923c', bg: 'rgba(251, 146, 60, 0.15)' },
     { id: 'yo', label: 'Yo / Perfil', icon: User, desc: 'Avatar studio, logros y estadísticas', color: '#ec4899', bg: 'rgba(236, 72, 153, 0.15)' },
   ];

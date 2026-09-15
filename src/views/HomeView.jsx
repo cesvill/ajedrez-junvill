@@ -797,6 +797,61 @@ export const HomeView = ({
               <span>🎁 Ver Misiones & Cofres</span>
             </button>
           </div>
+
+          {/* Tarjeta 5: Ajedrez de 3 y 4 Jugadores (Multi-Bando) */}
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(56, 189, 248, 0.12) 100%)',
+            border: '2px solid #38bdf8',
+            borderRadius: 'var(--radius-lg)',
+            padding: '14px',
+            boxShadow: '0 4px 18px rgba(56, 189, 248, 0.2)',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            gap: '10px',
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: 'linear-gradient(90deg, #ef4444, #3b82f6, #f59e0b, #10b981)' }} />
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <span style={{ fontSize: '0.74rem', textTransform: 'uppercase', fontWeight: '900', color: '#38bdf8', letterSpacing: '0.5px' }}>
+                  Ajedrez Multijugador
+                </span>
+                <span style={{ fontSize: '0.74rem', background: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8', padding: '2px 8px', borderRadius: '10px', fontWeight: '800' }}>
+                  3 y 4 Jugadores ⭐
+                </span>
+              </div>
+              <h4 style={{ margin: '0 0 4px', fontSize: '0.98rem', color: '#f8fafc', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Users size={16} color="#38bdf8" /> Ajedrez de 3 y 4 Bandos
+              </h4>
+              <p style={{ margin: 0, fontSize: '0.78rem', color: '#94a3b8' }}>
+                Chaturaji con dados, Ajedrez en Cruz 14×14, Hexagonal y Circular 360°. ¡Juega local o contra bots!
+              </p>
+            </div>
+
+            <button
+              onClick={() => onNavigate('multijugador')}
+              style={{
+                width: '100%',
+                justifyContent: 'center',
+                padding: '8px 12px',
+                fontSize: '0.84rem',
+                background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: '800',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                cursor: 'pointer'
+              }}
+            >
+              <Play size={15} />
+              <span>Entrar a Partidas Multi-Bando</span>
+            </button>
+          </div>
         </div>
       </div>
 
