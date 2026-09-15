@@ -105,7 +105,21 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
     return 'chaturaji';
   };
 
+  const getDefaultBotPlayers = (variantId) => {
+    if (variantId === 'three_hex' || variantId === 'three_circular') {
+      // Blanco es humano, Negro y Rojo son Bots IA
+      return { white: false, black: true, red: true };
+    }
+    if (variantId === 'four_player') {
+      // Rojo es humano, Azul, Amarillo y Verde son Bots IA
+      return { red: false, blue: true, yellow: true, green: true };
+    }
+    // Chaturaji: Rojo es humano, Verde, Amarillo y Negro son Bots IA
+    return { red: false, green: true, yellow: true, black: true };
+  };
+
   const [selectedVariant, setSelectedVariant] = useState(getInitialVariant);
+  const [botPlayers, setBotPlayers] = useState(() => getDefaultBotPlayers(getInitialVariant()));
   const [game, setGame] = useState(() => {
     const v = getInitialVariant();
     if (v === 'four_player') return new FourPlayerGame('ffa');
@@ -113,15 +127,7 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
     if (v === 'three_circular') return new ThreePlayerCircularGame();
     return new ChaturajiGame();
   });
-  const [botPlayers, setBotPlayers] = useState({
-    // Por defecto: Jugador 1 es humano, el resto son bots para poder jugar solo de inmediato
-    red: false,
-    green: true,
-    yellow: true,
-    black: true,
-    white: false,
-    blue: true
-  });
+  const [gameTick, setGameTick] = useState(0);
   const [isRulesOpen, setIsRulesOpen] = useState(false);
   const [isBotThinking, setIsBotThinking] = useState(false);
   const botTimerRef = useRef(null);
@@ -138,10 +144,14 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
     else if (variantId === 'three_circular') newGame = new ThreePlayerCircularGame();
 
     setGame(newGame);
+    setGameTick(t => t + 1);
   }, []);
 
   const handleVariantChange = (vId) => {
+    if (botTimerRef.current) clearTimeout(botTimerRef.current);
+    setIsBotThinking(false);
     setSelectedVariant(vId);
+    setBotPlayers(getDefaultBotPlayers(vId));
     initGameForVariant(vId);
     try {
       const url = new URL(window.location.href);
@@ -152,52 +162,68 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
 
   // Turno del bot automático
   useEffect(() => {
-    if (!game || game.winner) return;
+    if (!game || game.winner) {
+      setIsBotThinking(false);
+      return;
+    }
 
     const active = game.activePlayer;
-    const isBot = botPlayers[active];
+    const isBot = !!botPlayers[active];
 
-    if (isBot && !isBotThinking) {
-      setIsBotThinking(true);
-      botTimerRef.current = setTimeout(() => {
-        const move = getBestMultiplayerBotMove(game, selectedVariant);
-        if (move) {
-          if (selectedVariant === 'chaturaji') {
-            game.makeMove(move.from.x, move.from.y, move.to.nx, move.to.ny);
-          } else if (selectedVariant === 'four_player') {
-            game.makeMove(move.from.x, move.from.y, move.to.nx, move.to.ny);
-          } else if (selectedVariant === 'three_hex') {
-            game.makeMove(move.from, move.to);
-          } else if (selectedVariant === 'three_circular') {
-            game.makeMove(move.from.ring, move.from.ray, move.to.ring, move.to.ray);
-          }
-          audioManager.playMove();
-        } else {
-          // Si es Chaturaji y no hay jugada legal con el dado, pasa turno
-          if (selectedVariant === 'chaturaji') {
-            game.passTurn();
-          }
-        }
-
-        // Forzar actualización de estado
-        setGame(Object.assign(Object.create(Object.getPrototypeOf(game)), game));
-        setIsBotThinking(false);
-
-        if (game.winner) {
-          audioManager.playVictory();
-          confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
-        }
-      }, 750);
+    if (!isBot) {
+      setIsBotThinking(false);
+      return;
     }
+
+    // El jugador activo es Bot: indicar en UI y programar jugada
+    setIsBotThinking(true);
+    if (botTimerRef.current) clearTimeout(botTimerRef.current);
+
+    botTimerRef.current = setTimeout(() => {
+      // Validar que la partida no haya cambiado y siga siendo el turno del bot
+      if (game.winner || game.activePlayer !== active) {
+        setIsBotThinking(false);
+        return;
+      }
+
+      const move = getBestMultiplayerBotMove(game, selectedVariant);
+      if (move) {
+        if (selectedVariant === 'chaturaji') {
+          game.makeMove(move.from.x, move.from.y, move.to.nx, move.to.ny);
+        } else if (selectedVariant === 'four_player') {
+          game.makeMove(move.from.x, move.from.y, move.to.nx, move.to.ny);
+        } else if (selectedVariant === 'three_hex') {
+          game.makeMove(move.from, move.to);
+        } else if (selectedVariant === 'three_circular') {
+          game.makeMove(move.from.ring, move.from.ray, move.to.ring, move.to.ray);
+        }
+        audioManager.playMove();
+      } else {
+        // Si no hay jugada legal con la tirada actual de dados o bloqueo
+        if (selectedVariant === 'chaturaji') {
+          game.passTurn();
+        } else {
+          game.nextTurn();
+        }
+      }
+
+      setIsBotThinking(false);
+      setGameTick(t => t + 1);
+
+      if (game.winner) {
+        audioManager.playVictory();
+        confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+      }
+    }, 650);
 
     return () => {
       if (botTimerRef.current) clearTimeout(botTimerRef.current);
     };
-  }, [game, selectedVariant, botPlayers, isBotThinking]);
+  }, [gameTick, selectedVariant, botPlayers]);
 
   // Manejo de movimiento del jugador humano
   const handleHumanMove = (...args) => {
-    if (isBotThinking || game.winner) return;
+    if (botPlayers[game.activePlayer] || isBotThinking || game.winner) return;
 
     let success = false;
     if (selectedVariant === 'chaturaji') {
@@ -216,7 +242,7 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
 
     if (success) {
       audioManager.playMove();
-      setGame(Object.assign(Object.create(Object.getPrototypeOf(game)), game));
+      setGameTick(t => t + 1);
 
       if (game.winner) {
         audioManager.playVictory();
@@ -226,9 +252,10 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
   };
 
   const handlePassTurn = () => {
-    if (selectedVariant === 'chaturaji' && !isBotThinking && !game.winner) {
+    if (selectedVariant === 'chaturaji' && !botPlayers[game.activePlayer] && !game.winner) {
       game.passTurn();
-      setGame(Object.assign(Object.create(Object.getPrototypeOf(game)), game));
+      audioManager.playMove();
+      setGameTick(t => t + 1);
     }
   };
 
@@ -237,6 +264,7 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
       ...prev,
       [playerKey]: !prev[playerKey]
     }));
+    setGameTick(t => t + 1);
   };
 
   const currentVariantData = VARIANTS.find(v => v.id === selectedVariant) || VARIANTS[0];
@@ -460,38 +488,63 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
         </div>
       )}
 
+      {/* Banner de Bot Pensando */}
+      {isBotThinking && !game.winner && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          backgroundColor: 'rgba(56, 189, 248, 0.12)',
+          border: '1px solid rgba(56, 189, 248, 0.35)',
+          color: '#38bdf8',
+          padding: '8px 20px',
+          borderRadius: '24px',
+          fontSize: '13px',
+          fontWeight: 700,
+          marginBottom: '16px',
+          boxShadow: '0 4px 16px rgba(56, 189, 248, 0.2)'
+        }}>
+          <Bot size={16} />
+          <span>El Bot ({game.activePlayer.toUpperCase()}) está calculando su jugada...</span>
+        </div>
+      )}
+
       {/* Tablero Activo */}
       <div style={{ width: '100%', maxWidth: '720px', display: 'flex', justifyContent: 'center' }}>
         {selectedVariant === 'chaturaji' && (
           <ChaturajiBoard
+            key={`chaturaji_${gameTick}`}
             game={game}
             onMove={handleHumanMove}
             onPass={handlePassTurn}
-            isBotTurn={botPlayers[game.activePlayer]}
+            isBotTurn={botPlayers[game.activePlayer] || isBotThinking}
           />
         )}
 
         {selectedVariant === 'four_player' && (
           <FourPlayerBoard
+            key={`four_player_${gameTick}`}
             game={game}
             onMove={handleHumanMove}
-            isBotTurn={botPlayers[game.activePlayer]}
+            isBotTurn={botPlayers[game.activePlayer] || isBotThinking}
           />
         )}
 
         {selectedVariant === 'three_hex' && (
           <ThreePlayerHexBoard
+            key={`three_hex_${gameTick}`}
             game={game}
             onMove={handleHumanMove}
-            isBotTurn={botPlayers[game.activePlayer]}
+            isBotTurn={botPlayers[game.activePlayer] || isBotThinking}
           />
         )}
 
         {selectedVariant === 'three_circular' && (
           <ThreePlayerCircularBoard
+            key={`three_circular_${gameTick}`}
             game={game}
             onMove={handleHumanMove}
-            isBotTurn={botPlayers[game.activePlayer]}
+            isBotTurn={botPlayers[game.activePlayer] || isBotThinking}
           />
         )}
       </div>
