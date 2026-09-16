@@ -102,13 +102,15 @@ export const Header = ({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
-                padding: '6px 16px',
+                gap: 'clamp(4px, 1.2vw, 8px)',
+                padding: 'clamp(4px, 1.2vw, 6px) clamp(8px, 2vw, 16px)',
                 background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%)',
                 border: '1.5px solid #eab308',
                 borderRadius: '9999px',
                 color: '#f8fafc',
                 cursor: 'pointer',
+                minWidth: 0,
+                flexShrink: 1,
                 boxShadow: isNavMenuOpen 
                   ? '0 0 16px rgba(234, 179, 8, 0.4)' 
                   : '0 4px 12px rgba(0, 0, 0, 0.3), 0 0 8px rgba(234, 179, 8, 0.2)',
@@ -124,16 +126,17 @@ export const Header = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                flexShrink: 0,
                 boxShadow: '0 2px 6px rgba(234, 179, 8, 0.4)'
               }}>
                 <ActiveIcon size={14} strokeWidth={2.5} />
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left', lineHeight: 1.1 }}>
-                <span style={{ fontSize: '0.62rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '800' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left', lineHeight: 1.1, minWidth: 0, overflow: 'hidden' }}>
+                <span style={{ fontSize: '0.60rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: '800' }}>
                   Sección
                 </span>
-                <span style={{ fontSize: '0.88rem', fontWeight: '900', color: '#facc15' }}>
+                <span style={{ fontSize: 'clamp(0.76rem, 2vw, 0.88rem)', fontWeight: '900', color: '#facc15', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', maxWidth: '100%' }}>
                   {activeTabObj.label}
                 </span>
               </div>
@@ -145,7 +148,8 @@ export const Header = ({
                 style={{
                   transition: 'transform 0.2s ease',
                   transform: isNavMenuOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                  marginLeft: '2px'
+                  marginLeft: '2px',
+                  flexShrink: 0
                 }}
               />
             </button>
@@ -163,9 +167,10 @@ export const Header = ({
                   border: '2px solid rgba(234, 179, 8, 0.4)',
                   borderRadius: '18px',
                   boxShadow: '0 20px 50px rgba(0,0,0,0.85), 0 0 25px rgba(234, 179, 8, 0.25)',
-                  padding: '14px',
-                  minWidth: '330px',
-                  maxWidth: '380px',
+                  padding: '12px',
+                  width: 'min(92vw, 360px)',
+                  maxWidth: '360px',
+                  boxSizing: 'border-box',
                   zIndex: 2500,
                   backdropFilter: 'blur(16px)'
                 }}
@@ -317,8 +322,9 @@ export const Header = ({
                   position: 'absolute',
                   top: 'calc(100% + 8px)',
                   right: 0,
-                  width: '260px',
-                  maxWidth: 'calc(100vw - 20px)',
+                  width: 'min(90vw, 260px)',
+                  maxWidth: 'calc(100vw - 16px)',
+                  boxSizing: 'border-box',
                   background: '#0f172a',
                   border: '2px solid var(--bg-parchment-border)',
                   borderRadius: 'var(--radius-md, 12px)',

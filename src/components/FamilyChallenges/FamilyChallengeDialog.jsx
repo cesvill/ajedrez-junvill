@@ -242,8 +242,8 @@ export const FamilyChallengeDialog = ({
         </div>
 
         {/* 3. AYUDAS TÁCTICAS */}
-        <div style={{ marginBottom: '18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255, 255, 255, 0.03)', padding: '10px 14px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-          <div>
+        <div style={{ marginBottom: '18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255, 255, 255, 0.03)', padding: '10px 14px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.08)', flexWrap: 'wrap', gap: '8px' }}>
+          <div style={{ minWidth: 0, flex: '1 1 200px' }}>
             <div style={{ fontWeight: '800', fontSize: '0.86rem', color: '#f8fafc' }}>
               Ayudas Tácticas y Guías Visuales
             </div>
@@ -262,7 +262,8 @@ export const FamilyChallengeDialog = ({
               color: withAssistance ? '#34d399' : '#94a3b8',
               fontWeight: '900',
               fontSize: '0.78rem',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              flexShrink: 0
             }}
           >
             {withAssistance ? '💡 Activadas' : '🛡️ Desactivadas'}
@@ -294,12 +295,12 @@ export const FamilyChallengeDialog = ({
         </div>
 
         {/* BOTONES DE ACCIÓN */}
-        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
           <button
             type="button"
             className="btn-secondary"
             onClick={onClose}
-            style={{ padding: '10px 18px', fontSize: '0.88rem' }}
+            style={{ padding: '10px 18px', fontSize: '0.88rem', flex: '1 1 auto', minWidth: '100px', justifyContent: 'center' }}
           >
             Cancelar
           </button>
@@ -307,7 +308,7 @@ export const FamilyChallengeDialog = ({
             type="button"
             className="btn-gold"
             onClick={handleSend}
-            style={{ padding: '10px 24px', fontSize: '0.96rem', fontWeight: '900', gap: '8px', boxShadow: '0 4px 16px rgba(234, 179, 8, 0.4)' }}
+            style={{ padding: '10px 24px', fontSize: '0.96rem', fontWeight: '900', gap: '8px', boxShadow: '0 4px 16px rgba(234, 179, 8, 0.4)', flex: '1 1 auto', minWidth: '140px', justifyContent: 'center' }}
           >
             <Swords size={18} />
             <span>Enviar Reto a {opponent.name}</span>

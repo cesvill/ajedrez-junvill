@@ -392,23 +392,24 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" style={{ zIndex: 130, padding: '8px' }} onClick={onClose}>
+    <div className="modal-overlay" style={{ zIndex: 130, padding: 'max(6px, var(--sat, 6px)) max(6px, var(--sar, 6px)) max(6px, var(--sab, 6px)) max(6px, var(--sal, 6px))' }} onClick={onClose}>
       <div 
         className="modal-card" 
         style={{
-          maxWidth: '860px',
+          maxWidth: 'min(96vw, 860px)',
           width: '100%',
-          maxHeight: '95vh',
+          maxHeight: 'min(94dvh, 94vh)',
           background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
           border: '2px solid #eab308',
           borderRadius: '18px',
-          padding: '14px 18px',
+          padding: 'clamp(10px, 2.5vw, 18px)',
           boxShadow: '0 25px 60px rgba(0,0,0,0.85)',
           overflowY: 'auto',
           color: '#f8fafc',
           display: 'flex',
           flexDirection: 'column',
-          gap: '10px'
+          gap: '8px',
+          boxSizing: 'border-box'
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -477,7 +478,7 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
         </div>
 
         {/* SELECTOR DE MODO DE JUEGO */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '8px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '6px' }}>
           <button
             type="button"
             onClick={() => {
@@ -488,10 +489,10 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
               background: gameMode === 'adventure' ? 'linear-gradient(135deg, rgba(234, 179, 8, 0.25) 0%, rgba(202, 138, 4, 0.35) 100%)' : 'rgba(30, 41, 59, 0.6)',
               border: `1.5px solid ${gameMode === 'adventure' ? '#facc15' : 'rgba(148, 163, 184, 0.2)'}`,
               borderRadius: '10px',
-              padding: '8px 10px',
+              padding: '6px 8px',
               color: gameMode === 'adventure' ? '#fef08a' : '#94a3b8',
               fontWeight: '900',
-              fontSize: '0.78rem',
+              fontSize: '0.76rem',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -519,10 +520,10 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
               background: gameMode === 'time_attack' ? 'linear-gradient(135deg, rgba(236, 72, 153, 0.25) 0%, rgba(190, 24, 93, 0.35) 100%)' : 'rgba(30, 41, 59, 0.6)',
               border: `1.5px solid ${gameMode === 'time_attack' ? '#f472b6' : 'rgba(148, 163, 184, 0.2)'}`,
               borderRadius: '10px',
-              padding: '8px 10px',
+              padding: '6px 8px',
               color: gameMode === 'time_attack' ? '#fbcfe8' : '#94a3b8',
               fontWeight: '900',
-              fontSize: '0.78rem',
+              fontSize: '0.76rem',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -550,10 +551,10 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
               background: gameMode === 'competitive' ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.25) 0%, rgba(29, 78, 216, 0.35) 100%)' : 'rgba(30, 41, 59, 0.6)',
               border: `1.5px solid ${gameMode === 'competitive' ? '#60a5fa' : 'rgba(148, 163, 184, 0.2)'}`,
               borderRadius: '10px',
-              padding: '8px 10px',
+              padding: '6px 8px',
               color: gameMode === 'competitive' ? '#bfdbfe' : '#94a3b8',
               fontWeight: '900',
-              fontSize: '0.78rem',
+              fontSize: '0.76rem',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -575,16 +576,16 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
           background: 'rgba(15, 23, 42, 0.8)',
           border: '1px solid rgba(148, 163, 184, 0.2)',
           borderRadius: '12px',
-          padding: '10px 14px',
+          padding: '8px 12px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
-          gap: '10px'
+          gap: '8px'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.80rem', fontWeight: '800', color: '#cbd5e1' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', fontWeight: '800', color: '#cbd5e1', flexWrap: 'wrap' }}>
             <span>⚙️ Nivel de Reglas:</span>
-            <div style={{ display: 'flex', gap: '6px' }}>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
               {[
                 { lvl: 1, label: 'Nivel 1: Básico' },
                 { lvl: 2, label: 'Nivel 2: Rotación 90° (+1)' },
@@ -694,28 +695,31 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
            ========================================================================= */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-          gap: '14px',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 250px), 1fr))',
+          gap: '12px',
           alignItems: 'center',
-          justifyContent: 'center'
+          justifyContent: 'center',
+          width: '100%'
         }}>
           {/* A) COLUMNA IZQUIERDA: TARJETA OBJETIVO (TARGET CARD) */}
           <div style={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: '8px'
+            gap: '8px',
+            width: '100%'
           }}>
             <div style={{
               width: '100%',
-              maxWidth: 'min(260px, 32vh)',
+              maxWidth: 'min(260px, 28vh, 85vw)',
               background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
               border: '2px solid #eab308',
               borderRadius: '14px',
-              padding: '12px 14px',
+              padding: '10px 12px',
               boxShadow: '0 8px 24px rgba(234, 179, 8, 0.2)',
               position: 'relative',
-              textAlign: 'center'
+              textAlign: 'center',
+              boxSizing: 'border-box'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                 <span style={{ fontSize: '0.70rem', background: '#eab308', color: '#0f172a', fontWeight: '900', padding: '2px 7px', borderRadius: '4px' }}>
@@ -726,7 +730,7 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
                 </span>
               </div>
 
-              <h3 style={{ margin: '0 0 8px', fontSize: '0.92rem', fontWeight: '900', color: '#f8fafc' }}>
+              <h3 style={{ margin: '0 0 6px', fontSize: '0.90rem', fontWeight: '900', color: '#f8fafc' }}>
                 {currentCard.title}
               </h3>
 
@@ -741,7 +745,7 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
                 border: '1.5px solid #64748b',
                 aspectRatio: '1',
                 width: '100%',
-                maxWidth: 'min(150px, 18vh)',
+                maxWidth: 'min(140px, 16vh, 45vw)',
                 margin: '0 auto',
                 transform: `rotate(${cardRotation}deg) scaleX(${cardFlipped ? -1 : 1})`,
                 transition: 'transform 0.3s ease'
@@ -775,12 +779,12 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
 
               {/* Controles de Rotación y Modo Espejo (Niveles 2 y 3) */}
               {(ruleLevel >= 2) && (
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', marginTop: '10px' }}>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
                   <button
                     type="button"
                     className="btn-secondary"
                     onClick={handleRotateCard}
-                    style={{ padding: '5px 8px', fontSize: '0.70rem', gap: '3px' }}
+                    style={{ padding: '4px 8px', fontSize: '0.70rem', gap: '3px' }}
                     title="Girar tarjeta 90° (+1 jugada)"
                   >
                     <RotateCcw size={12} />
@@ -791,7 +795,7 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
                       type="button"
                       className="btn-secondary"
                       onClick={handleFlipCard}
-                      style={{ padding: '5px 8px', fontSize: '0.70rem', gap: '3px' }}
+                      style={{ padding: '4px 8px', fontSize: '0.70rem', gap: '3px' }}
                       title="Efecto espejo reverso (+1 jugada)"
                     >
                       <Shuffle size={12} />
@@ -808,7 +812,8 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: '8px'
+            gap: '8px',
+            width: '100%'
           }}>
             {/* Tablero 3x3 */}
             <div style={{
@@ -816,13 +821,14 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
               gridTemplateColumns: 'repeat(3, 1fr)',
               gap: '6px',
               background: 'linear-gradient(135deg, #78350f 0%, #451a03 100%)',
-              padding: '10px',
+              padding: '8px',
               borderRadius: '16px',
               border: '3px solid #f59e0b',
               boxShadow: '0 10px 30px rgba(0,0,0,0.7)',
               width: '100%',
-              maxWidth: 'min(300px, 34vh)',
-              aspectRatio: '1'
+              maxWidth: 'min(280px, 30vh, 86vw)',
+              aspectRatio: '1',
+              boxSizing: 'border-box'
             }}>
               {currentBoard.map((pKey, idx) => {
                 const r = Math.floor(idx / 3);
@@ -919,20 +925,21 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
               alignItems: 'center',
               justifyContent: 'space-between',
               width: '100%',
-              maxWidth: 'min(300px, 34vh)',
-              padding: '6px 12px',
+              maxWidth: 'min(280px, 30vh, 86vw)',
+              padding: '6px 10px',
               background: 'rgba(15, 23, 42, 0.8)',
               border: '1px solid rgba(148, 163, 184, 0.25)',
               borderRadius: '8px',
-              fontSize: '0.78rem'
+              fontSize: '0.76rem',
+              boxSizing: 'border-box'
             }}>
               <div>
                 <span style={{ color: '#94a3b8' }}>Movimientos: </span>
-                <strong style={{ color: movesCount > (currentCard.optimalMoves || 4) ? '#ef4444' : '#facc15', fontSize: '0.90rem' }}>
+                <strong style={{ color: movesCount > (currentCard.optimalMoves || 4) ? '#ef4444' : '#facc15', fontSize: '0.88rem' }}>
                   {movesCount}
                 </strong>
                 {getTransformPenalty() > 0 && (
-                  <span style={{ fontSize: '0.70rem', color: '#94a3b8' }}> (+{getTransformPenalty()} giros)</span>
+                  <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}> (+{getTransformPenalty()} giros)</span>
                 )}
               </div>
 
@@ -943,13 +950,13 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
             </div>
 
             {/* Barra de Herramientas (Pista, Deshacer, Reiniciar) */}
-            <div style={{ display: 'flex', gap: '6px', width: '100%', maxWidth: 'min(300px, 34vh)' }}>
+            <div style={{ display: 'flex', gap: '6px', width: '100%', maxWidth: 'min(280px, 30vh, 86vw)', flexWrap: 'wrap', boxSizing: 'border-box' }}>
               <button
                 type="button"
                 className="btn-secondary"
                 onClick={handleUndo}
                 disabled={history.length === 0 || isSolved}
-                style={{ flex: 1, padding: '6px', fontSize: '0.74rem', justifyContent: 'center', gap: '4px' }}
+                style={{ flex: '1 1 70px', padding: '6px 4px', fontSize: '0.72rem', justifyContent: 'center', gap: '4px' }}
                 title="Deshacer última jugada"
               >
                 <RotateCcw size={13} />
@@ -960,7 +967,7 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
                 type="button"
                 className="btn-secondary"
                 onClick={handleResetCard}
-                style={{ flex: 1, padding: '6px', fontSize: '0.74rem', justifyContent: 'center', gap: '4px' }}
+                style={{ flex: '1 1 70px', padding: '6px 4px', fontSize: '0.72rem', justifyContent: 'center', gap: '4px' }}
                 title="Reiniciar tablero"
               >
                 <span>🔄 Reiniciar</span>
@@ -971,7 +978,7 @@ export const ChessCuby3x3Modal = ({ isOpen = true, onClose }) => {
                 className="btn-gold"
                 onClick={handleRequestHint}
                 disabled={isSolved}
-                style={{ flex: 1, padding: '6px', fontSize: '0.74rem', justifyContent: 'center', gap: '4px', fontWeight: '900' }}
+                style={{ flex: '1 1 70px', padding: '6px 4px', fontSize: '0.72rem', justifyContent: 'center', gap: '4px', fontWeight: '900' }}
                 title="Ver siguiente jugada óptima"
               >
                 <Lightbulb size={13} />

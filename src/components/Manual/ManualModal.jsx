@@ -413,12 +413,12 @@ export const ManualModal = ({
         </div>
 
         {/* CUERPO DEL MANUAL: SIDEBAR DE CAPÍTULOS + PANEL DE CONTENIDO */}
-        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+        <div className="manual-modal-body" style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
           {/* Sidebar de Secciones */}
-          <div style={{
-            width: '310px',
-            minWidth: '290px',
-            flex: '0 0 310px',
+          <div className="manual-sidebar" style={{
+            width: '300px',
+            minWidth: '240px',
+            flex: '0 0 auto',
             background: '#090d16',
             borderRight: '1.5px solid #1e293b',
             overflowY: 'auto',
