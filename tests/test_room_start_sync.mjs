@@ -1,10 +1,11 @@
-﻿import test from 'node:test';
+import test from 'node:test';
 import assert from 'node:assert/strict';
 import { JunvillRoomEngine } from '../src/services/room/JunvillRoomEngine.js';
+import { LocalMockTransport } from '../src/services/room/LocalMockTransport.js';
 
 test('JunvillRoomEngine: Creación de sala, asignación de asientos y arranque de partida', async () => {
-  const engineHost = new JunvillRoomEngine();
-  const engineGuest = new JunvillRoomEngine();
+  const engineHost = new JunvillRoomEngine(new LocalMockTransport());
+  const engineGuest = new JunvillRoomEngine(new LocalMockTransport());
 
   const userHost = { id: 'user_leti', name: 'Leti', role: 'parent' };
   const userGuest = { id: 'user_cesar', name: 'César', role: 'parent' };
@@ -68,7 +69,7 @@ test('JunvillRoomEngine: Creación de sala, asignación de asientos y arranque d
 });
 
 test('JunvillRoomEngine: Relleno automático de bots si el anfitrión inicia con asientos vacíos', async () => {
-  const engine = new JunvillRoomEngine();
+  const engine = new JunvillRoomEngine(new LocalMockTransport());
   const userHost = { id: 'user_leti', name: 'Leti' };
 
   const partyData = {
