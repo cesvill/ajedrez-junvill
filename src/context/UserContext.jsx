@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { familySignaling } from '../engine/familySignaling';
 import { audioManager } from '../engine/audio';
 import { cloudSync, normalizeUserKey, deduplicateAndMergeUsers, recoverAllLocalUsersFromStorage } from '../engine/cloudSync';
-import { hashPassword, verifyPassword, SECURE_DEFAULT_PASSWORD_HASH } from '../engine/cryptoAuth';
+import { hashPassword, verifyPassword as cryptoVerifyPassword, SECURE_DEFAULT_PASSWORD_HASH } from '../engine/cryptoAuth';
 
 const UserContext = createContext();
 
@@ -632,6 +632,7 @@ export const UserProvider = ({ children }) => {
     }
   });
 
+  // # OJO HUMANO: Zero-DLP / CWE-306 - Ningún grupo familiar debe inicializar como desbloqueado por defecto
   const [unlockedGroupIds, setUnlockedGroupIds] = useState(() => {
     try {
       const saved = sessionStorage.getItem(UNLOCKED_GROUPS_KEY);
@@ -639,9 +640,9 @@ export const UserProvider = ({ children }) => {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) return parsed;
       }
-      return ['group_junvill'];
+      return [];
     } catch (e) {
-      return ['group_junvill'];
+      return [];
     }
   });
 
@@ -711,19 +712,18 @@ export const UserProvider = ({ children }) => {
   const activeGroup = useMemo(() => groups.find(g => g.id === activeGroupId) || groups[0] || DEFAULT_FAMILY_GROUPS[0], [groups, activeGroupId]);
   const isGroupUnlocked = activeGroup ? unlockedGroupIds.includes(activeGroup.id) : false;
   const users = useMemo(() => activeGroup ? cloudSync.mergeUsers(activeGroup.users || [], DEFAULT_JUNVILL_USERS) : DEFAULT_JUNVILL_USERS, [activeGroup]);
+  // # OJO HUMANO: Zero-DLP - Si el grupo está bloqueado o no hay activeUserId autenticado, currentUser es estrictamente null
   const currentUser = useMemo(() => {
-    if (!users || users.length === 0) return DEFAULT_JUNVILL_USERS[0];
-    if (activeUserId) {
-      const activeKey = normalizeUserKey(activeUserId);
-      const found = users.find(u => 
-        u.id === activeUserId || 
-        normalizeUserKey(u.id) === activeKey ||
-        normalizeUserKey(u.name) === activeKey
-      );
-      if (found) return found;
-    }
-    return users[0] || DEFAULT_JUNVILL_USERS[0];
-  }, [users, activeUserId]);
+    if (!isGroupUnlocked || !activeUserId) return null;
+    if (!users || users.length === 0) return null;
+    const activeKey = normalizeUserKey(activeUserId);
+    const found = users.find(u => 
+      u.id === activeUserId || 
+      normalizeUserKey(u.id) === activeKey ||
+      normalizeUserKey(u.name) === activeKey
+    );
+    return found || null;
+  }, [users, activeUserId, isGroupUnlocked]);
 
   // Sincronización inmediata con la Nube Central al iniciar la aplicación (Auto-Pull Máximo Avance)
   useEffect(() => {
@@ -1734,6 +1734,7 @@ export const UserProvider = ({ children }) => {
     return { success: true, message: '¡Contraseña restablecida exitosamente!' };
   };
 
+  // # OJO HUMANO: Autenticación de Grupo con hash SHA-256 (CWE-256 / CWE-306)
   const unlockFamilyGroup = (groupId, enteredPassword) => {
     const targetGroup = groups.find(g => g.id === groupId);
     if (!targetGroup) {
@@ -1741,7 +1742,7 @@ export const UserProvider = ({ children }) => {
     }
 
     const stored = targetGroup.passwordHash || targetGroup.password || SECURE_DEFAULT_PASSWORD_HASH;
-    if (!verifyPassword(enteredPassword, stored)) {
+    if (!cryptoVerifyPassword(enteredPassword, stored)) {
       return { success: false, error: 'Contraseña del grupo familiar incorrecta.' };
     }
 
@@ -1754,17 +1755,19 @@ export const UserProvider = ({ children }) => {
       localStorage.setItem(ACTIVE_GROUP_KEY, groupId);
     } catch (e) {}
 
-    if (targetGroup.users && targetGroup.users.length > 0) {
-      setActiveUserId(targetGroup.users[0].id);
-      try {
-        localStorage.setItem(ACTIVE_USER_KEY, targetGroup.users[0].id);
-      } catch (e) {}
-    }
     return { success: true, group: targetGroup };
   };
 
+  // # OJO HUMANO: Revocación total de credenciales y bloqueo de sesión (Zero-DLP / CWE-306)
   const leaveFamilyGroup = () => {
     setActiveGroupId('group_junvill');
+    setActiveUserId(null);
+    setUnlockedGroupIds([]);
+    try {
+      sessionStorage.removeItem(UNLOCKED_GROUPS_KEY);
+      localStorage.removeItem(ACTIVE_USER_KEY);
+      localStorage.removeItem('ajedrez_junvill_has_selected_profile');
+    } catch (e) {}
   };
 
   const deleteFamilyGroup = (groupId, adminPassword) => {
@@ -1891,11 +1894,12 @@ export const UserProvider = ({ children }) => {
     return newUser;
   };
 
-  const verifyPassword = (userId, enteredPassword) => {
+  // # OJO HUMANO: Verificación criptográfica SHA-256 de usuario con cryptoVerifyPassword sin shadowing
+  const verifyUserPassword = (userId, enteredPassword) => {
     const user = users.find(u => u.id === userId);
     if (!user) return false;
     const stored = user.passwordHash || user.password || SECURE_DEFAULT_PASSWORD_HASH;
-    return verifyPassword(enteredPassword, stored);
+    return cryptoVerifyPassword(enteredPassword, stored);
   };
 
   const changeUserPassword = (userId, newPassword) => {
@@ -2224,7 +2228,8 @@ export const UserProvider = ({ children }) => {
       createUser,
       editUser,
       deleteUser,
-      verifyPassword,
+      verifyPassword: verifyUserPassword,
+      verifyUserPassword,
       changeUserPassword,
       updateCurrentUser,
       resetUserProgress,

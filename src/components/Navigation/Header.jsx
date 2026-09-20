@@ -601,13 +601,13 @@ export const Header = ({
             <button 
               type="button"
               className="profile-button" 
-              onClick={onOpenProfile} 
-              title="Cambiar usuario o avatar"
+              onClick={currentUser ? onOpenProfile : onOpenGatekeeper} 
+              title={currentUser ? "Cambiar usuario o avatar" : "Iniciar sesión"}
             >
               <div className="user-avatar-mini">
                 <AvatarIcon avatarId={currentUser?.avatar || 'custom_dynamic'} avatarConfig={currentUser?.avatarConfig} size={28} />
               </div>
-              <span className="user-name-text">{currentUser?.name || 'Estudiante'}</span>
+              <span className="user-name-text">{currentUser?.name || 'Iniciar Sesión'}</span>
             </button>
           </div>
         </div>

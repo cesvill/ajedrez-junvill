@@ -35,6 +35,8 @@ import { getBotById } from './assets/botRoster';
 
 export const App = () => {
   const { currentUser, activeGroup, isGroupUnlocked, pendingInvitationsForMe, acceptFamilyInvitation, declineFamilyInvitation } = useUser();
+  // # OJO HUMANO: Perímetro cerrado Zero-DLP - Bloqueo estricto si no hay grupo desbloqueado o usuario autenticado (CWE-306)
+  const isAppLocked = !isGroupUnlocked || !currentUser;
   const [activeTab, setActiveTab] = useState(() => parseUrlState()?.view || 'inicio'); // 'inicio' | 'aprender' | 'problemas' | 'robots' | 'jugar' | 'torneos' | 'yo' | 'multijugador'
   const [activeLesson, setActiveLesson] = useState(null);
   const [activeBotMatch, setActiveBotMatch] = useState(null);
@@ -772,7 +774,7 @@ export const App = () => {
       />
 
       {/* 0. BANNER FLOTANTE GLOBAL DE RETO ENTRANTE */}
-      {pendingInvitationsForMe && pendingInvitationsForMe.length > 0 && !isP2POpen && (
+      {pendingInvitationsForMe && pendingInvitationsForMe.length > 0 && !isP2POpen && !isAppLocked && (
         <div style={{
           position: 'sticky',
           top: '56px',
@@ -826,6 +828,27 @@ export const App = () => {
 
       {/* Contenedor de Vistas */}
       <main className="main-content">
+        {isAppLocked ? (
+          <div style={{
+            minHeight: '65vh',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#94a3b8',
+            padding: '32px 20px',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '3.5rem', marginBottom: '14px' }}>🔒</div>
+            <h2 style={{ fontFamily: 'var(--font-serif)', color: '#f8fafc', margin: '0 0 8px', fontSize: '1.5rem', fontWeight: 900 }}>
+              Portal de Acceso Protegido
+            </h2>
+            <p style={{ maxWidth: '420px', fontSize: '0.9rem', color: '#94a3b8', margin: 0, lineHeight: 1.5 }}>
+              Esta instancia de <b>Ajedrez Junvill</b> está protegida. Por favor desbloquea el grupo familiar y autentica tu perfil para ingresar.
+            </p>
+          </div>
+        ) : (
+          <>
         {activeTab === 'inicio' && (
           <HomeView
             onNavigate={handleTabChange}
@@ -897,16 +920,20 @@ export const App = () => {
             onBackToMenu={() => handleTabChange('inicio')}
           />
         )}
+          </>
+        )}
       </main>
 
       {/* Botón Flotante Permanente de Reporte de Errores */}
       <BugReportFloatingButton onClick={() => handleOpenBugReport()} />
 
       {/* Navegación Inferior Móvil (adaptada automáticamente por CSS en móvil) */}
-      <Navbar
-        activeTab={activeTab}
-        onTabChange={handleTabChange}
-      />
+      {!isAppLocked && (
+        <Navbar
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+        />
+      )}
 
       {/* Modal de Reproducción de Lección */}
       {activeLesson && (
@@ -926,16 +953,22 @@ export const App = () => {
 
       {/* Portal de Acceso Protegido y Grupos Familiares (Gatekeeper) */}
       <FamilyGatekeeperModal
-        isOpen={isGatekeeperOpen || (!activeGroup && !currentUser)}
-        onClose={() => setIsGatekeeperOpen(false)}
+        isOpen={isGatekeeperOpen || isAppLocked}
+        onClose={() => {
+          if (!isAppLocked) setIsGatekeeperOpen(false);
+        }}
         onOpenAvatarBuilder={() => {
-          setIsGatekeeperOpen(false);
-          setIsAvatarBuilderOpen(true);
+          if (!isAppLocked) {
+            setIsGatekeeperOpen(false);
+            setIsAvatarBuilderOpen(true);
+          }
         }}
         onOpenP2P={(customRoomId) => {
-          setUrlRoomId(customRoomId || null);
-          setIsGatekeeperOpen(false);
-          setIsP2POpen(true);
+          if (!isAppLocked) {
+            setUrlRoomId(customRoomId || null);
+            setIsGatekeeperOpen(false);
+            setIsP2POpen(true);
+          }
         }}
       />
 

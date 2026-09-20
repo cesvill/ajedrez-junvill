@@ -20,10 +20,14 @@ export const FamilyGatekeeperModal = ({ isOpen, onClose, onOpenAvatarBuilder, on
     createUser, 
     serverMetrics,
     familyInvitations,
-    acceptFamilyInvitation
+    acceptFamilyInvitation,
+    verifyUserPassword,
+    verifyPassword
   } = useUser();
 
-  // Flujo interno: 'select_group' | 'unlock_group' | 'recover_password' | 'select_player' | 'create_player'
+  const isAppLocked = !isGroupUnlocked || !currentUser;
+
+  // Flujo interno: 'select_group' | 'unlock_group' | 'recover_password' | 'select_player' | 'unlock_player' | 'create_player'
   const [currentStep, setCurrentStep] = useState(() => {
     if (activeGroup && isGroupUnlocked) {
       return 'select_player';
@@ -48,6 +52,12 @@ export const FamilyGatekeeperModal = ({ isOpen, onClose, onOpenAvatarBuilder, on
   const [enteredGroupPassword, setEnteredGroupPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [unlockError, setUnlockError] = useState('');
+
+  // Estado para Autenticación de Jugador
+  const [targetPlayerToUnlock, setTargetPlayerToUnlock] = useState(null);
+  const [enteredPlayerPassword, setEnteredPlayerPassword] = useState('');
+  const [showPlayerPassword, setShowPlayerPassword] = useState(false);
+  const [playerPasswordError, setPlayerPasswordError] = useState('');
 
   // Estado para Recuperación de Contraseña
   const [recoveryEmail, setRecoveryEmail] = useState('');
@@ -114,11 +124,30 @@ export const FamilyGatekeeperModal = ({ isOpen, onClose, onOpenAvatarBuilder, on
     }
   };
 
-  // Seleccionar jugador para entrar a jugar
-  const handlePickPlayer = (userId) => {
-    setActiveUserId(userId);
-    localStorage.setItem('ajedrez_junvill_has_selected_profile', 'true');
-    onClose();
+  // # OJO HUMANO: Selección de jugador requiere autenticación de contraseña (CWE-256 / CWE-306)
+  const handlePickPlayer = (user) => {
+    setTargetPlayerToUnlock(user);
+    setEnteredPlayerPassword('');
+    setPlayerPasswordError('');
+    setShowPlayerPassword(false);
+    setCurrentStep('unlock_player');
+  };
+
+  const handlePlayerUnlockSubmit = (e) => {
+    e.preventDefault();
+    if (!targetPlayerToUnlock) return;
+    const verifyFn = verifyUserPassword || verifyPassword;
+    const isValid = verifyFn(targetPlayerToUnlock.id, enteredPlayerPassword);
+    if (isValid) {
+      setActiveUserId(targetPlayerToUnlock.id);
+      localStorage.setItem('ajedrez_junvill_has_selected_profile', 'true');
+      setTargetPlayerToUnlock(null);
+      setEnteredPlayerPassword('');
+      setPlayerPasswordError('');
+      onClose();
+    } else {
+      setPlayerPasswordError('Contraseña de jugador incorrecta.');
+    }
   };
 
   // Crear nuevo jugador dentro del grupo activo
@@ -640,7 +669,7 @@ export const FamilyGatekeeperModal = ({ isOpen, onClose, onOpenAvatarBuilder, on
                     <button
                       key={u.id}
                       type="button"
-                      onClick={() => handlePickPlayer(u.id)}
+                      onClick={() => handlePickPlayer(u)}
                       style={{
                         background: isCurrent ? 'rgba(245, 158, 11, 0.15)' : '#0a0f1d',
                         border: `2px solid ${isCurrent ? 'var(--color-gold)' : 'rgba(255, 255, 255, 0.08)'}`,
@@ -847,6 +876,117 @@ export const FamilyGatekeeperModal = ({ isOpen, onClose, onOpenAvatarBuilder, on
               >
                 <Check size={18} />
                 <span>Guardar y Jugar</span>
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* ========================================== */}
+        {/* VISTA F: AUTENTICACIÓN DE CONTRASEÑA DE JUGADOR */}
+        {/* ========================================== */}
+        {currentStep === 'unlock_player' && targetPlayerToUnlock && (
+          <form onSubmit={handlePlayerUnlockSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ textAlign: 'center', marginBottom: '6px' }}>
+              <div style={{ width: '72px', height: '72px', borderRadius: '50%', overflow: 'hidden', border: '3px solid var(--color-gold)', margin: '0 auto 10px', boxShadow: '0 0 20px rgba(234, 179, 8, 0.3)' }}>
+                {targetPlayerToUnlock.avatarConfig ? (
+                  <DynamicAvatar config={targetPlayerToUnlock.avatarConfig} size={72} />
+                ) : (
+                  <AvatarIcon avatarId={targetPlayerToUnlock.avatar || 'teen_gamer'} size={72} />
+                )}
+              </div>
+              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.35rem', margin: '0 0 4px', fontWeight: '900', color: '#f8fafc' }}>
+                {targetPlayerToUnlock.name}
+              </h2>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(234, 179, 8, 0.15)', color: '#facc15', padding: '3px 10px', borderRadius: '999px', fontSize: '0.76rem', fontWeight: '800' }}>
+                <span>{targetPlayerToUnlock.role === 'parent' ? '👑 Tutor Familiar' : targetPlayerToUnlock.role === 'coach' ? '🎓 Entrenador' : '♟️ Estudiante'}</span>
+                <span>• {targetPlayerToUnlock.elo || 600} Elo</span>
+              </div>
+              <p style={{ fontSize: '0.84rem', color: '#94a3b8', margin: '8px 0 0 0' }}>
+                Ingresa tu contraseña de acceso para iniciar sesión con este perfil.
+              </p>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.84rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#facc15' }}>
+                <KeyRound size={15} />
+                <span>Contraseña de {targetPlayerToUnlock.name}:</span>
+              </label>
+
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showPlayerPassword ? 'text' : 'password'}
+                  placeholder="Ingresa tu contraseña de jugador"
+                  value={enteredPlayerPassword}
+                  onChange={(e) => {
+                    setEnteredPlayerPassword(e.target.value);
+                    if (playerPasswordError) setPlayerPasswordError('');
+                  }}
+                  autoFocus
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '12px 42px 12px 14px',
+                    borderRadius: '10px',
+                    border: playerPasswordError ? '1.5px solid #ef4444' : '1.5px solid var(--color-gold)',
+                    background: '#0a0f1d',
+                    color: '#f8fafc',
+                    fontSize: '1rem',
+                    fontWeight: '700',
+                    boxSizing: 'border-box'
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPlayerPassword(!showPlayerPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    color: '#94a3b8',
+                    cursor: 'pointer',
+                    padding: '4px'
+                  }}
+                >
+                  {showPlayerPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+
+              {playerPasswordError && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#f87171', fontSize: '0.80rem', marginTop: '6px', fontWeight: '700' }}>
+                  <AlertCircle size={14} />
+                  <span>{playerPasswordError}</span>
+                </div>
+              )}
+
+              <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: '8px', textAlign: 'center' }}>
+                💡 <i>Contraseña predeterminada:</i> <b>JunV1ll123</b>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => {
+                  setTargetPlayerToUnlock(null);
+                  setEnteredPlayerPassword('');
+                  setPlayerPasswordError('');
+                  setCurrentStep('select_player');
+                }}
+                style={{ flex: 1, padding: '11px', justifyContent: 'center', fontSize: '0.86rem' }}
+              >
+                <span>⬅️ Volver a Jugadores</span>
+              </button>
+
+              <button
+                type="submit"
+                className="btn-gold"
+                style={{ flex: 2, padding: '11px', justifyContent: 'center', fontSize: '0.92rem', fontWeight: '900' }}
+              >
+                <span>Iniciar Sesión 🚀</span>
               </button>
             </div>
           </form>
