@@ -64,6 +64,20 @@ export class SupabaseRealtimeAdapter extends IRoomTransport {
             }
           }
         })
+        .on('broadcast', { event: 'START_GAME' }, ({ payload }) => {
+          if (payload) {
+            for (const cb of this.stateCallbacks) {
+              try { cb(payload); } catch (e) { console.error(e); }
+            }
+          }
+        })
+        .on('broadcast', { event: 'PARTY_ROOM_START' }, ({ payload }) => {
+          if (payload) {
+            for (const cb of this.stateCallbacks) {
+              try { cb(payload.roomData || payload); } catch (e) { console.error(e); }
+            }
+          }
+        })
         .on('broadcast', { event: 'REQUEST_RESYNC' }, ({ payload }) => {
           if (payload) {
             for (const cb of this.resyncCallbacks) {
@@ -145,7 +159,7 @@ export class SupabaseRealtimeAdapter extends IRoomTransport {
    * Difunde el estado completo de la sala
    */
   async broadcastState(state) {
-    if (!this.channel || !this.isConnected) return;
+    if (!this.channel) return;
     try {
       await this.channel.send({
         type: 'broadcast',
@@ -161,7 +175,7 @@ export class SupabaseRealtimeAdapter extends IRoomTransport {
    * Difunde un movimiento
    */
   async broadcastMove(move, nextTurn, version) {
-    if (!this.channel || !this.isConnected) return;
+    if (!this.channel) return;
     try {
       await this.channel.send({
         type: 'broadcast',

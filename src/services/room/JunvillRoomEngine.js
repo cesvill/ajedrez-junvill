@@ -68,8 +68,9 @@ export class JunvillRoomEngine {
     });
 
     this.transport.onPeerJoin((userId, meta) => {
-      // Si somos host y entra un nuevo participante, le enviamos el estado completo actual
-      if (this.isHost && this.currentState) {
+      // Si entra un nuevo participante, el anfitrión le envía el estado completo actual
+      const isMeHost = this.isHost || (this.currentState?.seats?.[0]?.user?.id === this.currentUser?.id);
+      if (isMeHost && this.currentState) {
         this.transport.broadcastState(this.currentState);
       }
     });
@@ -80,7 +81,8 @@ export class JunvillRoomEngine {
 
     if (this.transport.onRequestResync) {
       this.transport.onRequestResync((payload) => {
-        if (this.isHost && this.currentState) {
+        const isMeHost = this.isHost || (this.currentState?.seats?.[0]?.user?.id === this.currentUser?.id);
+        if (isMeHost && this.currentState) {
           this.transport.broadcastState(this.currentState);
         }
       });
@@ -289,9 +291,13 @@ export class JunvillRoomEngine {
     if (!playerToAssign) return -1;
 
     // Si ya está sentado, devolver su asiento
-    const existingIdx = this.currentState.seats.findIndex(
-      s => s.user?.id === playerToAssign.id || s.player?.id === playerToAssign.id
-    );
+    const myId = String(playerToAssign.id || playerToAssign.uid || '').toLowerCase().trim();
+    const myName = String(playerToAssign.name || '').toLowerCase().trim();
+    const existingIdx = this.currentState.seats.findIndex(s => {
+      const uId = String(s.user?.id || s.player?.id || '').toLowerCase().trim();
+      const uName = String(s.user?.name || s.player?.name || '').toLowerCase().trim();
+      return (myId && uId && myId === uId) || (myName && uName && myName === uName);
+    });
     if (existingIdx !== -1) {
       return existingIdx;
     }
@@ -426,7 +432,8 @@ export class JunvillRoomEngine {
    * Inicia la partida (Host)
    */
   async startGame(initialBoardState = null) {
-    if (!this.currentState || !this.isHost) return;
+    if (!this.currentState) return;
+    this.isHost = true; // El usuario que inicia asume/confirma rol de anfitrión
 
     // Rellenar asientos humanos no ocupados con bots
     this.currentState.seats.forEach((seat, i) => {
@@ -458,7 +465,24 @@ export class JunvillRoomEngine {
     this.currentState.updatedAt = Date.now();
 
     await this.transport.broadcastState(this.currentState);
+
+    // Emitir eventos explícitos START_GAME y PARTY_ROOM_START para que ningún cliente se quede en el lobby
+    if (this.transport.channel) {
+      await this.transport.channel.send({
+        type: 'broadcast',
+        event: 'START_GAME',
+        payload: this.currentState
+      }).catch(() => {});
+
+      await this.transport.channel.send({
+        type: 'broadcast',
+        event: 'PARTY_ROOM_START',
+        payload: { roomId: this.currentState.roomId, roomData: this.currentState }
+      }).catch(() => {});
+    }
+
     this.emitStateChange();
+    return this.currentState;
   }
 
   /**
@@ -582,12 +606,23 @@ export class JunvillRoomEngine {
   handleIncomingState(newState) {
     if (!newState || !newState.roomId) return;
 
-    // Si recibimos un estado más reciente o estamos inicializando
-    if (!this.currentState || newState.version >= this.currentState.version) {
+    const isCurrentPlaying = this.currentState?.status === 'playing';
+    const isNewPlaying = newState.status === 'playing';
+
+    // Aceptar si es estado inicial, si inicia la partida (status playing) o si la versión es igual/mayor
+    if (!this.currentState || isNewPlaying || newState.version >= this.currentState.version) {
       this.currentState = newState;
-      if (this.currentUser) {
-        this.isHost = newState.hostUserId === this.currentUser.id;
+
+      const myId = this.currentUser?.id;
+      const isHostSeat = newState.seats?.[0]?.user?.id === myId || newState.seats?.[0]?.player?.id === myId;
+      const isHostUser = newState.hostUserId === myId || newState.hostUser?.id === myId;
+
+      if (this.isHost) {
+        this.isHost = !myId || isHostSeat || isHostUser;
+      } else if (myId) {
+        this.isHost = isHostSeat || isHostUser;
       }
+
       this.emitStateChange();
     }
   }
@@ -679,9 +714,13 @@ export class JunvillRoomEngine {
 
   getMySeatIndex() {
     if (!this.currentState || !this.currentUser) return -1;
-    return this.currentState.seats.findIndex(
-      s => s.user?.id === this.currentUser.id || s.player?.id === this.currentUser.id
-    );
+    const myId = String(this.currentUser.id || this.currentUser.uid || '').toLowerCase().trim();
+    const myName = String(this.currentUser.name || '').toLowerCase().trim();
+    return (this.currentState.seats || []).findIndex(s => {
+      const uId = String(s.user?.id || s.player?.id || '').toLowerCase().trim();
+      const uName = String(s.user?.name || s.player?.name || '').toLowerCase().trim();
+      return (myId && uId && myId === uId) || (myName && uName && myName === uName);
+    });
   }
 }
 

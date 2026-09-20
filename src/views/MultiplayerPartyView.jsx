@@ -152,7 +152,22 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
   const [mySeatIndex, setMySeatIndex] = useState(0);
   const partyRoomRef = useRef(partyRoom);
   partyRoomRef.current = partyRoom;
-  const isPartyHost = partyRoom ? partyRoom.seats[mySeatIndex]?.isHost : false;
+  const gameRef = useRef(game);
+  gameRef.current = game;
+
+  const effectiveSeatIndex = useMemo(() => {
+    if (!partyRoom || !currentUser) return mySeatIndex;
+    const myId = String(currentUser.id || currentUser.uid || '').toLowerCase().trim();
+    const myName = String(currentUser.name || '').toLowerCase().trim();
+    const foundIdx = (partyRoom.seats || []).findIndex(s => {
+      const uId = String(s.user?.id || s.player?.id || '').toLowerCase().trim();
+      const uName = String(s.user?.name || s.player?.name || '').toLowerCase().trim();
+      return (myId && uId && myId === uId) || (myName && uName && myName === uName);
+    });
+    return foundIdx !== -1 ? foundIdx : mySeatIndex;
+  }, [partyRoom, currentUser, mySeatIndex]);
+
+  const isPartyHost = partyRoom ? (effectiveSeatIndex === 0 || partyRoom.seats[effectiveSeatIndex]?.isHost) : false;
 
   // Canal de difusión en tiempo real (<10ms local)
   const partyBcRef = useRef(null);
@@ -317,7 +332,7 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
   const handleHumanMove = (...args) => {
     // Si estamos en sala online, verificar que sea el turno del color de mi asiento
     if (partyRoom && partyRoom.status === 'playing') {
-      const mySeat = partyRoom.seats[mySeatIndex];
+      const mySeat = partyRoom.seats[effectiveSeatIndex];
       if (!mySeat || mySeat.color !== game.activePlayer) {
         audioManager.playWarning();
         return;
@@ -366,7 +381,7 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
   const handlePassTurn = () => {
     if (selectedVariant === 'chaturaji' && !botPlayers[game.activePlayer] && !game.winner) {
       if (partyRoom && partyRoom.status === 'playing') {
-        const mySeat = partyRoom.seats[mySeatIndex];
+        const mySeat = partyRoom.seats[effectiveSeatIndex];
         if (!mySeat || mySeat.color !== game.activePlayer) return;
       }
       game.passTurn();
@@ -480,16 +495,36 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
   const handleStartPartyGame = async () => {
     if (!partyRoom) return;
 
+    let startedState = null;
     try {
-      await roomEngine.startGame();
-    } catch (e) {}
+      startedState = await roomEngine.startGame();
+    } catch (e) {
+      console.warn('roomEngine.startGame error:', e);
+    }
 
     const updated = {
-      ...partyRoom,
+      ...(startedState || roomEngine.currentState || partyRoom),
       status: 'playing',
       updatedAt: Date.now()
     };
     setPartyRoom(updated);
+
+    // Doble difusión garantizada sobre WebSockets de Supabase Realtime
+    try {
+      await roomEngine.transport.broadcastState(updated);
+      if (roomEngine.transport.channel) {
+        await roomEngine.transport.channel.send({
+          type: 'broadcast',
+          event: 'START_GAME',
+          payload: updated
+        });
+        await roomEngine.transport.channel.send({
+          type: 'broadcast',
+          event: 'PARTY_ROOM_START',
+          payload: { roomId: updated.roomId, roomData: updated }
+        });
+      }
+    } catch (e) {}
 
     const botsConfig = {};
     (updated.seats || []).forEach(s => {
@@ -516,47 +551,40 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
   const handleStartWithBotsNow = async () => {
     if (!partyRoom) return;
 
+    let startedState = null;
     try {
-      await roomEngine.startGame();
-    } catch (e) {}
-
-    const availableBots = [
-      { name: 'Cosmo-7', elo: 700, color: '#818cf8' },
-      { name: 'Qwerty', elo: 400, color: '#38bdf8' },
-      { name: 'Sparky', elo: 1050, color: '#fbbf24' }
-    ];
-    let botCounter = 0;
-
-    const updatedSeats = (partyRoom.seats || []).map(s => {
-      if (s.type === 'human' && !s.user) {
-        const b = availableBots[botCounter % availableBots.length];
-        botCounter++;
-        return {
-          ...s,
-          type: 'bot',
-          bot: {
-            id: `bot_${b.name.toLowerCase()}`,
-            name: b.name,
-            elo: b.elo,
-            title: 'Robot Junvill',
-            color: b.color
-          },
-          ready: true
-        };
-      }
-      return s;
-    });
+      startedState = await roomEngine.startGame();
+    } catch (e) {
+      console.warn('roomEngine.startGame error:', e);
+    }
 
     const updatedRoom = {
-      ...partyRoom,
-      seats: updatedSeats,
+      ...(startedState || roomEngine.currentState || partyRoom),
       status: 'playing',
       updatedAt: Date.now()
     };
 
     setPartyRoom(updatedRoom);
+
+    // Doble difusión garantizada sobre WebSockets de Supabase Realtime
+    try {
+      await roomEngine.transport.broadcastState(updatedRoom);
+      if (roomEngine.transport.channel) {
+        await roomEngine.transport.channel.send({
+          type: 'broadcast',
+          event: 'START_GAME',
+          payload: updatedRoom
+        });
+        await roomEngine.transport.channel.send({
+          type: 'broadcast',
+          event: 'PARTY_ROOM_START',
+          payload: { roomId: updatedRoom.roomId, roomData: updatedRoom }
+        });
+      }
+    } catch (e) {}
+
     const botsConfig = {};
-    updatedSeats.forEach(s => {
+    (updatedRoom.seats || []).forEach(s => {
       botsConfig[s.color] = s.type === 'bot';
     });
     setBotPlayers(botsConfig);
@@ -724,8 +752,8 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
       } catch (err) {}
     };
 
-    // Heartbeat pasivo secundario (cada 15 segundos para no saturar Vercel)
-    const intervalTime = 15000;
+    // Heartbeat pasivo secundario (cada 3.5s en lobby para invitados, cada 15s en juego)
+    const intervalTime = (partyRoom?.status === 'lobby' && !isPartyHost) ? 3500 : 15000;
     const intervalId = setInterval(syncRoomWithCloud, intervalTime);
     syncRoomWithCloud();
 
@@ -733,7 +761,7 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
       isCancelled = true;
       clearInterval(intervalId);
     };
-  }, [partyRoom?.roomId, partyRoom?.status, activeGroup?.id, currentUser?.id, game, initGameForVariant]);
+  }, [partyRoom?.roomId, partyRoom?.status, isPartyHost, activeGroup?.id, currentUser?.id, game, initGameForVariant]);
 
   // Sincronización en tiempo real vía WebSockets de Supabase Realtime (<50ms, cero costo de cómputo en Vercel)
   useEffect(() => {
@@ -756,9 +784,10 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
 
         // Si la sala está en juego, sincronizar variante y bots
         if (state.status === 'playing') {
-          if (state.variantId && selectedVariant !== state.variantId) {
-            setSelectedVariant(state.variantId);
-            initGameForVariant(state.variantId);
+          const targetVariant = state.variantId || selectedVariant;
+          if (targetVariant !== selectedVariant || prev?.status === 'lobby' || !game) {
+            setSelectedVariant(targetVariant);
+            initGameForVariant(targetVariant);
           }
           const bConfig = {};
           (state.seats || []).forEach(s => {
@@ -782,29 +811,43 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
       if (moveTs <= lastProcessedMoveRef.current) return;
       lastProcessedMoveRef.current = moveTs;
 
+      const activeGame = gameRef.current || game;
       const [arg1, arg2, arg3, arg4] = moveData.moveArgs || [];
       if (arg1 === 'pass') {
-        if (moveData.variantId === 'chaturaji') game?.passTurn();
-        else game?.nextTurn();
+        if (moveData.variantId === 'chaturaji') activeGame?.passTurn();
+        else activeGame?.nextTurn();
       } else if (moveData.variantId === 'three_hex') {
-        game?.makeMove(arg1, arg2);
+        activeGame?.makeMove(arg1, arg2);
       } else {
-        game?.makeMove(arg1, arg2, arg3, arg4);
+        activeGame?.makeMove(arg1, arg2, arg3, arg4);
       }
       audioManager.playMove();
       setGameTick(t => t + 1);
 
-      if (game?.winner) {
+      if (activeGame?.winner) {
         audioManager.playVictory();
         confetti({ particleCount: 130, spread: 80, origin: { y: 0.6 } });
       }
     });
 
+    // Petición periódica de estado fresco si somos invitados en lobby (<100ms)
+    let lobbySyncTimer = null;
+    if (partyRoom?.status === 'lobby' && !isPartyHost && roomEngine.transport?.channel) {
+      lobbySyncTimer = setInterval(() => {
+        roomEngine.transport.channel.send({
+          type: 'broadcast',
+          event: 'REQUEST_RESYNC',
+          payload: { requesterId: currentUser?.id, roomId: partyRoom.roomId }
+        }).catch(() => {});
+      }, 2500);
+    }
+
     return () => {
       unsubState();
       unsubMove();
+      if (lobbySyncTimer) clearInterval(lobbySyncTimer);
     };
-  }, [currentUser?.id, selectedVariant, game, initGameForVariant]);
+  }, [currentUser?.id, selectedVariant, game, initGameForVariant, partyRoom?.status, partyRoom?.roomId, isPartyHost]);
 
   // Enviar reto familiar a un familiar
   const handleInviteFamilyMember = (targetUser, roomId) => {
@@ -987,7 +1030,7 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
           roomData={partyRoom}
           currentUser={currentUser}
           isHost={isPartyHost}
-          mySeatIndex={mySeatIndex}
+          mySeatIndex={effectiveSeatIndex}
           onStartGame={handleStartPartyGame}
           onStartWithBotsNow={handleStartWithBotsNow}
           onLeaveRoom={handleLeavePartyRoom}
@@ -1179,8 +1222,8 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
                 SALA ONLINE: <span style={{ color: '#facc15', fontFamily: 'monospace' }}>{partyRoom.roomId}</span> • {partyRoom.variantName}
               </div>
               <div style={{ fontSize: '11px', color: '#94a3b8' }}>
-                Asiento asignado: <b style={{ color: partyRoom.seats[mySeatIndex]?.colorHex || '#38bdf8' }}>
-                  {partyRoom.seats[mySeatIndex]?.label}
+                Asiento asignado: <b style={{ color: partyRoom.seats[effectiveSeatIndex]?.colorHex || '#38bdf8' }}>
+                  {partyRoom.seats[effectiveSeatIndex]?.label}
                 </b>
               </div>
             </div>

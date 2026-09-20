@@ -165,6 +165,7 @@ export const CreatePartyRoomModal = ({ isOpen, onClose, onRoomCreated, currentUs
       totalPlayers: maxPlayers,
       expectedHumans: safeHumans,
       botsCount,
+      hostUserId: currentUser?.id || 'host_user',
       hostUser: {
         id: currentUser?.id || 'host_user',
         name: currentUser?.name || 'Anfitrión',
