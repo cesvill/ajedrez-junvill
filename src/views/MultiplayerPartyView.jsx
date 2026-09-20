@@ -201,8 +201,77 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
     } catch (e) {}
   };
 
-  // Referencia de última jugada procesada para evitar re-ejecución en bucle
+  // Referencia y Set de jugadas procesadas para evitar ejecuciones duplicadas
   const lastProcessedMoveRef = useRef(0);
+  const processedMovesSetRef = useRef(new Set());
+
+  // Función unificada para aplicar jugadas entrantes (de humanos o bots)
+  const applyIncomingMove = useCallback((moveData) => {
+    if (!moveData) return false;
+    // Si la jugada fue enviada por el propio usuario (y no es bot ejecutado por el host en otra máquina), ignorar
+    if (moveData.senderId && moveData.senderId === currentUser?.id && !moveData.isBot) {
+      return false;
+    }
+
+    // Firma única para deduplicación: evita dobles ejecuciones si llega por WebSockets y Nube a la vez
+    const moveKey = moveData.moveId || 
+      `${moveData.seatIndex ?? ''}_${moveData.moveNumber ?? ''}_${moveData.timestamp ?? ''}_${JSON.stringify(moveData.moveArgs ?? [])}`;
+
+    if (processedMovesSetRef.current.has(moveKey)) {
+      return false;
+    }
+    processedMovesSetRef.current.add(moveKey);
+    if (processedMovesSetRef.current.size > 120) {
+      const firstKey = processedMovesSetRef.current.values().next().value;
+      processedMovesSetRef.current.delete(firstKey);
+    }
+
+    const activeGame = gameRef.current || game;
+    if (!activeGame) return false;
+
+    // Extraer argumentos de movimiento
+    let moveArgs = moveData.moveArgs;
+    if (!moveArgs || moveArgs.length === 0) {
+      if (typeof moveData.from === 'object' && typeof moveData.to === 'object') {
+        moveArgs = [moveData.from.x, moveData.from.y, moveData.to.nx ?? moveData.to.x, moveData.to.ny ?? moveData.to.y];
+      } else if (moveData.from !== undefined && moveData.to !== undefined) {
+        moveArgs = [moveData.from, moveData.to];
+      }
+    }
+
+    const [arg1, arg2, arg3, arg4] = moveArgs || [];
+    let executed = false;
+    try {
+      if (arg1 === 'pass') {
+        if (moveData.variantId === 'chaturaji') {
+          activeGame.passTurn?.();
+        } else {
+          activeGame.nextTurn?.();
+        }
+        executed = true;
+      } else if (moveData.variantId === 'three_hex') {
+        executed = activeGame.makeMove?.(arg1, arg2);
+      } else if (moveData.variantId === 'three_circular') {
+        executed = activeGame.makeMove?.(arg1, arg2, arg3, arg4);
+      } else {
+        // four_player o chaturaji
+        executed = activeGame.makeMove?.(arg1, arg2, arg3, arg4);
+      }
+    } catch (err) {
+      console.warn('Error applying move to game engine:', err);
+    }
+
+    setIsBotThinking(false);
+    audioManager.playMove();
+    setGameTick(t => t + 1);
+
+    if (activeGame.winner) {
+      audioManager.playVictory();
+      confetti({ particleCount: 130, spread: 80, origin: { y: 0.6 } });
+    }
+
+    return executed;
+  }, [currentUser?.id, game]);
 
   // Broadcast de jugada en partida de sala (local y nube central)
   const broadcastPartyMove = (movePayload) => {
@@ -212,6 +281,9 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
         senderId: currentUser?.id,
         timestamp: Date.now()
       };
+      const moveKey = payloadWithTs.moveId || 
+        `${payloadWithTs.seatIndex ?? ''}_${payloadWithTs.moveNumber ?? ''}_${payloadWithTs.timestamp}_${JSON.stringify(payloadWithTs.moveArgs ?? [])}`;
+      processedMovesSetRef.current.add(moveKey);
       lastProcessedMoveRef.current = payloadWithTs.timestamp;
 
       if (partyBcRef.current) {
@@ -229,6 +301,15 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
         san: String(movePayload.moveArgs || ''),
         nextTurnSeatIndex: null
       }).catch(() => {});
+
+      // Difusión explícita redundante por evento directo PARTY_MOVE
+      if (roomEngine.transport?.channel) {
+        roomEngine.transport.channel.send({
+          type: 'broadcast',
+          event: 'PARTY_MOVE',
+          payload: payloadWithTs
+        }).catch(() => {});
+      }
 
       // Sincronizar jugada en la Nube Central (/api/sync) como respaldo secundario
       if (partyRoom) {
@@ -308,12 +389,14 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
 
       // Si estamos en sala online y somos el host, difundir jugada del bot
       if (partyRoom && partyRoom.status === 'playing' && isPartyHost && executed) {
+        const botSeatIdx = partyRoom.seats?.findIndex(s => s.color === active);
         broadcastPartyMove({
           roomId: partyRoom.roomId,
           variantId: selectedVariant,
           moveArgs,
           isBot: true,
-          turn: active
+          turn: active,
+          seatIndex: botSeatIdx !== -1 ? botSeatIdx : null
         });
       }
 
@@ -734,25 +817,7 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
 
           // 3. Si estamos en juego: sincronizar movimientos en vivo
           if (prev.status === 'playing' && cloudRoom.lastMove) {
-            const moveTs = cloudRoom.lastMove.timestamp || 0;
-            if (moveTs > lastProcessedMoveRef.current && cloudRoom.lastMove.senderId !== currentUser?.id) {
-              lastProcessedMoveRef.current = moveTs;
-              const [arg1, arg2, arg3, arg4] = cloudRoom.lastMove.moveArgs || [];
-              if (arg1 === 'pass') {
-                if (cloudRoom.lastMove.variantId === 'chaturaji') game.passTurn();
-                else game.nextTurn();
-              } else if (cloudRoom.lastMove.variantId === 'three_hex') {
-                game.makeMove(arg1, arg2);
-              } else {
-                game.makeMove(arg1, arg2, arg3, arg4);
-              }
-              audioManager.playMove();
-              setGameTick(t => t + 1);
-              if (game.winner) {
-                audioManager.playVictory();
-                confetti({ particleCount: 130, spread: 80, origin: { y: 0.6 } });
-              }
-            }
+            applyIncomingMove(cloudRoom.lastMove);
           }
 
           return prev;
@@ -769,7 +834,7 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
       isCancelled = true;
       clearInterval(intervalId);
     };
-  }, [partyRoom?.roomId, partyRoom?.status, isPartyHost, activeGroup?.id, currentUser?.id, game, initGameForVariant]);
+  }, [partyRoom?.roomId, partyRoom?.status, isPartyHost, activeGroup?.id, currentUser?.id, game, initGameForVariant, applyIncomingMove]);
 
   // Sincronización en tiempo real vía WebSockets de Supabase Realtime (<50ms, cero costo de cómputo en Vercel)
   useEffect(() => {
@@ -779,6 +844,11 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
 
     const unsubState = roomEngine.onStateChange((state) => {
       if (!state) return;
+
+      // Si la sala está en juego y trae una última jugada no procesada, aplicarla
+      if (state.status === 'playing' && state.lastMove) {
+        applyIncomingMove(state.lastMove);
+      }
 
       setPartyRoom((prev) => {
         // Asignar mi asiento
@@ -818,28 +888,7 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
     });
 
     const unsubMove = roomEngine.onMove((moveData) => {
-      if (!moveData || moveData.senderId === currentUser?.id) return;
-      const moveTs = moveData.timestamp || 0;
-      if (moveTs <= lastProcessedMoveRef.current) return;
-      lastProcessedMoveRef.current = moveTs;
-
-      const activeGame = gameRef.current || game;
-      const [arg1, arg2, arg3, arg4] = moveData.moveArgs || [];
-      if (arg1 === 'pass') {
-        if (moveData.variantId === 'chaturaji') activeGame?.passTurn();
-        else activeGame?.nextTurn();
-      } else if (moveData.variantId === 'three_hex') {
-        activeGame?.makeMove(arg1, arg2);
-      } else {
-        activeGame?.makeMove(arg1, arg2, arg3, arg4);
-      }
-      audioManager.playMove();
-      setGameTick(t => t + 1);
-
-      if (activeGame?.winner) {
-        audioManager.playVictory();
-        confetti({ particleCount: 130, spread: 80, origin: { y: 0.6 } });
-      }
+      applyIncomingMove(moveData);
     });
 
     // Petición periódica de estado fresco si somos invitados en lobby (<100ms)
@@ -940,24 +989,7 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
 
           // 4. JUGADA RECIBIDA EN VIVO
           if (data.type === 'PARTY_MOVE' && currentRoom && currentRoom.roomId === data.roomId) {
-            if (data.senderId !== currentUser?.id) {
-              const [arg1, arg2, arg3, arg4] = data.moveArgs || [];
-              if (arg1 === 'pass') {
-                if (data.variantId === 'chaturaji') game.passTurn();
-                else game.nextTurn();
-              } else if (data.variantId === 'three_hex') {
-                game.makeMove(arg1, arg2);
-              } else {
-                game.makeMove(arg1, arg2, arg3, arg4);
-              }
-              audioManager.playMove();
-              setGameTick(t => t + 1);
-
-              if (game.winner) {
-                audioManager.playVictory();
-                confetti({ particleCount: 130, spread: 80, origin: { y: 0.6 } });
-              }
-            }
+            applyIncomingMove(data);
           }
 
           // 5. UN JUGADOR ABANDONÓ

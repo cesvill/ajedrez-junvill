@@ -500,7 +500,9 @@ export class JunvillRoomEngine {
     dice = null,
     moveArgs = null,
     senderId = null,
-    variantId = null
+    variantId = null,
+    isBot = null,
+    turn = null
   }) {
     if (!this.currentState || this.currentState.status !== 'playing') return;
 
@@ -510,6 +512,8 @@ export class JunvillRoomEngine {
     const elapsed = now - (this.currentState.lastMoveTimestamp || now);
     const increment = this.currentState.timeControl?.incrementMs || 0;
     const remaining = Math.max(0, (currentSeat?.timeRemainingMs || 0) - elapsed + increment);
+
+    const isBotMove = isBot !== null ? !!isBot : !!(currentSeat?.isBot || currentSeat?.type === 'bot');
 
     const movePayload = {
       moveNumber: (this.currentState.moveHistory.length || 0) + 1,
@@ -525,7 +529,9 @@ export class JunvillRoomEngine {
       dice,
       moveArgs: moveArgs || [from, to],
       senderId: senderId || this.currentUser?.id,
-      variantId: variantId || this.currentState.variantId
+      variantId: variantId || this.currentState.variantId,
+      isBot: isBotMove,
+      turn: turn || currentSeat?.color
     };
 
     const nextTurn = typeof nextTurnSeatIndex === 'number' 
@@ -611,6 +617,7 @@ export class JunvillRoomEngine {
 
     // Aceptar si es estado inicial, si inicia la partida (status playing) o si la versión es igual/mayor
     if (!this.currentState || isNewPlaying || newState.version >= this.currentState.version) {
+      const prevMoveCount = this.currentState?.moveHistory?.length || 0;
       this.currentState = newState;
 
       const myId = this.currentUser?.id;
@@ -623,41 +630,54 @@ export class JunvillRoomEngine {
         this.isHost = isHostSeat || isHostUser;
       }
 
+      // Si el estado entrante contiene una jugada no procesada, notificar listeners
+      if (newState.lastMove && (newState.moveHistory?.length || 0) > prevMoveCount) {
+        for (const listener of this.moveListeners) {
+          try { listener(newState.lastMove); } catch (e) { console.error(e); }
+        }
+      }
+
       this.emitStateChange();
     }
   }
 
   handleIncomingMove(move, nextTurn, version) {
-    if (!this.currentState) return;
+    if (!this.currentState || !move) return;
 
-    // Si la versión recibida es la esperada
-    if (version === this.currentState.version + 1) {
+    if (!Array.isArray(this.currentState.moveHistory)) {
+      this.currentState.moveHistory = [];
+    }
+
+    // Deduplicación resiliente por firma de jugada
+    const isAlreadyRecorded = this.currentState.moveHistory.some(m =>
+      (m.timestamp && move.timestamp && m.timestamp === move.timestamp && m.senderId === move.senderId) ||
+      (m.moveNumber && move.moveNumber && m.moveNumber === move.moveNumber && m.seatIndex === move.seatIndex)
+    );
+
+    if (!isAlreadyRecorded) {
       this.currentState.moveHistory.push(move);
       this.currentState.lastMove = move;
-      this.currentState.currentTurnSeatIndex = nextTurn;
+      if (typeof nextTurn === 'number') {
+        this.currentState.currentTurnSeatIndex = nextTurn;
+      }
       this.currentState.lastMoveTimestamp = move.timestamp || Date.now();
-      if (this.currentState.seats[move.seatIndex]) {
+      if (typeof move.seatIndex === 'number' && this.currentState.seats?.[move.seatIndex]) {
         this.currentState.seats[move.seatIndex].timeRemainingMs = move.clockRemainingMs;
       }
       if (move.dice !== undefined) {
         this.currentState.dice = move.dice;
       }
-      this.currentState.version = version;
+      if (typeof version === 'number') {
+        this.currentState.version = Math.max(this.currentState.version || 0, version);
+      } else {
+        this.currentState.version = (this.currentState.version || 0) + 1;
+      }
 
       for (const listener of this.moveListeners) {
         try { listener(move); } catch (e) { console.error(e); }
       }
 
       this.emitStateChange();
-    } else if (version > this.currentState.version + 1) {
-      // Salto de versión detectado: pedir estado completo
-      if (this.transport.channel) {
-        this.transport.channel.send({
-          type: 'broadcast',
-          event: 'REQUEST_RESYNC',
-          payload: { requesterId: this.currentUser?.id }
-        }).catch(() => {});
-      }
     }
   }
 

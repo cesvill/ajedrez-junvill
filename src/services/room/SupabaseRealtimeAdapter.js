@@ -64,6 +64,14 @@ export class SupabaseRealtimeAdapter extends IRoomTransport {
             }
           }
         })
+        .on('broadcast', { event: 'PARTY_MOVE' }, ({ payload }) => {
+          if (payload) {
+            const moveData = payload.move || payload;
+            for (const cb of this.moveCallbacks) {
+              try { cb(moveData, payload.nextTurn ?? payload.nextTurnSeatIndex, payload.version); } catch (e) { console.error(e); }
+            }
+          }
+        })
         .on('broadcast', { event: 'START_GAME' }, ({ payload }) => {
           if (payload) {
             for (const cb of this.stateCallbacks) {
