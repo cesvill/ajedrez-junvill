@@ -542,7 +542,22 @@ class CloudSyncService {
             }
           });
           const mergedMatches = Array.from(matchMap.values()).filter(m => !m.isGameOver && !closedRoomIds.has(m.roomId) && (now - (m.updatedAt || 0)) < 1800000);
-          mergedMatches.sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
+          // Fusionar salas multijugador activas (Party Rooms)
+          const existingParty = Array.isArray(currentGroup.activePartyRooms) ? currentGroup.activePartyRooms : [];
+          const cloudParty = Array.isArray(cloudGroup.activePartyRooms) ? cloudGroup.activePartyRooms : [];
+          const partyMap = new Map();
+          [...cloudParty, ...existingParty].forEach(pr => {
+            if (pr && pr.roomId) {
+              const cleanId = String(pr.roomId).toUpperCase().replace(/[^A-Z0-9]/g, '');
+              if (closedRoomIds.has(cleanId)) return;
+              if (pr.status === 'cancelled' || pr.status === 'ended') return;
+              const prev = partyMap.get(cleanId);
+              if (!prev || (pr.updatedAt || 0) > (prev.updatedAt || 0)) {
+                partyMap.set(cleanId, pr);
+              }
+            }
+          });
+          const mergedPartyRooms = Array.from(partyMap.values()).slice(0, 50);
 
           const updatedGroup = {
             ...currentGroup,
@@ -550,6 +565,7 @@ class CloudSyncService {
             users: mergedUsers,
             activeInvitations: mergedInvs,
             activeMatches: mergedMatches,
+            activePartyRooms: mergedPartyRooms,
             closedRoomIds: Array.from(closedRoomIds).slice(-100),
             deletedMatches: Array.from(closedRoomIds).slice(-100),
             deletedInvitations: Array.from(deletedInvIds).slice(-100),
@@ -562,7 +578,8 @@ class CloudSyncService {
           const hasChanged = 
             JSON.stringify(mergedUsers) !== JSON.stringify(currentGroup.users || []) ||
             JSON.stringify(mergedInvs) !== JSON.stringify(currentGroup.activeInvitations || []) ||
-            JSON.stringify(mergedMatches) !== JSON.stringify(currentGroup.activeMatches || []);
+            JSON.stringify(mergedMatches) !== JSON.stringify(currentGroup.activeMatches || []) ||
+            JSON.stringify(mergedPartyRooms) !== JSON.stringify(currentGroup.activePartyRooms || []);
 
           if (hasChanged) {
             if (onCloudUpdate) onCloudUpdate(updatedGroup);
@@ -583,15 +600,73 @@ class CloudSyncService {
     // Sincronizar periódicamente
     this.syncInterval = setInterval(performSync, intervalMs);
 
-    // Sincronizar cuando el usuario regresa a la pestaña (focus / visibilidad)
     const handleFocus = () => performSync();
     window.addEventListener('focus', handleFocus);
     window.addEventListener('online', handleFocus);
+
     return () => {
       if (this.syncInterval) clearInterval(this.syncInterval);
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('online', handleFocus);
     };
+  }
+
+  // Guardar y sincronizar una sala multijugador grupal en la nube central
+  async pushPartyRoom(partyRoom, groupId = 'group_junvill') {
+    if (!partyRoom || !partyRoom.roomId) return null;
+    const gid = groupId || 'group_junvill';
+    const payload = {
+      groupId: gid,
+      partyRoom: {
+        ...partyRoom,
+        updatedAt: Date.now()
+      }
+    };
+    try {
+      const signal = createTimeoutSignal(4000);
+      const res = await fetch('/api/sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        cache: 'no-store',
+        signal,
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        const json = await res.json();
+        return json.partyRoom || partyRoom;
+      }
+    } catch (e) {
+      console.warn('[CloudSync] Error al sincronizar sala multijugador:', e);
+    }
+    return partyRoom;
+  }
+
+  // Consultar directamente una sala multijugador por código en la nube central
+  async fetchPartyRoom(roomId, groupId = 'group_junvill') {
+    if (!roomId) return null;
+    const cleanId = String(roomId).toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const gid = groupId || 'group_junvill';
+    try {
+      const signal = createTimeoutSignal(3500);
+      const res = await fetch(`/api/sync?groupId=${encodeURIComponent(gid)}&partyRoomId=${encodeURIComponent(cleanId)}&_t=${Date.now()}`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+        cache: 'no-store',
+        signal
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json && json.partyRoom) {
+          return json.partyRoom;
+        }
+      }
+    } catch (e) {
+      // Silencioso
+    }
+    return null;
   }
 
   // Resuelve si un código de sala es un alias o pertenece a una partida paralela existente entre los mismos jugadores

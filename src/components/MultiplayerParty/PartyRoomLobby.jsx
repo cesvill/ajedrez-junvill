@@ -213,18 +213,41 @@ export const PartyRoomLobby = ({
       <div>
         <h2 style={{ fontSize: '16px', fontWeight: 800, color: '#94a3b8', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span>Asientos de la Partida ({seats.length})</span>
-          {allHumansConnected ? (
-            <span style={{ color: '#4ade80', fontSize: '12px', fontWeight: 700 }}>• ¡Todos los humanos están listos!</span>
-          ) : (
-            <span style={{ color: '#facc15', fontSize: '12px', fontWeight: 700 }}>• Esperando a que se unan {expectedHumans - connectedHumans} humano(s)...</span>
+          {seats.length > 0 && (
+            allHumansConnected ? (
+              <span style={{ color: '#4ade80', fontSize: '12px', fontWeight: 700 }}>• ¡Todos los humanos están listos!</span>
+            ) : (
+              <span style={{ color: '#facc15', fontSize: '12px', fontWeight: 700 }}>• Esperando a que se unan {expectedHumans - connectedHumans} humano(s)...</span>
+            )
           )}
         </h2>
 
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-          gap: '14px'
-        }}>
+        {seats.length === 0 ? (
+          <div style={{
+            textAlign: 'center',
+            padding: '36px 20px',
+            backgroundColor: '#0f172a',
+            borderRadius: '16px',
+            border: '2px dashed #38bdf8',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '12px'
+          }}>
+            <RefreshCw size={36} color="#38bdf8" style={{ animation: 'spin 1.5s linear infinite' }} />
+            <h3 style={{ color: '#f8fafc', margin: 0, fontSize: '18px', fontWeight: 800 }}>
+              Sincronizando Asientos con la Sala en la Nube...
+            </h3>
+            <p style={{ color: '#94a3b8', fontSize: '13px', margin: 0, maxWidth: '440px', lineHeight: 1.5 }}>
+              Conectando con el anfitrión y descargando la configuración de asientos. En un instante verás tus colores asignados.
+            </p>
+          </div>
+        ) : (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gap: '14px'
+          }}>
           {seats.map((seat, idx) => {
             const isMySeat = mySeatIndex === idx;
             const isHumanOccupied = seat.type === 'human' && seat.user;
@@ -490,6 +513,7 @@ export const PartyRoomLobby = ({
             );
           })}
         </div>
+      )}
       </div>
 
       {/* Barra de Controles Inferior del Lobby */}

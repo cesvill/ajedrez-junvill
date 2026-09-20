@@ -40,6 +40,7 @@ Temp/
 database/*_backup.json
 database/*.sqlite*
 database/*.db
+database/cloud_store.json
 
 # Heavy Media & Documents
 *.zip

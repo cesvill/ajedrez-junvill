@@ -166,6 +166,18 @@ export default async function handler(req, res) {
   try {
     if (req.method === 'GET') {
       const groupId = req.query.groupId || 'group_junvill';
+
+      // 1. Consulta rápida directa de Sala Multijugador (Multi-Bando)
+      if (req.query.partyRoomId) {
+        const cleanRoomId = String(req.query.partyRoomId).toUpperCase().replace(/[^A-Z0-9]/g, '');
+        const cloudData = (await fetchFromDurableCloud(groupId)) || inMemoryCloudStore[groupId] || {};
+        const rooms = Array.isArray(cloudData.activePartyRooms) ? cloudData.activePartyRooms : [];
+        const found = rooms.find(r => String(r.roomId).toUpperCase().replace(/[^A-Z0-9]/g, '') === cleanRoomId);
+        return res.status(200).json({
+          success: Boolean(found),
+          partyRoom: found || null
+        });
+      }
       
       const cloudData = await fetchFromDurableCloud(groupId);
       if (cloudData) {
@@ -187,8 +199,19 @@ export default async function handler(req, res) {
           if (m.isGameOver || m.status === 'cancelled' || m.status === 'abandoned' || m.status === 'completed') return false;
           return (now - (m.updatedAt || 0)) < 1800000;
         });
+
+        // Filtrar salas multijugador activas válidas
+        const validPartyRooms = (cloudData.activePartyRooms || []).filter(pr => {
+          if (!pr || !pr.roomId) return false;
+          const cleanId = String(pr.roomId).toUpperCase().replace(/[^A-Z0-9]/g, '');
+          if (closedRooms.has(cleanId)) return false;
+          if (pr.status === 'cancelled' || pr.status === 'ended') return false;
+          return (now - (pr.updatedAt || 0)) < 7200000;
+        });
+
         cloudData.activeInvitations = validInvs;
         cloudData.activeMatches = validMatches;
+        cloudData.activePartyRooms = validPartyRooms;
         cloudData.closedRoomIds = Array.from(closedRooms).slice(-100);
         cloudData.deletedMatches = Array.from(closedRooms).slice(-100);
         cloudData.deletedInvitations = Array.from(deletedInvs).slice(-100);
@@ -211,13 +234,49 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      const { groupId = 'group_junvill', groupData } = req.body || {};
-      if (!groupData) {
-        return res.status(400).json({ error: 'Missing groupData in request body' });
-      }
+      const { groupId = 'group_junvill', groupData, partyRoom } = req.body || {};
 
       // Obtener datos existentes (de memoria o nube)
       const existing = (await fetchFromDurableCloud(groupId)) || inMemoryCloudStore[groupId] || {};
+
+      // 2. Actualización directa de Sala Multijugador (Multi-Bando)
+      if (partyRoom && partyRoom.roomId) {
+        const cleanId = String(partyRoom.roomId).toUpperCase().replace(/[^A-Z0-9]/g, '');
+        const currentPartyRooms = Array.isArray(existing.activePartyRooms) ? existing.activePartyRooms : [];
+        const existingRoomIdx = currentPartyRooms.findIndex(r => String(r.roomId).toUpperCase().replace(/[^A-Z0-9]/g, '') === cleanId);
+        
+        const now = Date.now();
+        const roomToSave = {
+          ...(existingRoomIdx !== -1 ? currentPartyRooms[existingRoomIdx] : {}),
+          ...partyRoom,
+          roomId: cleanId,
+          updatedAt: now
+        };
+
+        let updatedPartyList;
+        if (existingRoomIdx !== -1) {
+          updatedPartyList = [...currentPartyRooms];
+          updatedPartyList[existingRoomIdx] = roomToSave;
+        } else {
+          updatedPartyList = [roomToSave, ...currentPartyRooms];
+        }
+
+        existing.activePartyRooms = updatedPartyList.slice(0, 50);
+        existing.updatedAt = now;
+        inMemoryCloudStore[groupId] = existing;
+        await saveToDurableCloud(groupId, existing);
+
+        return res.status(200).json({
+          success: true,
+          groupId,
+          partyRoom: roomToSave,
+          message: 'Sala multijugador actualizada en la nube central'
+        });
+      }
+
+      if (!groupData) {
+        return res.status(400).json({ error: 'Missing groupData in request body' });
+      }
       
       // Fusión inteligente de usuarios (Smart Merge CRDT)
       const mergedUsers = mergeUsers(existing.users, groupData.users);
@@ -431,12 +490,68 @@ export default async function handler(req, res) {
         .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
         .slice(-300);
 
+      // Fusión de salas multijugador grupales (Party Rooms: Chaturaji, 4-Player, 3-Hex, 3-Circular)
+      const existingPartyRooms = Array.isArray(existing.activePartyRooms) ? existing.activePartyRooms : [];
+      const newPartyRooms = Array.isArray(groupData.activePartyRooms) ? groupData.activePartyRooms : [];
+      const partyMap = new Map();
+
+      [...existingPartyRooms, ...newPartyRooms].forEach(pr => {
+        if (pr && pr.roomId) {
+          const cleanId = String(pr.roomId).toUpperCase().replace(/[^A-Z0-9]/g, '');
+          if (deletedRoomIds.has(cleanId)) return;
+          if (pr.status === 'cancelled' || pr.status === 'ended') return;
+
+          const prev = partyMap.get(cleanId);
+          if (!prev) {
+            partyMap.set(cleanId, {
+              ...pr,
+              roomId: cleanId,
+              updatedAt: pr.updatedAt || Date.now()
+            });
+          } else {
+            const prevSeats = Array.isArray(prev.seats) ? prev.seats : [];
+            const newSeats = Array.isArray(pr.seats) ? pr.seats : [];
+            const mergedSeats = (newSeats.length > 0 ? newSeats : prevSeats).map((seat, idx) => {
+              const otherSeat = (newSeats.length > 0 ? prevSeats[idx] : newSeats[idx]) || {};
+              const user = seat.user || otherSeat.user || null;
+              const ready = Boolean(seat.ready || otherSeat.ready || seat.type === 'bot');
+              return {
+                ...otherSeat,
+                ...seat,
+                user,
+                ready
+              };
+            });
+
+            const isPlaying = pr.status === 'playing' || prev.status === 'playing';
+            const status = isPlaying ? 'playing' : (pr.status || prev.status || 'lobby');
+            const newerUpdatedAt = Math.max(prev.updatedAt || 0, pr.updatedAt || 0, Date.now());
+            const lastMove = (pr.updatedAt || 0) >= (prev.updatedAt || 0) && pr.lastMove ? pr.lastMove : (prev.lastMove || pr.lastMove);
+
+            partyMap.set(cleanId, {
+              ...prev,
+              ...pr,
+              roomId: cleanId,
+              seats: mergedSeats,
+              status,
+              lastMove,
+              updatedAt: newerUpdatedAt
+            });
+          }
+        }
+      });
+
+      const mergedPartyRooms = Array.from(partyMap.values())
+        .filter(pr => (now - (pr.updatedAt || 0)) < 7200000)
+        .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+
       const mergedGroup = {
         ...existing,
         ...groupData,
         users: mergedUsers,
         activeInvitations: mergedInvs,
         activeMatches: mergedMatches,
+        activePartyRooms: mergedPartyRooms,
         closedRoomIds: Array.from(deletedRoomIds).slice(-100),
         deletedMatches: Array.from(deletedRoomIds).slice(-100),
         deletedInvitations: Array.from(deletedInvIds).slice(-100),
