@@ -235,8 +235,8 @@ export const PlayView = ({
     }
   };
 
-  // Se abre el modal solo si NO hay una partida en curso guardada y no se seleccionó un bot específico
-  const [isModeModalOpen, setIsModeModalOpen] = useState(() => (!isResumingSaved && !activeBot));
+  // Modal de selección de modalidad (se abre solo al solicitarlo expresamente con el botón)
+  const [isModeModalOpen, setIsModeModalOpen] = useState(false);
 
   // Selección de color del jugador
   const [playerColor, setPlayerColor] = useState(() => (isResumingSaved && initialSaved?.playerColor) || 'white'); // 'white' | 'black'

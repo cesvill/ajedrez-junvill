@@ -10,6 +10,14 @@ import { ChaturajiBoard } from '../components/Variants/MultiplayerBoards/Chatura
 import { FourPlayerBoard } from '../components/Variants/MultiplayerBoards/FourPlayerBoard';
 import { ThreePlayerHexBoard } from '../components/Variants/MultiplayerBoards/ThreePlayerHexBoard';
 import { ThreePlayerCircularBoard } from '../components/Variants/MultiplayerBoards/ThreePlayerCircularBoard';
+import { CreatePartyRoomModal } from '../components/MultiplayerParty/CreatePartyRoomModal';
+import { JoinPartyRoomModal } from '../components/MultiplayerParty/JoinPartyRoomModal';
+import { PartyRoomLobby } from '../components/MultiplayerParty/PartyRoomLobby';
+import { DynamicAvatar } from '../components/AvatarCreator/DynamicAvatar';
+import { AvatarIcon } from '../assets/avatars';
+import { useUser } from '../context/UserContext';
+import { cloudSync, normalizeUserKey } from '../engine/cloudSync';
+import { P2PEngine } from '../engine/p2pEngine';
 import { audioManager } from '../engine/audio';
 import confetti from 'canvas-confetti';
 import {
@@ -24,7 +32,12 @@ import {
   Shield,
   Compass,
   X,
-  Play
+  Play,
+  Globe,
+  KeyRound,
+  Crown,
+  LogOut,
+  AlertCircle
 } from 'lucide-react';
 
 const VARIANTS = [
@@ -95,6 +108,8 @@ const VARIANTS = [
 ];
 
 export const MultiplayerPartyView = ({ onBackToMenu }) => {
+  const { currentUser, users, activeGroup, sendFamilyInvitation } = useUser();
+
   const getInitialVariant = () => {
     try {
       const v = new URLSearchParams(window.location.search).get('variant');
@@ -107,14 +122,11 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
 
   const getDefaultBotPlayers = (variantId) => {
     if (variantId === 'three_hex' || variantId === 'three_circular') {
-      // Blanco es humano, Negro y Rojo son Bots IA
       return { white: false, black: true, red: true };
     }
     if (variantId === 'four_player') {
-      // Rojo es humano, Azul, Amarillo y Verde son Bots IA
       return { red: false, blue: true, yellow: true, green: true };
     }
-    // Chaturaji: Rojo es humano, Verde, Amarillo y Negro son Bots IA
     return { red: false, green: true, yellow: true, black: true };
   };
 
@@ -132,6 +144,18 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
   const [isBotThinking, setIsBotThinking] = useState(false);
   const botTimerRef = useRef(null);
 
+  // Estados para Sala Multijugador Online
+  const [isCreateRoomModalOpen, setIsCreateRoomModalOpen] = useState(false);
+  const [isJoinRoomModalOpen, setIsJoinRoomModalOpen] = useState(false);
+  const [partyRoom, setPartyRoom] = useState(null);
+  const [mySeatIndex, setMySeatIndex] = useState(0);
+  const partyRoomRef = useRef(partyRoom);
+  partyRoomRef.current = partyRoom;
+  const isPartyHost = partyRoom ? partyRoom.seats[mySeatIndex]?.isHost : false;
+
+  // Canal de difusión en tiempo real (<10ms local)
+  const partyBcRef = useRef(null);
+
   // Inicializar juego al cambiar de variante
   const initGameForVariant = useCallback((variantId) => {
     if (botTimerRef.current) clearTimeout(botTimerRef.current);
@@ -148,6 +172,7 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
   }, []);
 
   const handleVariantChange = (vId) => {
+    if (partyRoom) return; // En partida de sala no se cambia variante directamente
     if (botTimerRef.current) clearTimeout(botTimerRef.current);
     setIsBotThinking(false);
     setSelectedVariant(vId);
@@ -157,6 +182,30 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
       const url = new URL(window.location.href);
       url.searchParams.set('variant', vId);
       window.history.replaceState({}, '', url.toString());
+    } catch (e) {}
+  };
+
+  // Broadcast de jugada en partida de sala
+  const broadcastPartyMove = (movePayload) => {
+    try {
+      if (partyBcRef.current) {
+        partyBcRef.current.postMessage({
+          type: 'PARTY_MOVE',
+          senderId: currentUser?.id,
+          ...movePayload
+        });
+      }
+      // También persistir en la nube para sincronización remota
+      if (activeGroup && partyRoom) {
+        cloudSync.pushGroupToCloud({
+          ...activeGroup,
+          activePartyMove: {
+            ...movePayload,
+            senderId: currentUser?.id,
+            timestamp: Date.now()
+          }
+        }, activeGroup.id).catch(() => {});
+      }
     } catch (e) {}
   };
 
@@ -175,40 +224,65 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
       return;
     }
 
-    // El jugador activo es Bot: indicar en UI y programar jugada
+    // En sala online, solo el anfitrión calcula y ejecuta la jugada del bot para evitar desincronizaciones
+    if (partyRoom && partyRoom.status === 'playing' && !isPartyHost) {
+      setIsBotThinking(true);
+      return;
+    }
+
+    // El jugador activo es Bot: programar jugada
     setIsBotThinking(true);
     if (botTimerRef.current) clearTimeout(botTimerRef.current);
 
     botTimerRef.current = setTimeout(() => {
-      // Validar que la partida no haya cambiado y siga siendo el turno del bot
       if (game.winner || game.activePlayer !== active) {
         setIsBotThinking(false);
         return;
       }
 
       const move = getBestMultiplayerBotMove(game, selectedVariant);
+      let executed = false;
+      let moveArgs = [];
+
       if (move) {
         if (selectedVariant === 'chaturaji') {
-          game.makeMove(move.from.x, move.from.y, move.to.nx, move.to.ny);
+          executed = game.makeMove(move.from.x, move.from.y, move.to.nx, move.to.ny);
+          moveArgs = [move.from.x, move.from.y, move.to.nx, move.to.ny];
         } else if (selectedVariant === 'four_player') {
-          game.makeMove(move.from.x, move.from.y, move.to.nx, move.to.ny);
+          executed = game.makeMove(move.from.x, move.from.y, move.to.nx, move.to.ny);
+          moveArgs = [move.from.x, move.from.y, move.to.nx, move.to.ny];
         } else if (selectedVariant === 'three_hex') {
-          game.makeMove(move.from, move.to);
+          executed = game.makeMove(move.from, move.to);
+          moveArgs = [move.from, move.to];
         } else if (selectedVariant === 'three_circular') {
-          game.makeMove(move.from.ring, move.from.ray, move.to.ring, move.to.ray);
+          executed = game.makeMove(move.from.ring, move.from.ray, move.to.ring, move.to.ray);
+          moveArgs = [move.from.ring, move.from.ray, move.to.ring, move.to.ray];
         }
         audioManager.playMove();
       } else {
-        // Si no hay jugada legal con la tirada actual de dados o bloqueo
         if (selectedVariant === 'chaturaji') {
           game.passTurn();
+          moveArgs = ['pass'];
         } else {
           game.nextTurn();
+          moveArgs = ['pass'];
         }
+        executed = true;
       }
 
       setIsBotThinking(false);
       setGameTick(t => t + 1);
+
+      // Si estamos en sala online y somos el host, difundir jugada del bot
+      if (partyRoom && partyRoom.status === 'playing' && isPartyHost && executed) {
+        broadcastPartyMove({
+          roomId: partyRoom.roomId,
+          variantId: selectedVariant,
+          moveArgs,
+          isBot: true,
+          turn: active
+        });
+      }
 
       if (game.winner) {
         audioManager.playVictory();
@@ -219,10 +293,19 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
     return () => {
       if (botTimerRef.current) clearTimeout(botTimerRef.current);
     };
-  }, [gameTick, selectedVariant, botPlayers]);
+  }, [gameTick, selectedVariant, botPlayers, partyRoom, isPartyHost]);
 
   // Manejo de movimiento del jugador humano
   const handleHumanMove = (...args) => {
+    // Si estamos en sala online, verificar que sea el turno del color de mi asiento
+    if (partyRoom && partyRoom.status === 'playing') {
+      const mySeat = partyRoom.seats[mySeatIndex];
+      if (!mySeat || mySeat.color !== game.activePlayer) {
+        audioManager.playWarning();
+        return;
+      }
+    }
+
     if (botPlayers[game.activePlayer] || isBotThinking || game.winner) return;
 
     let success = false;
@@ -244,6 +327,17 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
       audioManager.playMove();
       setGameTick(t => t + 1);
 
+      // Difundir jugada a todos los miembros de la sala
+      if (partyRoom && partyRoom.status === 'playing') {
+        broadcastPartyMove({
+          roomId: partyRoom.roomId,
+          variantId: selectedVariant,
+          moveArgs: args,
+          isBot: false,
+          turn: game.activePlayer
+        });
+      }
+
       if (game.winner) {
         audioManager.playVictory();
         confetti({ particleCount: 140, spread: 90, origin: { y: 0.6 } });
@@ -253,13 +347,27 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
 
   const handlePassTurn = () => {
     if (selectedVariant === 'chaturaji' && !botPlayers[game.activePlayer] && !game.winner) {
+      if (partyRoom && partyRoom.status === 'playing') {
+        const mySeat = partyRoom.seats[mySeatIndex];
+        if (!mySeat || mySeat.color !== game.activePlayer) return;
+      }
       game.passTurn();
       audioManager.playMove();
       setGameTick(t => t + 1);
+
+      if (partyRoom && partyRoom.status === 'playing') {
+        broadcastPartyMove({
+          roomId: partyRoom.roomId,
+          variantId: selectedVariant,
+          moveArgs: ['pass'],
+          turn: game.activePlayer
+        });
+      }
     }
   };
 
   const togglePlayerType = (playerKey) => {
+    if (partyRoom) return; // En sala online los bots se fijan por asiento
     setBotPlayers(prev => ({
       ...prev,
       [playerKey]: !prev[playerKey]
@@ -267,8 +375,393 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
     setGameTick(t => t + 1);
   };
 
+  // =========================================================================
+  // GESTIÓN DE SALA MULTIJUGADOR ONLINE (LOBBY, ANUNCIO Y SINCRONIZACIÓN)
+  // =========================================================================
+
+  // Manejar creación de sala
+  const handleRoomCreated = (newRoomData) => {
+    setIsCreateRoomModalOpen(false);
+    setSelectedVariant(newRoomData.variantId);
+    initGameForVariant(newRoomData.variantId);
+    setMySeatIndex(0);
+    setPartyRoom(newRoomData);
+    audioManager.playVictory();
+
+    // Configurar bots según los asientos
+    const newBotsConfig = {};
+    newRoomData.seats.forEach(s => {
+      newBotsConfig[s.color] = s.type === 'bot';
+    });
+    setBotPlayers(newBotsConfig);
+
+    // Difundir sala
+    if (partyBcRef.current) {
+      partyBcRef.current.postMessage({
+        type: 'PARTY_ROOM_ANNOUNCE',
+        roomData: newRoomData
+      });
+    }
+
+    try {
+      localStorage.setItem(`junvill_party_${newRoomData.roomId}`, JSON.stringify(newRoomData));
+    } catch (e) {}
+  };
+
+  // Manejar unirse a sala por código
+  const handleJoinRoomByCode = (cleanRoomId) => {
+    setIsJoinRoomModalOpen(false);
+
+    // Intentar leer desde localStorage o consultar por broadcast
+    let targetRoom = null;
+    try {
+      const raw = localStorage.getItem(`junvill_party_${cleanRoomId}`);
+      if (raw) targetRoom = JSON.parse(raw);
+    } catch (e) {}
+
+    if (partyBcRef.current) {
+      partyBcRef.current.postMessage({
+        type: 'PARTY_ROOM_JOIN_REQUEST',
+        roomId: cleanRoomId,
+        user: {
+          id: currentUser?.id || `guest_${Date.now()}`,
+          name: currentUser?.name || 'Jugador Invitado',
+          avatar: currentUser?.avatar || 'custom_dynamic',
+          avatarConfig: currentUser?.avatarConfig || null,
+          elo: currentUser?.elo || 600,
+          role: currentUser?.role || 'student'
+        }
+      });
+    }
+
+    if (targetRoom) {
+      // Tomar primer asiento humano libre
+      const freeSeatIdx = targetRoom.seats.findIndex(s => s.type === 'human' && !s.user);
+      if (freeSeatIdx !== -1) {
+        targetRoom.seats[freeSeatIdx].user = {
+          id: currentUser?.id || `guest_${Date.now()}`,
+          name: currentUser?.name || 'Jugador Invitado',
+          avatar: currentUser?.avatar || 'custom_dynamic',
+          avatarConfig: currentUser?.avatarConfig || null,
+          elo: currentUser?.elo || 600,
+          role: currentUser?.role || 'student'
+        };
+        targetRoom.seats[freeSeatIdx].ready = true;
+        setPartyRoom(targetRoom);
+        setMySeatIndex(freeSeatIdx);
+        setSelectedVariant(targetRoom.variantId);
+        initGameForVariant(targetRoom.variantId);
+        audioManager.playVictory();
+        return;
+      }
+    }
+
+    // Si aún no tenemos los datos completos, solicitar al canal
+    setPartyRoom({
+      roomId: cleanRoomId,
+      variantName: 'Sala Multijugador',
+      totalPlayers: 4,
+      expectedHumans: 2,
+      botsCount: 2,
+      status: 'lobby',
+      seats: []
+    });
+  };
+
+  // Iniciar partida desde el Lobby (Host)
+  const handleStartPartyGame = () => {
+    if (!partyRoom) return;
+    const updated = {
+      ...partyRoom,
+      status: 'playing',
+      updatedAt: Date.now()
+    };
+    setPartyRoom(updated);
+
+    const botsConfig = {};
+    updated.seats.forEach(s => {
+      botsConfig[s.color] = s.type === 'bot';
+    });
+    setBotPlayers(botsConfig);
+
+    audioManager.playVictory();
+    confetti({ particleCount: 100, spread: 70, origin: { y: 0.5 } });
+
+    if (partyBcRef.current) {
+      partyBcRef.current.postMessage({
+        type: 'PARTY_ROOM_START',
+        roomId: updated.roomId,
+        roomData: updated
+      });
+    }
+  };
+
+  // Iniciar partida completando con robots de inmediato
+  const handleStartWithBotsNow = () => {
+    if (!partyRoom) return;
+    const availableBots = [
+      { name: 'Cosmo-7', elo: 700, color: '#818cf8' },
+      { name: 'Qwerty', elo: 400, color: '#38bdf8' },
+      { name: 'Sparky', elo: 1050, color: '#fbbf24' }
+    ];
+    let botCounter = 0;
+
+    const updatedSeats = partyRoom.seats.map(s => {
+      if (s.type === 'human' && !s.user) {
+        const b = availableBots[botCounter % availableBots.length];
+        botCounter++;
+        return {
+          ...s,
+          type: 'bot',
+          bot: {
+            id: `bot_${b.name.toLowerCase()}`,
+            name: b.name,
+            elo: b.elo,
+            title: 'Robot Junvill',
+            color: b.color
+          },
+          ready: true
+        };
+      }
+      return s;
+    });
+
+    const updatedRoom = {
+      ...partyRoom,
+      seats: updatedSeats,
+      status: 'playing',
+      updatedAt: Date.now()
+    };
+
+    setPartyRoom(updatedRoom);
+    const botsConfig = {};
+    updatedSeats.forEach(s => {
+      botsConfig[s.color] = s.type === 'bot';
+    });
+    setBotPlayers(botsConfig);
+
+    audioManager.playVictory();
+    confetti({ particleCount: 100, spread: 70, origin: { y: 0.5 } });
+
+    if (partyBcRef.current) {
+      partyBcRef.current.postMessage({
+        type: 'PARTY_ROOM_START',
+        roomId: updatedRoom.roomId,
+        roomData: updatedRoom
+      });
+    }
+  };
+
+  // Salir de la sala
+  const handleLeavePartyRoom = () => {
+    if (partyRoom && partyBcRef.current) {
+      partyBcRef.current.postMessage({
+        type: 'PARTY_ROOM_LEAVE',
+        roomId: partyRoom.roomId,
+        seatIndex: mySeatIndex,
+        userId: currentUser?.id
+      });
+    }
+    setPartyRoom(null);
+    setMySeatIndex(0);
+    setBotPlayers(getDefaultBotPlayers(selectedVariant));
+  };
+
+  // Enviar reto familiar a un familiar
+  const handleInviteFamilyMember = (targetUser, roomId) => {
+    if (sendFamilyInvitation) {
+      sendFamilyInvitation(targetUser, 0, true, roomId, `party_${selectedVariant}`);
+      audioManager.playHint();
+    }
+  };
+
+  // Inicializar BroadcastChannel para sincronización en tiempo real
+  useEffect(() => {
+    let bc = null;
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        bc = new BroadcastChannel('junvill_party_channel');
+        partyBcRef.current = bc;
+
+        bc.onmessage = (event) => {
+          const data = event.data;
+          if (!data) return;
+
+          const currentRoom = partyRoomRef.current;
+
+          // 1. ANUNCIO DE SALA
+          if (data.type === 'PARTY_ROOM_ANNOUNCE' && data.roomData) {
+            if (currentRoom && currentRoom.roomId === data.roomData.roomId) {
+              setPartyRoom(data.roomData);
+            }
+          }
+
+          // 2. PETICIÓN PARA UNIRSE A SALA (El Host la recibe y asigna asiento)
+          if (data.type === 'PARTY_ROOM_JOIN_REQUEST' && currentRoom && currentRoom.roomId === data.roomId) {
+            const hostIsMe = currentRoom.seats[0]?.isHost;
+            if (hostIsMe && data.user) {
+              const freeIdx = currentRoom.seats.findIndex(s => s.type === 'human' && !s.user);
+              if (freeIdx !== -1) {
+                const updatedSeats = [...currentRoom.seats];
+                updatedSeats[freeIdx] = {
+                  ...updatedSeats[freeIdx],
+                  user: data.user,
+                  ready: true
+                };
+                const updatedRoom = {
+                  ...currentRoom,
+                  seats: updatedSeats,
+                  updatedAt: Date.now()
+                };
+                setPartyRoom(updatedRoom);
+                audioManager.playVictory();
+
+                // Difundir actualización a todos
+                bc.postMessage({
+                  type: 'PARTY_ROOM_ANNOUNCE',
+                  roomData: updatedRoom
+                });
+
+                try {
+                  localStorage.setItem(`junvill_party_${updatedRoom.roomId}`, JSON.stringify(updatedRoom));
+                } catch (e) {}
+              }
+            }
+          }
+
+          // 3. INICIO DE PARTIDA
+          if (data.type === 'PARTY_ROOM_START' && currentRoom && currentRoom.roomId === data.roomId) {
+            setPartyRoom(data.roomData);
+            setSelectedVariant(data.roomData.variantId);
+            initGameForVariant(data.roomData.variantId);
+
+            const botsConfig = {};
+            data.roomData.seats.forEach(s => {
+              botsConfig[s.color] = s.type === 'bot';
+            });
+            setBotPlayers(botsConfig);
+            audioManager.playVictory();
+            confetti({ particleCount: 110, spread: 75, origin: { y: 0.5 } });
+          }
+
+          // 4. JUGADA RECIBIDA EN VIVO
+          if (data.type === 'PARTY_MOVE' && currentRoom && currentRoom.roomId === data.roomId) {
+            if (data.senderId !== currentUser?.id) {
+              const [arg1, arg2, arg3, arg4] = data.moveArgs || [];
+              if (arg1 === 'pass') {
+                if (data.variantId === 'chaturaji') game.passTurn();
+                else game.nextTurn();
+              } else if (data.variantId === 'three_hex') {
+                game.makeMove(arg1, arg2);
+              } else {
+                game.makeMove(arg1, arg2, arg3, arg4);
+              }
+              audioManager.playMove();
+              setGameTick(t => t + 1);
+
+              if (game.winner) {
+                audioManager.playVictory();
+                confetti({ particleCount: 130, spread: 80, origin: { y: 0.6 } });
+              }
+            }
+          }
+
+          // 5. UN JUGADOR ABANDONÓ
+          if (data.type === 'PARTY_ROOM_LEAVE' && currentRoom && currentRoom.roomId === data.roomId) {
+            if (data.seatIndex !== undefined && currentRoom.seats[data.seatIndex]) {
+              const updatedSeats = [...currentRoom.seats];
+              updatedSeats[data.seatIndex] = {
+                ...updatedSeats[data.seatIndex],
+                user: null,
+                ready: false
+              };
+              setPartyRoom({ ...currentRoom, seats: updatedSeats });
+              audioManager.playWarning();
+            }
+          }
+        };
+      }
+    } catch (e) {}
+
+    return () => {
+      try { bc?.close(); } catch (e) {}
+    };
+  }, [currentUser?.id, game, initGameForVariant]);
+
+  // Deep Link desde la URL (ej: ?partyRoom=JUN7K2)
+  useEffect(() => {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const roomParam = urlParams.get('partyRoom') || urlParams.get('party_room');
+      if (roomParam) {
+        handleJoinRoomByCode(P2PEngine.cleanRoomId(roomParam));
+      }
+    } catch (e) {}
+  }, []);
+
   const currentVariantData = VARIANTS.find(v => v.id === selectedVariant) || VARIANTS[0];
 
+  // =========================================================================
+  // RENDER: LOBBY DE SALA ACTIVA (SI ESTÁ EN MODO ESPERA)
+  // =========================================================================
+  if (partyRoom && partyRoom.status === 'lobby') {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        backgroundColor: '#090d16',
+        color: '#f8fafc',
+        padding: '20px 16px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center'
+      }}>
+        {/* Barra superior de retorno */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          width: '100%',
+          maxWidth: '1080px',
+          marginBottom: '16px'
+        }}>
+          <button
+            onClick={handleLeavePartyRoom}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              backgroundColor: '#1e293b',
+              color: '#f8fafc',
+              border: '1px solid #334155',
+              padding: '10px 18px',
+              borderRadius: '12px',
+              fontWeight: 700,
+              fontSize: '14px',
+              cursor: 'pointer'
+            }}
+          >
+            <ArrowLeft size={18} /> Salir al Menú Multijugador
+          </button>
+        </div>
+
+        <PartyRoomLobby
+          roomData={partyRoom}
+          currentUser={currentUser}
+          isHost={isPartyHost}
+          mySeatIndex={mySeatIndex}
+          onStartGame={handleStartPartyGame}
+          onStartWithBotsNow={handleStartWithBotsNow}
+          onLeaveRoom={handleLeavePartyRoom}
+          onInviteFamilyMember={handleInviteFamilyMember}
+          familyMembers={users}
+        />
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // RENDER: TABLERO DE JUEGO (LOCAL O SALA ONLINE)
+  // =========================================================================
   return (
     <div style={{
       minHeight: '100vh',
@@ -287,7 +780,7 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
         justifyContent: 'space-between',
         width: '100%',
         maxWidth: '1080px',
-        marginBottom: '20px'
+        marginBottom: '16px'
       }}>
         <button
           onClick={onBackToMenu}
@@ -339,118 +832,285 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
         </button>
       </div>
 
-      {/* Selector de Variantes (4 Pestañas / Tarjetas) */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-        gap: '12px',
-        width: '100%',
-        maxWidth: '1080px',
-        marginBottom: '24px'
-      }}>
-        {VARIANTS.map(v => {
-          const isSelected = selectedVariant === v.id;
-          return (
-            <div
-              key={v.id}
-              onClick={() => handleVariantChange(v.id)}
-              style={{
-                backgroundColor: isSelected ? 'rgba(30, 41, 59, 0.95)' : '#0f172a',
-                border: isSelected ? `2px solid ${v.badgeColor}` : '1px solid #1e293b',
-                borderRadius: '16px',
-                padding: '14px 16px',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                boxShadow: isSelected ? `0 8px 24px ${v.badgeColor}26` : 'none'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontSize: '24px' }}>{v.icon}</span>
-                <span style={{
-                  fontSize: '11px',
-                  fontWeight: 800,
-                  color: v.badgeColor,
-                  backgroundColor: `${v.badgeColor}18`,
-                  padding: '4px 8px',
-                  borderRadius: '6px'
-                }}>
-                  {v.badge}
-                </span>
+      {/* BANNER MULTIJUGADOR ONLINE (Crear o Unirse a Sala) */}
+      {!partyRoom ? (
+        <div style={{
+          width: '100%',
+          maxWidth: '1080px',
+          backgroundColor: '#0f172a',
+          border: '2px solid rgba(56, 189, 248, 0.4)',
+          borderRadius: '16px',
+          padding: '14px 20px',
+          marginBottom: '20px',
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
+          boxShadow: '0 8px 25px rgba(0, 0, 0, 0.5)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '42px',
+              height: '42px',
+              borderRadius: '12px',
+              backgroundColor: 'rgba(56, 189, 248, 0.15)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '22px'
+            }}>
+              🌐
+            </div>
+            <div>
+              <div style={{ fontSize: '15px', fontWeight: 900, color: '#f8fafc' }}>
+                ¿Quieres jugar con tus amigos o familiares en red?
               </div>
-              <div style={{ fontSize: '15px', fontWeight: 800, color: '#f8fafc' }}>
-                {v.name}
-              </div>
-              <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>
-                {v.subtitle}
+              <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                Crea una sala de espera en vivo para 3 o 4 personas y completa los asientos restantes con robots.
               </div>
             </div>
-          );
-        })}
-      </div>
+          </div>
 
-      {/* Selector Rápido de Participantes (Humano vs Bot Junvill) */}
-      <div style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '10px',
-        width: '100%',
-        maxWidth: '1080px',
-        marginBottom: '20px',
-        padding: '10px 16px',
-        backgroundColor: '#0f172a',
-        borderRadius: '14px',
-        border: '1px solid #1e293b'
-      }}>
-        <span style={{ fontSize: '13px', color: '#94a3b8', fontWeight: 700, marginRight: '6px' }}>
-          Control de Jugadores:
-        </span>
-        {game.players.map(pKey => {
-          const isBot = botPlayers[pKey];
-          return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <button
-              key={pKey}
-              onClick={() => togglePlayerType(pKey)}
+              onClick={() => setIsJoinRoomModalOpen(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                backgroundColor: '#1e293b',
+                color: '#f8fafc',
+                border: '1px solid #334155',
+                padding: '10px 16px',
+                borderRadius: '10px',
+                fontWeight: 800,
+                fontSize: '13px',
+                cursor: 'pointer'
+              }}
+            >
+              <KeyRound size={16} style={{ color: '#facc15' }} />
+              <span>Unirse con Código</span>
+            </button>
+
+            <button
+              onClick={() => setIsCreateRoomModalOpen(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                backgroundColor: '#0284c7',
+                color: '#ffffff',
+                border: 'none',
+                padding: '10px 20px',
+                borderRadius: '10px',
+                fontWeight: 900,
+                fontSize: '13px',
+                cursor: 'pointer',
+                boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)'
+              }}
+            >
+              <Users size={16} />
+              <span>Crear Sala Online</span>
+            </button>
+          </div>
+        </div>
+      ) : (
+        /* BANNER DE SALA ONLINE EN JUEGO */
+        <div style={{
+          width: '100%',
+          maxWidth: '1080px',
+          backgroundColor: '#0f172a',
+          border: '2px solid #38bdf8',
+          borderRadius: '16px',
+          padding: '12px 18px',
+          marginBottom: '18px',
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '20px' }}>🛡️</span>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 800, color: '#f8fafc' }}>
+                SALA ONLINE: <span style={{ color: '#facc15', fontFamily: 'monospace' }}>{partyRoom.roomId}</span> • {partyRoom.variantName}
+              </div>
+              <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+                Asiento asignado: <b style={{ color: partyRoom.seats[mySeatIndex]?.colorHex || '#38bdf8' }}>
+                  {partyRoom.seats[mySeatIndex]?.label}
+                </b>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {/* Indicador de turno online */}
+            {partyRoom.seats.map((st, i) => {
+              const isTurn = game.activePlayer === st.color;
+              return (
+                <div
+                  key={i}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '4px 10px',
+                    borderRadius: '8px',
+                    backgroundColor: isTurn ? `${st.colorHex}33` : '#1e293b',
+                    border: isTurn ? `2px solid ${st.colorHex}` : '1px solid #334155',
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    color: isTurn ? '#f8fafc' : '#94a3b8'
+                  }}
+                >
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: st.colorHex }} />
+                  <span>{st.type === 'human' ? st.user?.name || 'Humano' : st.bot?.name || 'Bot'}</span>
+                  {isTurn && <span>🎯</span>}
+                </div>
+              );
+            })}
+
+            <button
+              onClick={handleLeavePartyRoom}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
-                backgroundColor: isBot ? '#334155' : '#0284c7',
+                backgroundColor: '#dc2626',
                 color: '#ffffff',
                 border: 'none',
                 padding: '6px 12px',
                 borderRadius: '8px',
-                fontSize: '12px',
-                fontWeight: 700,
-                cursor: 'pointer'
+                fontSize: '11px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                marginLeft: '8px'
               }}
             >
-              {isBot ? <Bot size={14} /> : <Users size={14} />}
-              {pKey.toUpperCase()}: {isBot ? 'Bot IA' : 'Humano'}
+              <LogOut size={12} /> Salir
             </button>
-          );
-        })}
-        <button
-          onClick={() => initGameForVariant(selectedVariant)}
-          style={{
-            marginLeft: 'auto',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            backgroundColor: '#1e293b',
-            color: '#f8fafc',
-            border: '1px solid #334155',
-            padding: '6px 14px',
-            borderRadius: '8px',
-            fontSize: '12px',
-            fontWeight: 700,
-            cursor: 'pointer'
-          }}
-        >
-          <RotateCcw size={14} /> Reiniciar Partida
-        </button>
-      </div>
+          </div>
+        </div>
+      )}
+
+      {/* Selector de Variantes (Solo en juego local) */}
+      {!partyRoom && (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: '12px',
+          width: '100%',
+          maxWidth: '1080px',
+          marginBottom: '20px'
+        }}>
+          {VARIANTS.map(v => {
+            const isSelected = selectedVariant === v.id;
+            return (
+              <div
+                key={v.id}
+                onClick={() => handleVariantChange(v.id)}
+                style={{
+                  backgroundColor: isSelected ? 'rgba(30, 41, 59, 0.95)' : '#0f172a',
+                  border: isSelected ? `2px solid ${v.badgeColor}` : '1px solid #1e293b',
+                  borderRadius: '16px',
+                  padding: '14px 16px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  boxShadow: isSelected ? `0 8px 24px ${v.badgeColor}26` : 'none'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '24px' }}>{v.icon}</span>
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: 800,
+                    color: v.badgeColor,
+                    backgroundColor: `${v.badgeColor}18`,
+                    padding: '4px 8px',
+                    borderRadius: '6px'
+                  }}>
+                    {v.badge}
+                  </span>
+                </div>
+                <div style={{ fontSize: '15px', fontWeight: 800, color: '#f8fafc' }}>
+                  {v.name}
+                </div>
+                <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>
+                  {v.subtitle}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Selector Rápido de Participantes (Humano vs Bot Junvill) en Juego Local */}
+      {!partyRoom && (
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '10px',
+          width: '100%',
+          maxWidth: '1080px',
+          marginBottom: '20px',
+          padding: '10px 16px',
+          backgroundColor: '#0f172a',
+          borderRadius: '14px',
+          border: '1px solid #1e293b'
+        }}>
+          <span style={{ fontSize: '13px', color: '#94a3b8', fontWeight: 700, marginRight: '6px' }}>
+            Control de Jugadores:
+          </span>
+          {game.players.map(pKey => {
+            const isBot = botPlayers[pKey];
+            return (
+              <button
+                key={pKey}
+                onClick={() => togglePlayerType(pKey)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  backgroundColor: isBot ? '#334155' : '#0284c7',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                {isBot ? <Bot size={14} /> : <Users size={14} />}
+                {pKey.toUpperCase()}: {isBot ? 'Bot IA' : 'Humano'}
+              </button>
+            );
+          })}
+          <button
+            onClick={() => initGameForVariant(selectedVariant)}
+            style={{
+              marginLeft: 'auto',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: '#1e293b',
+              color: '#f8fafc',
+              border: '1px solid #334155',
+              padding: '6px 14px',
+              borderRadius: '8px',
+              fontSize: '12px',
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
+          >
+            <RotateCcw size={14} /> Reiniciar Partida
+          </button>
+        </div>
+      )}
 
       {/* Banner de Ganador */}
       {game.winner && (
@@ -458,8 +1118,7 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
           display: 'flex',
           alignItems: 'center',
           gap: '14px',
-          backgroundColor: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-          background: '#d97706',
+          backgroundColor: '#d97706',
           color: '#ffffff',
           padding: '14px 24px',
           borderRadius: '16px',
@@ -650,6 +1309,21 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
           </div>
         </div>
       )}
+
+      {/* Modal para Crear Sala Multijugador */}
+      <CreatePartyRoomModal
+        isOpen={isCreateRoomModalOpen}
+        onClose={() => setIsCreateRoomModalOpen(false)}
+        onRoomCreated={handleRoomCreated}
+        currentUser={currentUser}
+      />
+
+      {/* Modal para Unirse a Sala Multijugador con Código */}
+      <JoinPartyRoomModal
+        isOpen={isJoinRoomModalOpen}
+        onClose={() => setIsJoinRoomModalOpen(false)}
+        onJoin={handleJoinRoomByCode}
+      />
 
     </div>
   );
