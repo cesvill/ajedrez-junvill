@@ -26,7 +26,8 @@ export const HomeView = ({
   onOpenP2P,
   onOpenFamilyChallenges,
   onStartLesson,
-  onStartBotGame
+  onStartBotGame,
+  onOpenMultiplayer
 }) => {
   const { 
     currentUser, 
@@ -35,7 +36,9 @@ export const HomeView = ({
     acceptFamilyInvitation, 
     declineFamilyInvitation,
     activeP2PGame,
-    clearActiveP2PGame
+    clearActiveP2PGame,
+    activePartyRoom,
+    clearActivePartyRoom
   } = useUser();
   const [showRadarSection, setShowRadarSection] = useState(true);
 
@@ -83,6 +86,16 @@ export const HomeView = ({
         }
       }
 
+      // 1.b Prioridad: Sala Multijugador en Red activa (3 o 4 Jugadores)
+      const partyKey = `junvill_ongoing_party_room_v1_${currentUser?.id || 'default'}`;
+      const partyRaw = localStorage.getItem(partyKey);
+      if (partyRaw) {
+        const parsedParty = JSON.parse(partyRaw);
+        if (parsedParty && parsedParty.roomId && parsedParty.status !== 'cancelled' && parsedParty.status !== 'gameover' && parsedParty.status !== 'abandoned') {
+          return { ...parsedParty, type: 'party' };
+        }
+      }
+
       // 2. Partida local vs Bot o Pass and Play
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return null;
@@ -97,7 +110,7 @@ export const HomeView = ({
     } catch (e) {
       return null;
     }
-  }, [STORAGE_KEY, ONGOING_P2P_KEY]);
+  }, [STORAGE_KEY, ONGOING_P2P_KEY, currentUser?.id]);
 
   const [ongoingGame, setOngoingGame] = useState(() => getOngoingGame());
 
@@ -112,11 +125,13 @@ export const HomeView = ({
     };
     window.addEventListener('focus', handleFocus);
     window.addEventListener('junvill_clear_p2p_match', handleClearEvent);
+    window.addEventListener('junvill_clear_party_room', handleClearEvent);
     return () => {
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('junvill_clear_p2p_match', handleClearEvent);
+      window.removeEventListener('junvill_clear_party_room', handleClearEvent);
     };
-  }, [getOngoingGame, currentUser?.id, activeP2PGame]);
+  }, [getOngoingGame, currentUser?.id, activeP2PGame, activePartyRoom]);
 
   const ongoingBot = ongoingGame?.botId
     ? (BOT_ROSTER.find(b => b.id === ongoingGame.botId) || BOT_ROSTER[0])
@@ -131,6 +146,9 @@ export const HomeView = ({
             localStorage.removeItem(`junvill_p2p_room_${ongoingGame.roomId}`);
           }
           if (clearActiveP2PGame) clearActiveP2PGame(ongoingGame.roomId);
+        } else if (ongoingGame?.type === 'party') {
+          localStorage.removeItem(`junvill_ongoing_party_room_v1_${currentUser?.id || 'default'}`);
+          if (clearActivePartyRoom) clearActivePartyRoom(ongoingGame.roomId);
         } else {
           localStorage.removeItem(STORAGE_KEY);
         }
@@ -468,7 +486,24 @@ export const HomeView = ({
           gap: '16px'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', minWidth: '280px', flex: 1 }}>
-            {ongoingGame.type === 'p2p' ? (
+            {ongoingGame.type === 'party' ? (
+              <div style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '50%',
+                background: '#9333ea',
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.8rem',
+                border: '3px solid #c084fc',
+                flexShrink: 0,
+                boxShadow: '0 4px 12px rgba(168, 85, 247, 0.35)'
+              }}>
+                🌐
+              </div>
+            ) : ongoingGame.type === 'p2p' ? (
               <div style={{ width: '56px', height: '56px', borderRadius: '50%', overflow: 'hidden', border: '3px solid #3b82f6', flexShrink: 0, boxShadow: '0 4px 12px rgba(59, 130, 246, 0.35)' }}>
                 {ongoingGame.opponent?.avatarConfig ? (
                   <DynamicAvatar config={ongoingGame.opponent.avatarConfig} size={56} />
@@ -502,7 +537,7 @@ export const HomeView = ({
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '3px' }}>
                 <span style={{
-                  background: ongoingGame.type === 'p2p' ? '#3b82f6' : '#f59e0b',
+                  background: ongoingGame.type === 'party' ? '#9333ea' : ongoingGame.type === 'p2p' ? '#3b82f6' : '#f59e0b',
                   color: '#ffffff',
                   fontSize: '0.72rem',
                   fontWeight: '900',
@@ -511,7 +546,7 @@ export const HomeView = ({
                   textTransform: 'uppercase',
                   letterSpacing: '0.5px'
                 }}>
-                  {ongoingGame.type === 'p2p' ? 'Partida Familiar P2P ⚔️' : 'Partida en Curso ⚔️'}
+                  {ongoingGame.type === 'party' ? 'Sala Multijugador Online 🌐' : ongoingGame.type === 'p2p' ? 'Partida Familiar P2P ⚔️' : 'Partida en Curso ⚔️'}
                 </span>
                 <span style={{ fontSize: '0.76rem', color: 'var(--text-parchment-muted)' }}>
                   {ongoingGame.updatedAt ? `Guardada ${new Date(ongoingGame.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Activa'}
@@ -519,31 +554,41 @@ export const HomeView = ({
               </div>
 
               <h3 style={{ margin: '0 0 3px', fontSize: '1.15rem', color: 'var(--text-parchment-main)', fontWeight: '900' }}>
-                {ongoingGame.type === 'p2p'
-                  ? `Partida en Línea vs ${ongoingGame.opponent?.name || 'Familiar'} (Sala: ${ongoingGame.roomId})`
-                  : (ongoingGame.gameMode === 'pass_and_play' 
-                      ? 'Partida 2 Jugadores (Pasa y Juega)' 
-                      : `Partida vs ${ongoingBot.name} (${ongoingBot.elo} Elo)`)}
+                {ongoingGame.type === 'party'
+                  ? `${ongoingGame.variantName || 'Ajedrez Multijugador'} (Sala: ${ongoingGame.roomId})`
+                  : (ongoingGame.type === 'p2p'
+                      ? `Partida en Línea vs ${ongoingGame.opponent?.name || 'Familiar'} (Sala: ${ongoingGame.roomId})`
+                      : (ongoingGame.gameMode === 'pass_and_play' 
+                          ? 'Partida 2 Jugadores (Pasa y Juega)' 
+                          : `Partida vs ${ongoingBot.name} (${ongoingBot.elo} Elo)`))}
               </h3>
 
               <div style={{ fontSize: '0.84rem', color: 'var(--text-parchment-muted)', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                <span>
-                  <strong>Turno {Math.floor((ongoingGame.moveHistory?.length || 0) / 2) + 1}</strong>
-                </span>
-                <span>•</span>
-                <span style={{ color: ongoingGame.turn === 'w' ? '#60a5fa' : '#f59e0b', fontWeight: '700' }}>
-                  {ongoingGame.type === 'p2p'
-                    ? (ongoingGame.turn === (ongoingGame.assignedColor === 'white' ? 'w' : 'b') ? '🟢 Tu turno para mover' : `⏳ Turno de ${ongoingGame.opponent?.name || 'rival'}`)
-                    : (ongoingGame.gameMode === 'pass_and_play'
-                        ? (ongoingGame.turn === 'w' ? '⚪ Mueven Blancas (Jugador 1)' : '⚫ Mueven Negras (Jugador 2)')
-                        : (ongoingGame.turn === 'w' 
-                            ? (ongoingGame.playerColor === 'white' ? '🟢 Tu turno (Blancas)' : `🤖 Turno de ${ongoingBot.name} (Blancas)`)
-                            : (ongoingGame.playerColor === 'black' ? '🟢 Tu turno (Negras)' : `🤖 Turno de ${ongoingBot.name} (Negras)`)))}
-                </span>
-                {ongoingGame.lastMove && (
+                {ongoingGame.type === 'party' ? (
+                  <span style={{ color: ongoingGame.status === 'playing' ? '#4ade80' : '#38bdf8', fontWeight: '800' }}>
+                    {ongoingGame.status === 'playing' ? '🟢 Partida Activa en Tablero' : '⏳ Esperando en Sala de Espera'}
+                  </span>
+                ) : (
                   <>
+                    <span>
+                      <strong>Turno {Math.floor((ongoingGame.moveHistory?.length || 0) / 2) + 1}</strong>
+                    </span>
                     <span>•</span>
-                    <span>Última: <strong style={{ color: 'var(--text-parchment-main)' }}>{ongoingGame.lastMove.san || `${ongoingGame.lastMove.from}➔${ongoingGame.lastMove.to}`}</strong></span>
+                    <span style={{ color: ongoingGame.turn === 'w' ? '#60a5fa' : '#f59e0b', fontWeight: '700' }}>
+                      {ongoingGame.type === 'p2p'
+                        ? (ongoingGame.turn === (ongoingGame.assignedColor === 'white' ? 'w' : 'b') ? '🟢 Tu turno para mover' : `⏳ Turno de ${ongoingGame.opponent?.name || 'rival'}`)
+                        : (ongoingGame.gameMode === 'pass_and_play'
+                            ? (ongoingGame.turn === 'w' ? '⚪ Mueven Blancas (Jugador 1)' : '⚫ Mueven Negras (Jugador 2)')
+                            : (ongoingGame.turn === 'w' 
+                                ? (ongoingGame.playerColor === 'white' ? '🟢 Tu turno (Blancas)' : `🤖 Turno de ${ongoingBot.name} (Blancas)`)
+                                : (ongoingGame.playerColor === 'black' ? '🟢 Tu turno (Negras)' : `🤖 Turno de ${ongoingBot.name} (Negras)`)))}
+                    </span>
+                    {ongoingGame.lastMove && (
+                      <>
+                        <span>•</span>
+                        <span>Última: <strong style={{ color: 'var(--text-parchment-main)' }}>{ongoingGame.lastMove.san || `${ongoingGame.lastMove.from}➔${ongoingGame.lastMove.to}`}</strong></span>
+                      </>
+                    )}
                   </>
                 )}
               </div>
@@ -556,6 +601,9 @@ export const HomeView = ({
               onClick={() => {
                 if (ongoingGame.type === 'p2p') {
                   if (onOpenP2P) onOpenP2P(ongoingGame.roomId);
+                } else if (ongoingGame.type === 'party') {
+                  if (onOpenMultiplayer) onOpenMultiplayer(ongoingGame.roomId);
+                  else onNavigate('multijugador');
                 } else {
                   onNavigate('jugar');
                 }
@@ -568,27 +616,21 @@ export const HomeView = ({
                 gap: '8px',
                 boxShadow: '0 4px 12px rgba(245, 158, 11, 0.35)'
               }}
-              title="Continuar jugando exactamente donde ibas"
             >
-              <Play size={17} />
-              <span>▶ Reanudar Partida</span>
+              <Play size={16} />
+              <span>{ongoingGame.type === 'party' ? 'Retomar Sala ➔' : 'Reanudar Partida ➔'}</span>
             </button>
-
             <button
               onClick={handleCancelOngoingGame}
               className="btn-secondary"
               style={{
                 padding: '10px 14px',
-                fontSize: '0.86rem',
-                gap: '6px',
-                color: '#ef4444',
-                borderColor: 'rgba(239, 68, 68, 0.4)',
-                background: 'rgba(239, 68, 68, 0.08)'
+                fontSize: '0.85rem',
+                color: '#ef4444'
               }}
-              title="Cancelar y descartar esta partida"
+              title="Descartar y cancelar partida en curso"
             >
-              <Trash2 size={16} color="#ef4444" />
-              <span>Cancelar Partida</span>
+              <Trash2 size={16} />
             </button>
           </div>
         </div>

@@ -555,10 +555,18 @@ export const App = () => {
     urlRoomId
   ]);
 
+  const [targetPartyRoomId, setTargetPartyRoomId] = useState(null);
+
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
     if (tabId !== 'aprender') setActiveLesson(null);
     if (tabId !== 'jugar') setActiveBotMatch(null);
+    if (tabId !== 'multijugador') setTargetPartyRoomId(null);
+  };
+
+  const handleOpenMultiplayer = (roomId = null) => {
+    setTargetPartyRoomId(roomId);
+    setActiveTab('multijugador');
   };
 
   const handleStartLesson = (lesson) => {
@@ -864,6 +872,7 @@ export const App = () => {
             onOpenCuby3x3={() => setIsCuby3x3Open(true)}
             onStartLesson={handleStartLesson}
             onStartBotGame={handleStartBotMatch}
+            onOpenMultiplayer={handleOpenMultiplayer}
           />
         )}
 
@@ -899,7 +908,7 @@ export const App = () => {
             onOpenBugReport={handleOpenBugReport}
             onOpenFamilyChat={(user) => handleOpenFamilyChat(user)}
             onOpenCuby3x3={() => setIsCuby3x3Open(true)}
-            onOpenMultiplayer={() => handleTabChange('multijugador')}
+            onOpenMultiplayer={handleOpenMultiplayer}
           />
         )}
 
@@ -917,6 +926,7 @@ export const App = () => {
 
         {activeTab === 'multijugador' && (
           <MultiplayerPartyView
+            initialRoomId={targetPartyRoomId}
             onBackToMenu={() => handleTabChange('inicio')}
           />
         )}

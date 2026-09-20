@@ -45,7 +45,7 @@ export const PlayView = ({
   onOpenCuby3x3,
   onOpenMultiplayer
 }) => {
-  const { currentUser, activeGroup, users, isUserOnline, updateCurrentUser, recordGameResult, recordBotWin, pendingInvitationsForMe, acceptFamilyInvitation, declineFamilyInvitation, sendFamilyInvitation, activeP2PGame, clearActiveP2PGame, refreshInvitationsNow, isRefreshingInvitations } = useUser();
+  const { currentUser, activeGroup, users, isUserOnline, updateCurrentUser, recordGameResult, recordBotWin, pendingInvitationsForMe, acceptFamilyInvitation, declineFamilyInvitation, sendFamilyInvitation, activeP2PGame, clearActiveP2PGame, activePartyRoom, clearActivePartyRoom, refreshInvitationsNow, isRefreshingInvitations } = useUser();
   const [isPauseMenuOpen, setIsPauseMenuOpen] = useState(false);
   const [challengeOpponent, setChallengeOpponent] = useState(null);
   const [customRoomCodeInput, setCustomRoomCodeInput] = useState('');
@@ -1522,14 +1522,68 @@ export const PlayView = ({
                 </p>
               </div>
             </div>
-            {(savedGame || activeP2PGame) && (
+            {(savedGame || activeP2PGame || activePartyRoom) && (
               <span style={{ fontSize: '0.78rem', background: '#eab308', color: '#0f172a', fontWeight: '900', padding: '2px 8px', borderRadius: '9999px' }}>
-                {(savedGame ? 1 : 0) + (activeP2PGame ? 1 : 0)} Partida(s) Activa(s)
+                {(savedGame ? 1 : 0) + (activeP2PGame ? 1 : 0) + (activePartyRoom ? 1 : 0)} Partida(s) Activa(s)
               </span>
             )}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '14px' }}>
+            {/* A.0) Sala Multijugador en Red (3 o 4 Jugadores) */}
+            {activePartyRoom && (
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.98) 100%)',
+                border: '1.5px solid #a855f7',
+                borderRadius: '14px',
+                padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                boxShadow: '0 4px 15px rgba(168, 85, 247, 0.2)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '1.5rem' }}>🌐</span>
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: '900', color: '#c084fc' }}>
+                        {activePartyRoom.variantName || 'Ajedrez Multijugador'}
+                      </h4>
+                      <p style={{ margin: '2px 0 0', fontSize: '0.76rem', color: '#94a3b8' }}>
+                        Sala: <code style={{ color: '#facc15' }}>{activePartyRoom.roomId}</code> • Estado: <strong style={{ color: activePartyRoom.status === 'playing' ? '#4ade80' : '#38bdf8' }}>
+                          {activePartyRoom.status === 'playing' ? 'En Juego' : 'En Sala de Espera'}
+                        </strong>
+                      </p>
+                    </div>
+                  </div>
+                  <span style={{ fontSize: '0.70rem', background: '#9333ea', color: 'white', fontWeight: '900', padding: '3px 8px', borderRadius: '6px' }}>
+                    {activePartyRoom.totalPlayers || 4} Jugadores
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', marginTop: 'auto' }}>
+                  <button
+                    type="button"
+                    className="btn-gold"
+                    onClick={() => onOpenMultiplayer && onOpenMultiplayer(activePartyRoom.roomId)}
+                    style={{ flex: 1, padding: '9px', fontSize: '0.84rem', fontWeight: '900', justifyContent: 'center', gap: '6px' }}
+                  >
+                    <Play size={15} />
+                    <span>Retomar Partida</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => clearActivePartyRoom && clearActivePartyRoom(activePartyRoom.roomId)}
+                    style={{ padding: '9px 12px', fontSize: '0.80rem', color: '#ef4444' }}
+                    title="Abandonar y descartar sala multijugador"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* A) Partida P2P Familiar en Curso */}
             {activeP2PGame && (
               <div style={{
@@ -1635,7 +1689,7 @@ export const PlayView = ({
             )}
 
             {/* C) Sin partidas pendientes */}
-            {!savedGame && !activeP2PGame && (
+            {!savedGame && !activeP2PGame && !activePartyRoom && (
               <div style={{
                 gridColumn: '1 / -1',
                 padding: '24px',

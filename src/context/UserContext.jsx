@@ -1044,6 +1044,45 @@ export const UserProvider = ({ children }) => {
     } catch (e) {}
   }, [currentUser?.id, activeGroup, activeGroupId, activeP2PGame?.roomId, users]);
 
+  // 6.b SALA MULTIJUGADOR ONLINE EN CURSO (3 Y 4 JUGADORES)
+  const [activePartyRoom, setActivePartyRoom] = useState(() => {
+    try {
+      const raw = localStorage.getItem(`junvill_ongoing_party_room_v1_${activeUserId || 'default'}`);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || !parsed.roomId) return null;
+      if (parsed.status === 'cancelled' || parsed.status === 'gameover' || parsed.status === 'abandoned') {
+        localStorage.removeItem(`junvill_ongoing_party_room_v1_${activeUserId || 'default'}`);
+        return null;
+      }
+      return parsed;
+    } catch (e) {
+      return null;
+    }
+  });
+
+  const saveActivePartyRoom = useCallback((roomData) => {
+    try {
+      const key = `junvill_ongoing_party_room_v1_${currentUser?.id || 'default'}`;
+      if (!roomData || roomData.status === 'cancelled' || roomData.status === 'gameover') {
+        localStorage.removeItem(key);
+        setActivePartyRoom(null);
+      } else {
+        localStorage.setItem(key, JSON.stringify(roomData));
+        setActivePartyRoom(roomData);
+      }
+    } catch (e) {}
+  }, [currentUser?.id]);
+
+  const clearActivePartyRoom = useCallback((targetRoomId = null) => {
+    try {
+      const key = `junvill_ongoing_party_room_v1_${currentUser?.id || 'default'}`;
+      localStorage.removeItem(key);
+      setActivePartyRoom(null);
+      window.dispatchEvent(new CustomEvent('junvill_clear_party_room', { detail: { roomId: targetRoomId } }));
+    } catch (e) {}
+  }, [currentUser?.id]);
+
   // Invitaciones dirigidas al usuario actual (Entrantes infalibles normalizadas)
   const pendingInvitationsForMe = familyInvitations.filter(inv => {
     if (inv.status !== 'pending' || !currentUser) return false;
@@ -2343,6 +2382,9 @@ export const UserProvider = ({ children }) => {
       activeP2PGame,
       saveActiveP2PGame,
       clearActiveP2PGame,
+      activePartyRoom,
+      saveActivePartyRoom,
+      clearActivePartyRoom,
       isUserOnline,
       familyMessages,
       sendFamilyMessage,

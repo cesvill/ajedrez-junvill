@@ -108,8 +108,8 @@ const VARIANTS = [
   }
 ];
 
-export const MultiplayerPartyView = ({ onBackToMenu }) => {
-  const { currentUser, users, activeGroup, sendFamilyInvitation } = useUser();
+export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => {
+  const { currentUser, users, activeGroup, sendFamilyInvitation, activePartyRoom, saveActivePartyRoom, clearActivePartyRoom } = useUser();
 
   const getInitialVariant = () => {
     try {
@@ -419,6 +419,7 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
     initGameForVariant(newRoomData.variantId);
     setMySeatIndex(0);
     setPartyRoom(newRoomData);
+    if (saveActivePartyRoom) saveActivePartyRoom(newRoomData);
     audioManager.playVictory();
 
     // Configurar bots según los asientos
@@ -488,6 +489,9 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
     if (targetRoom && Array.isArray(targetRoom.seats) && targetRoom.seats.length > 0) {
       roomEngine.handleIncomingState(targetRoom);
       await roomEngine.claimFirstAvailableSeat(currentUser);
+      if (saveActivePartyRoom) saveActivePartyRoom(targetRoom);
+    } else {
+      if (saveActivePartyRoom) saveActivePartyRoom({ roomId: cleanRoomId, status: 'lobby', variantName: 'Ajedrez Multijugador' });
     }
   };
 
@@ -508,6 +512,7 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
       updatedAt: Date.now()
     };
     setPartyRoom(updated);
+    if (saveActivePartyRoom) saveActivePartyRoom(updated);
 
     // Doble difusión garantizada sobre WebSockets de Supabase Realtime
     try {
@@ -565,6 +570,7 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
     };
 
     setPartyRoom(updatedRoom);
+    if (saveActivePartyRoom) saveActivePartyRoom(updatedRoom);
 
     // Doble difusión garantizada sobre WebSockets de Supabase Realtime
     try {
@@ -633,7 +639,9 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
       }
       cloudSync.pushPartyRoom(updatedRoom, activeGroup?.id).catch(() => {});
     }
+    if (clearActivePartyRoom) clearActivePartyRoom(partyRoom?.roomId);
     setPartyRoom(null);
+    audioManager.playClick();
     setMySeatIndex(0);
     setBotPlayers(getDefaultBotPlayers(selectedVariant));
   };
@@ -799,6 +807,10 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
             audioManager.playVictory();
             confetti({ particleCount: 110, spread: 75, origin: { y: 0.5 } });
           }
+        }
+
+        if (saveActivePartyRoom && state && state.status !== 'cancelled' && state.status !== 'gameover') {
+          saveActivePartyRoom(state);
         }
 
         return state;
@@ -970,16 +982,16 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
     };
   }, [currentUser?.id, game, initGameForVariant]);
 
-  // Deep Link desde la URL (ej: ?partyRoom=JUN7K2)
+  // Deep Link desde la URL (ej: ?partyRoom=JUN7K2) o sala inicial por prop
   useEffect(() => {
     try {
       const urlParams = new URLSearchParams(window.location.search);
-      const roomParam = urlParams.get('partyRoom') || urlParams.get('party_room');
+      const roomParam = initialRoomId || urlParams.get('partyRoom') || urlParams.get('party_room');
       if (roomParam) {
-        handleJoinRoomByCode(P2PEngine.cleanRoomId(roomParam));
+        handleJoinRoomByCode(JunvillRoomEngine.cleanRoomId(roomParam));
       }
     } catch (e) {}
-  }, []);
+  }, [initialRoomId]);
 
   const currentVariantData = VARIANTS.find(v => v.id === selectedVariant) || VARIANTS[0];
 
@@ -1115,6 +1127,95 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
           <BookOpen size={18} /> Reglas
         </button>
       </div>
+
+      {/* BANNER DE SALA EN CURSO GUARDADA PARA RETOMAR */}
+      {!partyRoom && activePartyRoom && (
+        <div style={{
+          width: '100%',
+          maxWidth: '1080px',
+          background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(147, 51, 234, 0.25) 100%)',
+          border: '2px solid #a855f7',
+          borderRadius: '16px',
+          padding: '16px 20px',
+          marginBottom: '16px',
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
+          boxShadow: '0 8px 25px rgba(168, 85, 247, 0.3)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div style={{
+              width: '46px',
+              height: '46px',
+              borderRadius: '12px',
+              backgroundColor: 'rgba(168, 85, 247, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '24px'
+            }}>
+              ⏳
+            </div>
+            <div>
+              <div style={{ fontSize: '15px', fontWeight: 900, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>Partida Multijugador Activa:</span>
+                <span style={{ color: '#facc15', fontFamily: 'monospace' }}>{activePartyRoom.roomId}</span>
+                <span style={{ fontSize: '11px', background: activePartyRoom.status === 'playing' ? '#10b981' : '#38bdf8', color: '#0f172a', padding: '2px 8px', borderRadius: '6px', fontWeight: 800 }}>
+                  {activePartyRoom.status === 'playing' ? 'En Juego' : 'En Lobby'}
+                </span>
+              </div>
+              <div style={{ fontSize: '12px', color: '#cbd5e1', marginTop: '2px' }}>
+                Modalidad: <b>{activePartyRoom.variantName || 'Ajedrez Multijugador'}</b> • Puedes reincorporarte a tu asiento de inmediato.
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              onClick={() => handleJoinRoomByCode(activePartyRoom.roomId)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                backgroundColor: '#9333ea',
+                color: '#ffffff',
+                border: 'none',
+                padding: '10px 18px',
+                borderRadius: '10px',
+                fontWeight: 900,
+                fontSize: '13px',
+                cursor: 'pointer',
+                boxShadow: '0 4px 14px rgba(147, 51, 234, 0.4)'
+              }}
+            >
+              <Play size={16} />
+              <span>Retomar Sala</span>
+            </button>
+            <button
+              onClick={() => clearActivePartyRoom && clearActivePartyRoom(activePartyRoom.roomId)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                color: '#ef4444',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                padding: '10px 14px',
+                borderRadius: '10px',
+                fontWeight: 700,
+                fontSize: '12px',
+                cursor: 'pointer'
+              }}
+              title="Descartar esta sala"
+            >
+              <X size={14} />
+              <span>Descartar</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* BANNER MULTIJUGADOR ONLINE (Crear o Unirse a Sala) */}
       {!partyRoom ? (
