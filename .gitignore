@@ -47,3 +47,8 @@ database/*.db
 *.docx
 *.pdf
 pantallazos/
+
+# Python Cache & Pytest
+__pycache__/
+*.pyc
+.pytest_cache/
