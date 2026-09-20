@@ -2,10 +2,13 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { familySignaling } from '../engine/familySignaling';
 import { audioManager } from '../engine/audio';
 import { cloudSync, normalizeUserKey, deduplicateAndMergeUsers, recoverAllLocalUsersFromStorage } from '../engine/cloudSync';
+import { hashPassword, verifyPassword, SECURE_DEFAULT_PASSWORD_HASH } from '../engine/cryptoAuth';
 
 const UserContext = createContext();
 
-export const DEFAULT_GENERIC_PASSWORD = 'JunV1ll123';
+// # OJO HUMANO: Zero-DLP - Hash criptográfico SHA-256 para contraseñas de familia (CWE-256 / CWE-312)
+export const DEFAULT_GENERIC_PASSWORD = SECURE_DEFAULT_PASSWORD_HASH;
+export const DEFAULT_GENERIC_PASSWORD_HASH = SECURE_DEFAULT_PASSWORD_HASH;
 export const MAX_FAMILY_GROUPS = 5;
 export const MAX_PLAYERS_PER_GROUP = 10;
 export const MAX_CONCURRENT_USERS = 25;
@@ -1737,8 +1740,8 @@ export const UserProvider = ({ children }) => {
       return { success: false, error: 'Grupo familiar no encontrado.' };
     }
 
-    const expected = targetGroup.password || DEFAULT_GENERIC_PASSWORD;
-    if ((enteredPassword || '').trim() !== expected.trim()) {
+    const stored = targetGroup.passwordHash || targetGroup.password || SECURE_DEFAULT_PASSWORD_HASH;
+    if (!verifyPassword(enteredPassword, stored)) {
       return { success: false, error: 'Contraseña del grupo familiar incorrecta.' };
     }
 
@@ -1891,13 +1894,14 @@ export const UserProvider = ({ children }) => {
   const verifyPassword = (userId, enteredPassword) => {
     const user = users.find(u => u.id === userId);
     if (!user) return false;
-    const expected = user.password || DEFAULT_GENERIC_PASSWORD;
-    return (enteredPassword || '').trim() === expected.trim();
+    const stored = user.passwordHash || user.password || SECURE_DEFAULT_PASSWORD_HASH;
+    return verifyPassword(enteredPassword, stored);
   };
 
   const changeUserPassword = (userId, newPassword) => {
-    const trimmed = (newPassword || '').trim() || DEFAULT_GENERIC_PASSWORD;
-    editUser(userId, { password: trimmed });
+    const trimmed = (newPassword || '').trim();
+    const hashed = hashPassword(trimmed || SECURE_DEFAULT_PASSWORD_HASH);
+    editUser(userId, { passwordHash: hashed, password: '' });
     return true;
   };
 

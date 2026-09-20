@@ -77,6 +77,12 @@ export function tunnelPlugin() {
   };
 
   const startTunnel = () => {
+    if (process.env.ENABLE_TUNNEL !== 'true') {
+      console.log('[Seguridad Perimetral]: Túnel Cloudflare público bloqueado por política Zero-DLP.');
+      tunnelStatus = 'disabled';
+      return Promise.resolve(null);
+    }
+
     if (tunnelProcess && tunnelUrl) {
       return Promise.resolve(tunnelUrl);
     }
@@ -87,7 +93,7 @@ export function tunnelPlugin() {
     return new Promise((resolve) => {
       const cmd = process.platform === 'win32' ? 'npx.cmd' : 'npx';
       tunnelProcess = spawn(cmd, ['-y', 'cloudflared', 'tunnel', '--url', 'http://localhost:3000'], {
-        shell: true
+        shell: false
       });
 
       const urlRegex = /https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/;
@@ -130,11 +136,7 @@ export function tunnelPlugin() {
   const stopTunnel = () => {
     if (tunnelProcess) {
       try {
-        if (process.platform === 'win32') {
-          spawn('taskkill', ['/pid', String(tunnelProcess.pid), '/f', '/t']);
-        } else {
-          tunnelProcess.kill('SIGTERM');
-        }
+        tunnelProcess.kill('SIGTERM');
       } catch (e) {
         console.error('Error stopping tunnel process', e);
       }

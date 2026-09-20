@@ -7,6 +7,7 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Node dependencies
 node_modules
 dist
 dist-ssr
@@ -23,6 +24,26 @@ dist-ssr
 *.sln
 *.sw?
 
-# Scratch & temp files
+# Environment & Secrets (Zero-DLP)
+.env
+.env*.local
+!.env.example
+
+# Legacy Quarantine & Scratch
+_quarantine_legacy/
+scratch/
 scratch_*.mjs
 *.tmp
+Temp/
+
+# Database Backups & Local Caches
+database/*_backup.json
+database/*.sqlite*
+database/*.db
+
+# Heavy Media & Documents
+*.zip
+*.7z
+*.docx
+*.pdf
+pantallazos/

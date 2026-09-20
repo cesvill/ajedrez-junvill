@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useUser } from './context/UserContext';
 import { Header } from './components/Navigation/Header';
 import { Navbar } from './components/Navigation/Navbar';
+import { DeviceSimulatorBar, DEVICE_CONFIGS } from './components/Navigation/DeviceSimulatorBar';
+import { Sparkles } from 'lucide-react';
 import { HomeView } from './views/HomeView';
 import { LessonsView } from './views/LessonsView';
 import { LessonPlayerModal } from './views/LessonPlayerModal';
@@ -64,6 +66,126 @@ export const App = () => {
   const [bugReportContext, setBugReportContext] = useState({});
   const [urlRoomId, setUrlRoomId] = useState('');
   const [p2pInitialMode, setP2pInitialMode] = useState('join');
+
+  // Detección de entorno local (solo en PC, nunca en Vercel ni producción remota)
+  const isLocalEnvironment = typeof window !== 'undefined' && (
+    Boolean(import.meta.env.DEV) || 
+    window.location.hostname === 'localhost' || 
+    window.location.hostname === '127.0.0.1' ||
+    window.location.hostname.startsWith('192.168.') ||
+    window.location.hostname.startsWith('10.') ||
+    window.location.hostname.endsWith('.local')
+  );
+
+  // Detección antirrecurrencia de iFrame y Estado del Simulador
+  const isInsideSimulator = typeof window !== 'undefined' && (
+    window.location.search.includes('simulator_view=1') || 
+    window.self !== window.top
+  );
+  const [simulatedDevice, setSimulatedDevice] = useState('responsive');
+  const [orientation, setOrientation] = useState('portrait');
+  const [scaleMode, setScaleMode] = useState('fit');
+  const [isBarMinimized, setIsBarMinimized] = useState(false);
+  const iframeRef = useRef(null);
+
+  // Monitorización de resolución de pantalla de PC para auto-ajuste (Fit to Screen)
+  const [viewportSize, setViewportSize] = useState(() => ({
+    width: typeof window !== 'undefined' ? window.innerWidth : 1200,
+    height: typeof window !== 'undefined' ? window.innerHeight : 800
+  }));
+
+  useEffect(() => {
+    const handleResize = () => {
+      setViewportSize({
+        width: window.innerWidth,
+        height: window.innerHeight
+      });
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const handleSelectDevice = (device) => {
+    setSimulatedDevice(device);
+    const config = DEVICE_CONFIGS[device];
+    if (config?.defaultOrientation) {
+      setOrientation(config.defaultOrientation);
+    }
+  };
+
+  const handleCycleScale = () => {
+    setScaleMode((prev) => {
+      if (prev === 'fit') return 1;
+      if (prev === 1) return 0.85;
+      if (prev === 0.85) return 0.75;
+      return 'fit';
+    });
+  };
+
+  const handleToggleSimulator = () => {
+    setIsBarMinimized(false);
+    if (simulatedDevice === 'responsive') {
+      handleSelectDevice('galaxy_tab_s3');
+    } else {
+      handleSelectDevice('responsive');
+    }
+  };
+
+  const isSimulated = isLocalEnvironment && !isInsideSimulator && simulatedDevice !== 'responsive';
+  const devConfig = DEVICE_CONFIGS[simulatedDevice] || DEVICE_CONFIGS.responsive;
+
+  let frameWidth = 800;
+  let frameHeight = 1000;
+  if (isSimulated && devConfig.width && devConfig.height) {
+    frameWidth = orientation === 'portrait' ? devConfig.width : devConfig.height;
+    frameHeight = orientation === 'portrait' ? devConfig.height : devConfig.width;
+  }
+
+  // Dimensiones totales del chasis físico (incluyendo biseles, marcos, botones y barra de estado)
+  const chassisDims = useMemo(() => {
+    if (!devConfig.width || !devConfig.height) return { width: 800, height: 1000 };
+    if (simulatedDevice === 'galaxy_tab_s3') {
+      if (orientation === 'landscape') {
+        return { width: frameWidth + 130, height: frameHeight + 42 };
+      } else {
+        return { width: frameWidth + 42, height: frameHeight + 130 };
+      }
+    } else {
+      return {
+        width: frameWidth + 32,
+        height: frameHeight + 58
+      };
+    }
+  }, [simulatedDevice, orientation, frameWidth, frameHeight, devConfig]);
+
+  // Factor de escala exacto para que el dispositivo se vea 100% completo en la pantalla del PC
+  const fitScale = useMemo(() => {
+    if (!isSimulated) return 1;
+    const barHeight = isBarMinimized ? 0 : 54;
+    const availableHeight = Math.max(200, viewportSize.height - barHeight - 36);
+    const availableWidth = Math.max(200, viewportSize.width - 32);
+
+    const scaleY = availableHeight / chassisDims.height;
+    const scaleX = availableWidth / chassisDims.width;
+    const computed = Math.min(scaleY, scaleX, 1.0);
+    return Math.floor(computed * 100) / 100;
+  }, [isSimulated, isBarMinimized, viewportSize, chassisDims]);
+
+  const effectiveScale = scaleMode === 'fit' ? fitScale : scaleMode;
+
+
+  const getIframeSrc = () => {
+    const currentSearch = window.location.search;
+    let newSearch = '';
+    if (currentSearch) {
+      const params = new URLSearchParams(currentSearch);
+      params.set('simulator_view', '1');
+      newSearch = `?${params.toString()}`;
+    } else {
+      newSearch = '?simulator_view=1';
+    }
+    return `${window.location.pathname}${newSearch}${window.location.hash}`;
+  };
 
   const handleOpenP2P = (customRoomId = null, mode = 'join') => {
     const validRoom = typeof customRoomId === 'string' ? customRoomId : null;
@@ -146,6 +268,257 @@ export const App = () => {
     };
   }, [applyUrlState]);
 
+  // Sincronización bidireccional entre la ventana anfitriona y el iFrame del simulador
+  useEffect(() => {
+    if (isInsideSimulator) {
+      // Activar modo sin scrollbars toscas de escritorio en el iframe simulado
+      document.documentElement.classList.add('in-simulator');
+      // ========================================================
+      // EMULADOR TÁCTIL (DRAG-TO-SCROLL) DE ALTA FIDELIDAD
+      // Permite arrastrar verticalmente con clic sostenido como un dedo en móvil
+      // ========================================================
+      let isDragging = false;
+      let hasMoved = false;
+      let startX = 0;
+      let startY = 0;
+      let lastX = 0;
+      let lastY = 0;
+      let lastTime = 0;
+      let velocityY = 0;
+      let velocityX = 0;
+      let scrollTarget = null;
+      let momentumRaf = null;
+
+      const stopMomentum = () => {
+        if (momentumRaf) {
+          cancelAnimationFrame(momentumRaf);
+          momentumRaf = null;
+        }
+      };
+
+      const findScrollableParent = (el) => {
+        let curr = el;
+        while (curr && curr !== document.body && curr !== document.documentElement) {
+          try {
+            const style = window.getComputedStyle(curr);
+            const oy = style.overflowY;
+            const ox = style.overflowX;
+            const canScrollY = (oy === 'auto' || oy === 'scroll') && curr.scrollHeight > curr.clientHeight;
+            const canScrollX = (ox === 'auto' || ox === 'scroll') && curr.scrollWidth > curr.clientWidth;
+            if (canScrollY || canScrollX) {
+              return curr;
+            }
+          } catch (err) {}
+          curr = curr.parentElement;
+        }
+        return window;
+      };
+
+      // Prevenir el arrastre nativo de imágenes y enlaces HTML5 (excepto en el tablero de ajedrez)
+      const handleNativeDragStart = (e) => {
+        const target = e.target;
+        if (target && target.closest) {
+          const isChess = target.closest(
+            '.chessboard-wrapper, .chessboard-container, .board-grid, .board-square, [data-square], .chess-piece'
+          );
+          if (isChess) return;
+        }
+        e.preventDefault();
+      };
+
+      const handlePointerDown = (e) => {
+        if (e.button !== 0 && e.pointerType === 'mouse') return;
+        stopMomentum();
+
+        const target = e.target;
+        if (target && target.closest) {
+          // Excluir piezas, casillas de ajedrez y controles editables
+          const isChess = target.closest(
+            '.chessboard-wrapper, .chessboard-container, .board-grid, .board-square, [data-square], .chess-piece, .flying-piece-container, svg.board-arrow'
+          );
+          const isInput = target.closest('input, textarea, select, [contenteditable="true"]');
+          if (isChess || isInput) {
+            return;
+          }
+        }
+
+        isDragging = true;
+        hasMoved = false;
+        startX = e.clientX;
+        startY = e.clientY;
+        lastX = e.clientX;
+        lastY = e.clientY;
+        lastTime = performance.now();
+        velocityY = 0;
+        velocityX = 0;
+        scrollTarget = findScrollableParent(target);
+
+        try {
+          if (target && typeof target.setPointerCapture === 'function') {
+            target.setPointerCapture(e.pointerId);
+          }
+        } catch (err) {}
+      };
+
+      const handlePointerMove = (e) => {
+        if (!isDragging) return;
+
+        const deltaX = e.clientX - lastX;
+        const deltaY = e.clientY - lastY;
+        const totalDist = Math.hypot(e.clientX - startX, e.clientY - startY);
+
+        if (!hasMoved && totalDist > 5) {
+          hasMoved = true;
+          document.documentElement.classList.add('touch-dragging');
+        }
+
+        if (hasMoved) {
+          const now = performance.now();
+          const dt = now - lastTime;
+          if (dt > 0) {
+            const vy = deltaY / dt;
+            const vx = deltaX / dt;
+            velocityY = 0.7 * vy + 0.3 * velocityY;
+            velocityX = 0.7 * vx + 0.3 * velocityX;
+          }
+          lastTime = now;
+          lastX = e.clientX;
+          lastY = e.clientY;
+
+          if (scrollTarget === window) {
+            window.scrollBy({ top: -deltaY, left: -deltaX, behavior: 'instant' });
+          } else if (scrollTarget) {
+            scrollTarget.scrollTop -= deltaY;
+            scrollTarget.scrollLeft -= deltaX;
+          }
+        }
+      };
+
+      const handlePointerUp = (e) => {
+        if (!isDragging) return;
+        isDragging = false;
+        document.documentElement.classList.remove('touch-dragging');
+
+        try {
+          if (e.target && typeof e.target.releasePointerCapture === 'function' && e.target.hasPointerCapture?.(e.pointerId)) {
+            e.target.releasePointerCapture(e.pointerId);
+          }
+        } catch (err) {}
+
+        if (hasMoved) {
+          // Suprimir el click resultante tras haber arrastrado
+          const suppressClick = (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            ev.stopImmediatePropagation();
+          };
+          window.addEventListener('click', suppressClick, { capture: true, once: true });
+          setTimeout(() => {
+            window.removeEventListener('click', suppressClick, { capture: true });
+          }, 150);
+
+          // Desaceleración cinética (Momentum)
+          const initVy = velocityY * 16;
+          const initVx = velocityX * 16;
+          if (Math.hypot(initVx, initVy) > 1.5) {
+            let curVy = initVy;
+            let curVx = initVx;
+            const friction = 0.93;
+            const target = scrollTarget;
+
+            const momentumStep = () => {
+              curVy *= friction;
+              curVx *= friction;
+              if (Math.hypot(curVx, curVy) < 0.25) {
+                stopMomentum();
+                return;
+              }
+
+              if (target === window) {
+                window.scrollBy({ top: -curVy, left: -curVx, behavior: 'instant' });
+              } else if (target) {
+                target.scrollTop -= curVy;
+                target.scrollLeft -= curVx;
+              }
+              momentumRaf = requestAnimationFrame(momentumStep);
+            };
+            momentumRaf = requestAnimationFrame(momentumStep);
+          }
+        }
+      };
+
+      window.addEventListener('dragstart', handleNativeDragStart);
+      window.addEventListener('pointerdown', handlePointerDown, { passive: true });
+      window.addEventListener('pointermove', handlePointerMove, { passive: true });
+      window.addEventListener('pointerup', handlePointerUp, { passive: false });
+      window.addEventListener('pointercancel', handlePointerUp, { passive: false });
+      window.addEventListener('blur', stopMomentum);
+
+      // Dentro del iframe: notificar al padre cuando cambie la URL o hash
+      const notifyParent = () => {
+        try {
+          const searchParams = new URLSearchParams(window.location.search);
+          searchParams.delete('simulator_view');
+          const cleanSearch = searchParams.toString() ? `?${searchParams.toString()}` : '';
+          window.parent.postMessage({ 
+            type: 'JUNVILL_URL_SYNC', 
+            search: cleanSearch, 
+            hash: window.location.hash 
+          }, '*');
+        } catch (e) {}
+      };
+
+      const receiveFromParent = (e) => {
+        if (e.data && e.data.type === 'SET_ROUTE') {
+          if (e.data.search !== undefined || e.data.hash !== undefined) {
+            const currentSearch = new URLSearchParams(e.data.search || '');
+            currentSearch.set('simulator_view', '1');
+            const newUrl = `${window.location.pathname}?${currentSearch.toString()}${e.data.hash || ''}`;
+            window.history.replaceState(null, '', newUrl);
+            applyUrlState();
+          }
+        }
+      };
+
+      window.addEventListener('popstate', notifyParent);
+      window.addEventListener('hashchange', notifyParent);
+      window.addEventListener('message', receiveFromParent);
+      notifyParent();
+
+      return () => {
+        stopMomentum();
+        window.removeEventListener('dragstart', handleNativeDragStart);
+        window.removeEventListener('pointerdown', handlePointerDown);
+        window.removeEventListener('pointermove', handlePointerMove);
+        window.removeEventListener('pointerup', handlePointerUp);
+        window.removeEventListener('pointercancel', handlePointerUp);
+        window.removeEventListener('blur', stopMomentum);
+        document.documentElement.classList.remove('touch-dragging');
+        document.documentElement.classList.remove('in-simulator');
+        document.body.classList.remove('in-simulator');
+        window.removeEventListener('popstate', notifyParent);
+        window.removeEventListener('hashchange', notifyParent);
+        window.removeEventListener('message', receiveFromParent);
+      };
+
+    } else {
+      // En la ventana principal: escuchar los cambios del iframe y reflejarlos en la URL
+      const receiveFromChild = (e) => {
+        if (e.data && e.data.type === 'JUNVILL_URL_SYNC') {
+          const newSearch = e.data.search || '';
+          const newHash = e.data.hash || '';
+          const targetUrl = `${window.location.pathname}${newSearch}${newHash}`;
+          if (`${window.location.search}${window.location.hash}` !== `${newSearch}${newHash}`) {
+            window.history.replaceState(null, '', targetUrl);
+          }
+        }
+      };
+
+      window.addEventListener('message', receiveFromChild);
+      return () => window.removeEventListener('message', receiveFromChild);
+    }
+  }, [isInsideSimulator, applyUrlState]);
+
   // Actualizar URL dinámicamente cuando el usuario interactúa
   useEffect(() => {
     let currentModal = null;
@@ -207,8 +580,176 @@ export const App = () => {
     setIsBugReportOpen(true);
   };
 
+  // RENDERIZADO 1: MODO SIMULADOR CON CHASIS FÍSICO REALISTA
+  if (isSimulated) {
+    return (
+      <div className="device-sim-root">
+        {!isBarMinimized ? (
+          <DeviceSimulatorBar
+            currentDevice={simulatedDevice}
+            onSelectDevice={handleSelectDevice}
+            orientation={orientation}
+            onToggleOrientation={() => setOrientation((o) => (o === 'portrait' ? 'landscape' : 'portrait'))}
+            scale={scaleMode}
+            fitScale={fitScale}
+            onCycleScale={handleCycleScale}
+            onMinimize={() => setIsBarMinimized(true)}
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setIsBarMinimized(false)}
+            className="device-sim-floating-pill"
+            title="Restaurar barra del simulador"
+          >
+            <Sparkles size={14} color="#facc15" />
+            <span>Simulador</span>
+          </button>
+        )}
+
+        {/* Área de visualización con chasis centrado y escalador */}
+        <div 
+          className="device-sim-stage"
+          style={{
+            overflow: effectiveScale <= fitScale ? 'hidden' : 'auto',
+            padding: effectiveScale <= fitScale ? '8px 12px' : '24px 16px'
+          }}
+        >
+          <div 
+            className="device-sim-viewport-scaler"
+            style={{
+              width: `${Math.round(chassisDims.width * effectiveScale)}px`,
+              height: `${Math.round(chassisDims.height * effectiveScale)}px`
+            }}
+          >
+            <div 
+              className={`device-chassis ${
+                simulatedDevice === 'galaxy_tab_s3'
+                  ? `chassis-tabs3 ${orientation === 'landscape' ? 'chassis-tabs3-landscape' : 'chassis-tabs3-portrait'}`
+                  : 'chassis-phone'
+              }`}
+              style={{
+                transform: `scale(${effectiveScale})`,
+                transformOrigin: 'center center',
+                flexShrink: 0
+              }}
+            >
+              {/* Bisel de Hardware: Samsung Galaxy Tab S3 (Cámara frontal, sensor y logo) */}
+              {simulatedDevice === 'galaxy_tab_s3' && (
+                <div className={`tabs3-bezel-header orientation-${orientation}`}>
+                  <div className="tabs3-camera" title="Cámara Frontal 5 MP">
+                    <div className="tabs3-camera-lens" />
+                  </div>
+                  <div className="tabs3-light-sensor" title="Sensor de Luz" />
+                  <span className="tabs3-logo">SAMSUNG</span>
+                </div>
+              )}
+
+              {/* Bisel de Hardware: Smartphone moderno (Barra de estado, Isla/Cámara, 5G y Batería) */}
+              {simulatedDevice !== 'galaxy_tab_s3' && (
+                <div className="phone-status-bar">
+                  <span style={{ fontWeight: 800, color: '#e2e8f0' }}>9:41</span>
+                  <div className="phone-island">
+                    <div className="phone-camera-hole" />
+                    <div className="phone-sensor-hole" />
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px' }}>
+                    <span style={{ fontWeight: 800, color: '#e2e8f0' }}>5G</span>
+                    <div className="phone-battery-icon">
+                      <div className="phone-battery-fill" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* iFrame con resolución física aislada al píxel */}
+              <div 
+                style={{ width: `${frameWidth}px`, height: `${frameHeight}px` }}
+                className="device-screen-frame"
+              >
+                <iframe
+                  ref={iframeRef}
+                  src={getIframeSrc()}
+                  title="Dispositivo Simulado - Ajedrez Junvill"
+                  className="device-iframe"
+                />
+              </div>
+
+              {/* Bisel Inferior: Botones físicos y capacitivos para Tablet Kiosco Samsung */}
+              {simulatedDevice === 'galaxy_tab_s3' && (
+                <div className={`tabs3-bezel-footer orientation-${orientation}`}>
+                  <span 
+                    className="tabs3-cap-btn" 
+                    title="Multitarea"
+                    onClick={() => {
+                      if (iframeRef.current) {
+                        try {
+                          iframeRef.current.contentWindow?.postMessage({ type: 'SIM_MULTITASK' }, '*');
+                        } catch (e) {}
+                      }
+                    }}
+                  >
+                    ≡
+                  </span>
+                  {/* Botón Home físico con sensor de huellas */}
+                  <div 
+                    className="tabs3-home-btn"
+                    title="Botón Home Físico (Volver al inicio)"
+                    onClick={() => {
+                      if (iframeRef.current) {
+                        iframeRef.current.src = `${window.location.pathname}?simulator_view=1`;
+                      }
+                    }}
+                  />
+                  <span 
+                    className="tabs3-cap-btn" 
+                    title="Atrás"
+                    onClick={() => {
+                      try {
+                        iframeRef.current?.contentWindow?.history.back();
+                      } catch (e) {}
+                    }}
+                  >
+                    ↩
+                  </span>
+                </div>
+              )}
+
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // RENDERIZADO 2: VISTA REGULAR (En escritorio normal o en el interior del iframe)
   return (
     <ErrorBoundary componentName="Ajedrez Junvill">
+      {/* Barra superior de simulación visible únicamente en PC local (nunca en Vercel ni producción remota) */}
+      {isLocalEnvironment && !isInsideSimulator && !isBarMinimized && (
+        <DeviceSimulatorBar
+          currentDevice={simulatedDevice}
+          onSelectDevice={handleSelectDevice}
+          orientation={orientation}
+          onToggleOrientation={() => setOrientation((o) => (o === 'portrait' ? 'landscape' : 'portrait'))}
+          scale={scaleMode}
+          fitScale={fitScale}
+          onCycleScale={handleCycleScale}
+          onMinimize={() => setIsBarMinimized(true)}
+        />
+      )}
+      {isLocalEnvironment && !isInsideSimulator && isBarMinimized && (
+        <button
+          type="button"
+          onClick={() => setIsBarMinimized(false)}
+          className="device-sim-floating-pill"
+          title="Restaurar barra del simulador"
+        >
+          <Sparkles size={14} color="#facc15" />
+          <span>Simulador</span>
+        </button>
+      )}
+
       <div className="app-layout">
       {/* Cabecera Principal */}
       <Header
@@ -225,6 +766,9 @@ export const App = () => {
         onOpenManual={() => setIsManualOpen(true)}
         onOpenP2P={(customRoomId, mode) => handleOpenP2P(customRoomId, mode)}
         onOpenCuby3x3={() => setIsCuby3x3Open(true)}
+        isLocalEnvironment={isLocalEnvironment && !isInsideSimulator}
+        simulatedDevice={simulatedDevice}
+        onToggleSimulator={handleToggleSimulator}
       />
 
       {/* 0. BANNER FLOTANTE GLOBAL DE RETO ENTRANTE */}

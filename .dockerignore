@@ -1,0 +1,15 @@
+node_modules
+dist
+dist-ssr
+.git
+.github
+_quarantine_legacy
+scratch
+Temp
+tests
+*.log
+*.zip
+*.docx
+database/*_backup.json
+.env*
+!.env.example

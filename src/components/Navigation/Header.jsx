@@ -22,7 +22,10 @@ export const Header = ({
   onOpenManual,
   onOpenP2P,
   onOpenFamilyChat,
-  onOpenCuby3x3
+  onOpenCuby3x3,
+  isLocalEnvironment = false,
+  onToggleSimulator,
+  simulatedDevice = 'responsive'
 }) => {
   const { currentUser, activeGroup, users, forceCloudSync, unreadMessagesCount } = useUser();
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -278,6 +281,32 @@ export const Header = ({
               </div>
             </div>
 
+            {/* Botón de acceso directo al Simulador (solo PC local) */}
+            {isLocalEnvironment && (
+              <button
+                type="button"
+                onClick={onToggleSimulator}
+                title="Abrir Simulador de Dispositivos (Tablets y Smartphones)"
+                className="btn-secondary header-tools-toggle-btn"
+                style={{
+                  position: 'relative',
+                  padding: '5px 11px',
+                  fontSize: '0.80rem',
+                  fontWeight: '800',
+                  gap: '5px',
+                  border: simulatedDevice !== 'responsive' ? '1.5px solid #38bdf8' : '1px solid var(--bg-parchment-border)',
+                  background: simulatedDevice !== 'responsive' ? 'rgba(56, 189, 248, 0.2)' : 'var(--bg-parchment-card)',
+                  color: simulatedDevice !== 'responsive' ? '#38bdf8' : 'var(--text-parchment-main)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  cursor: 'pointer'
+                }}
+              >
+                <Smartphone size={14} color={simulatedDevice !== 'responsive' ? '#38bdf8' : '#facc15'} />
+                <span>Simulador</span>
+              </button>
+            )}
+
             {/* CONTENEDOR RELATIVO PARA EL MENÚ POPOVER (con Chat y Herramientas) */}
             <div style={{ position: 'relative' }} ref={toolsMenuRef}>
               <button
@@ -336,6 +365,22 @@ export const Header = ({
                   gap: '4px',
                   animation: 'fadeIn 0.15s ease-out'
                 }}>
+                {/* 0. Acceso al Simulador de Dispositivos (solo en PC local) */}
+                {isLocalEnvironment && (
+                  <button
+                    type="button"
+                    className="header-dropdown-item"
+                    onClick={() => { setIsToolsMenuOpen(false); if (onToggleSimulator) onToggleSimulator(); }}
+                    style={{ background: 'rgba(56, 189, 248, 0.12)', border: '1px solid rgba(56, 189, 248, 0.35)', marginBottom: '4px' }}
+                  >
+                    <Smartphone size={16} color="#38bdf8" />
+                    <div className="item-text">
+                      <span className="item-title" style={{ color: '#38bdf8' }}>📱 Simulador de Dispositivos</span>
+                      <span className="item-sub">Probar en Tab S3, Pixel 10 Pro, Z Fold</span>
+                    </div>
+                  </button>
+                )}
+
                 {/* 1. Chat Familiar en Tiempo Real */}
                 <button
                   type="button"

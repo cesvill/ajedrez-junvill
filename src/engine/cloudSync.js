@@ -1,3 +1,4 @@
+import { hashPassword, SECURE_DEFAULT_PASSWORD_HASH } from './cryptoAuth';
 
 export function normalizeUserKey(nameOrId = '') {
   const str = String(nameOrId).toLowerCase().trim()
@@ -110,7 +111,7 @@ export function deduplicateAndMergeUsers(...userLists) {
     let maxStars = 0;
     let maxGems = 0;
     let title = latestUser.title || (canonicalRole === 'parent' ? 'Tutor Familiar' : 'Campeón Junior');
-    let password = latestUser.password || 'JunV1ll123';
+    let passwordHash = latestUser.passwordHash || (latestUser.password ? hashPassword(latestUser.password) : SECURE_DEFAULT_PASSWORD_HASH);
     let theme = latestUser.theme || 'modern_dark';
     let boardTheme = latestUser.boardTheme || 'board_emerald';
     let pieceTheme = latestUser.pieceTheme || 'staunton';
@@ -134,7 +135,8 @@ export function deduplicateAndMergeUsers(...userLists) {
         }
       }
       if (u.title && u.title !== 'Novato Promesa') title = u.title;
-      if (u.password) password = u.password;
+      if (u.passwordHash) passwordHash = u.passwordHash;
+      else if (u.password) passwordHash = hashPassword(u.password);
       if (u.theme) theme = u.theme;
       if (u.boardTheme) boardTheme = u.boardTheme;
       if (u.pieceTheme) pieceTheme = u.pieceTheme;
@@ -187,7 +189,7 @@ export function deduplicateAndMergeUsers(...userLists) {
       id: canonicalId,
       name: canonicalName,
       lastActiveTimestamp: maxLastActive,
-      password,
+      passwordHash,
       role: canonicalRole,
       avatar: 'custom_dynamic',
       avatarConfig: latestAvatarConfig || {

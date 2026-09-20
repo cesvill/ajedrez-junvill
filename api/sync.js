@@ -22,56 +22,16 @@ function getFenMoveCount(fen) {
   return turn === 'b' ? (fullMove - 1) * 2 + 1 : (fullMove - 1) * 2;
 }
 
-const DURABLE_STORAGE_OBJECT_ID = 'ff808181a067127101a09bdcf4d70b8f';
-const RESTFUL_URL = `https://api.restful-api.dev/objects/${DURABLE_STORAGE_OBJECT_ID}`;
-
+// # OJO HUMANO: Zero-DLP - Almacenamiento seguro en memoria del servidor local
+// Se erradica la dependencia de servicios mock externos públicos (CWE-359 / CWE-312)
 async function fetchFromDurableCloud(groupId) {
   const gid = groupId || 'group_junvill';
-  
-  // 1. Intentar consultar el contenedor duradero central
-  try {
-    const res = await fetch(RESTFUL_URL, {
-      headers: { 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(3500)
-    });
-      if (res.ok) {
-        const json = await res.json();
-        if (json && json.data && json.data.users && Array.isArray(json.data.users)) {
-          const existing = inMemoryCloudStore[gid] || {};
-          inMemoryCloudStore[gid] = {
-            ...json.data,
-            ...existing,
-            users: mergeUsers(json.data.users, existing.users || []),
-            bugReports: (existing.bugReports && existing.bugReports.length > 0) ? existing.bugReports : (json.data.bugReports || []),
-            familyMessages: (existing.familyMessages && existing.familyMessages.length > 0) ? existing.familyMessages : (json.data.familyMessages || [])
-          };
-          return inMemoryCloudStore[gid];
-        }
-      }
-    } catch (e) {
-      // Intentar respaldo en memoria
-    }
-
-    return inMemoryCloudStore[gid] || null;
+  return inMemoryCloudStore[gid] || null;
 }
 
 async function saveToDurableCloud(groupId, data) {
   const gid = groupId || 'group_junvill';
   inMemoryCloudStore[gid] = data;
-
-  try {
-    await fetch(RESTFUL_URL, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: `junvill_${gid}_v5`,
-        data: data
-      }),
-      signal: AbortSignal.timeout(4000)
-    });
-  } catch (e) {
-    // Silencioso
-  }
 }
 
 function mergeUsers(existingUsers = [], newUsers = []) {

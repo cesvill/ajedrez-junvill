@@ -59,7 +59,7 @@ export class P2PEngine {
   static cleanRoomId(rawId) {
     if (!rawId || typeof rawId !== 'string') return '';
     return rawId
-      .replace(/[-\s]/g, '')
+      .replace(/[^A-Za-z0-9]/g, '')
       .toUpperCase()
       .trim();
   }

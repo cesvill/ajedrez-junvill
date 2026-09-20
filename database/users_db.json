@@ -2,7 +2,6 @@
   {
     "id": "group_junvill",
     "name": "Familia Junvill",
-    "password": "JunV1ll123",
     "adminName": "César Villamil",
     "emblem": "👑",
     "themeColor": "#ca8a04",
@@ -99,7 +98,7 @@
           "coachAvatar": "coach_aurelio",
           "soundEnabled": true
         },
-        "password": "JunV1ll123"
+        "passwordHash": "ce9a0c1e93848d0be8367291f238abd50b9951bd02a90ada1336fff9480b4611"
       },
       {
         "id": "user_1786849943311",
@@ -185,7 +184,7 @@
           "coachAvatar": "coach_aurelio",
           "soundEnabled": true
         },
-        "password": "JunV1ll123"
+        "passwordHash": "ce9a0c1e93848d0be8367291f238abd50b9951bd02a90ada1336fff9480b4611"
       },
       {
         "id": "user_1786887520687",
@@ -270,7 +269,7 @@
           "coachAvatar": "coach_aurelio",
           "soundEnabled": true
         },
-        "password": "JunV1ll123"
+        "passwordHash": "ce9a0c1e93848d0be8367291f238abd50b9951bd02a90ada1336fff9480b4611"
       },
       {
         "id": "user_1786887999811",
@@ -387,9 +386,10 @@
           "coachAvatar": "coach_aurelio",
           "soundEnabled": true
         },
-        "password": "JunV1ll123"
+        "passwordHash": "ce9a0c1e93848d0be8367291f238abd50b9951bd02a90ada1336fff9480b4611"
       }
     ],
-    "adminEmail": "junvill13@gmail.com"
+    "adminEmail": "junvill13@gmail.com",
+    "passwordHash": "ce9a0c1e93848d0be8367291f238abd50b9951bd02a90ada1336fff9480b4611"
   }
 ]

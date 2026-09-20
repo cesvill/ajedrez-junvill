@@ -6,6 +6,7 @@
    ========================================================= */
 
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap');
+@import './deviceSimulator.css';
 
 :root {
   /* Default: Moderno Dark (Elegante para adolescentes y adultos) */
@@ -2351,3 +2352,65 @@ body {
     border-bottom: 1.5px solid #1e293b !important;
   }
 }
+
+/* =========================================================
+   ESTILOS DE VISTA DENTRO DEL SIMULADOR DE HARDWARE
+   Oculta la barra de scroll tosca de Windows para reflejar
+   el scroll táctil fluido y nativo de Android / iOS / Pixel
+   ========================================================= */
+html.in-simulator,
+body.in-simulator {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+html.in-simulator::-webkit-scrollbar,
+body.in-simulator::-webkit-scrollbar,
+html.in-simulator *::-webkit-scrollbar,
+body.in-simulator *::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+html.in-simulator *,
+body.in-simulator * {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+/* Emulador táctil de pantalla: cursor de mano y arrastre fluido */
+html.in-simulator,
+html.in-simulator body {
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+html.in-simulator button,
+html.in-simulator a,
+html.in-simulator [role="button"],
+html.in-simulator .board-square,
+html.in-simulator .chess-piece {
+  cursor: pointer;
+}
+
+html.in-simulator input,
+html.in-simulator textarea,
+html.in-simulator select {
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+html.touch-dragging,
+html.touch-dragging *,
+html.touch-dragging body {
+  cursor: grabbing !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+

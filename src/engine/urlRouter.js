@@ -52,6 +52,12 @@ export const syncUrl = ({ view, lessonId, botId, roomId, modal, tab }, replace =
       params.set('tab', tab);
     }
 
+    // Preservar simulator_view=1 si estamos dentro del simulador
+    const currentParams = new URLSearchParams(window.location.search);
+    if (currentParams.get('simulator_view') === '1') {
+      params.set('simulator_view', '1');
+    }
+
     const queryString = params.toString();
     const newRelativePath = queryString ? `${window.location.pathname}?${queryString}` : window.location.pathname;
 
@@ -60,6 +66,22 @@ export const syncUrl = ({ view, lessonId, botId, roomId, modal, tab }, replace =
         window.history.replaceState({ view, lessonId, botId, roomId, modal, tab }, '', newRelativePath);
       } else {
         window.history.pushState({ view, lessonId, botId, roomId, modal, tab }, '', newRelativePath);
+      }
+
+      // Si estamos dentro del iframe del simulador, sincronizar con la ventana padre
+      if (typeof window !== 'undefined' && window.self !== window.top) {
+        try {
+          const syncParams = new URLSearchParams(queryString);
+          syncParams.delete('simulator_view');
+          const cleanQuery = syncParams.toString() ? `?${syncParams.toString()}` : '';
+          window.parent.postMessage({
+            type: 'JUNVILL_URL_SYNC',
+            search: cleanQuery,
+            hash: window.location.hash
+          }, '*');
+        } catch (postErr) {
+          // Ignorar errores de cross-origin si aplicara
+        }
       }
     }
   } catch (e) {
