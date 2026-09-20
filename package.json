@@ -10,6 +10,7 @@
     "test": "node --test tests/*.mjs"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.116.0",
     "canvas-confetti": "^1.9.4",
     "chess.js": "^1.0.0-beta.6",
     "lucide-react": "^0.475.0",

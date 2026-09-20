@@ -18,6 +18,7 @@ import { AvatarIcon } from '../assets/avatars';
 import { useUser } from '../context/UserContext';
 import { cloudSync, normalizeUserKey } from '../engine/cloudSync';
 import { P2PEngine } from '../engine/p2pEngine';
+import { roomEngine, JunvillRoomEngine } from '../services/room/JunvillRoomEngine';
 import { audioManager } from '../engine/audio';
 import confetti from 'canvas-confetti';
 import {
@@ -204,7 +205,17 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
           ...payloadWithTs
         });
       }
-      // Sincronizar jugada en la Nube Central (/api/sync)
+
+      // Sincronizar jugada en Supabase Realtime WebSockets (<50ms)
+      roomEngine.sendMove({
+        ...payloadWithTs,
+        from: movePayload.moveArgs?.[0],
+        to: movePayload.moveArgs?.[1],
+        san: String(movePayload.moveArgs || ''),
+        nextTurnSeatIndex: null
+      }).catch(() => {});
+
+      // Sincronizar jugada en la Nube Central (/api/sync) como respaldo secundario
       if (partyRoom) {
         const updatedRoom = {
           ...partyRoom,
@@ -402,7 +413,14 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
     });
     setBotPlayers(newBotsConfig);
 
-    // Guardar de inmediato en la Nube Central (/api/sync) para acceso desde cualquier equipo o celular
+    // Conectar y crear sala sobre WebSockets en Supabase Realtime
+    try {
+      await roomEngine.createRoomFromPartyData(newRoomData, currentUser);
+    } catch (e) {
+      console.warn('Error creating Supabase room:', e);
+    }
+
+    // Guardar en Nube Central (/api/sync) como respaldo pasivo
     try {
       await cloudSync.pushPartyRoom(newRoomData, activeGroup?.id);
     } catch (e) {}
@@ -436,7 +454,14 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
       seats: []
     });
 
-    // 1. Consultar Nube Central (/api/sync)
+    // 1. Conectar mediante WebSockets de Supabase Realtime
+    try {
+      await roomEngine.joinRoom(cleanRoomId, currentUser);
+    } catch (e) {
+      console.warn('Error joining Supabase room:', e);
+    }
+
+    // 2. Consultar Nube Central (/api/sync) o almacenamiento local como respaldo
     let targetRoom = await cloudSync.fetchPartyRoom(cleanRoomId, activeGroup?.id);
     if (!targetRoom) {
       try {
@@ -446,65 +471,19 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
     }
 
     if (targetRoom && Array.isArray(targetRoom.seats) && targetRoom.seats.length > 0) {
-      // Determinar asiento: si el usuario ya estaba sentado o tomar el primer asiento humano libre
-      const myExistingIdx = targetRoom.seats.findIndex(s => s.user && s.user.id === currentUser?.id);
-      let assignedIdx = myExistingIdx;
-      let roomToActivate = targetRoom;
-
-      if (myExistingIdx === -1) {
-        const freeSeatIdx = targetRoom.seats.findIndex(s => s.type === 'human' && !s.user);
-        if (freeSeatIdx !== -1) {
-          assignedIdx = freeSeatIdx;
-          const updatedSeats = [...targetRoom.seats];
-          updatedSeats[freeSeatIdx] = {
-            ...updatedSeats[freeSeatIdx],
-            user: {
-              id: currentUser?.id || `guest_${Date.now()}`,
-              name: currentUser?.name || 'Jugador Invitado',
-              avatar: currentUser?.avatar || 'custom_dynamic',
-              avatarConfig: currentUser?.avatarConfig || null,
-              elo: currentUser?.elo || 600,
-              role: currentUser?.role || 'student'
-            },
-            ready: true
-          };
-          roomToActivate = {
-            ...targetRoom,
-            seats: updatedSeats,
-            updatedAt: Date.now()
-          };
-          // Notificar de inmediato a la nube
-          await cloudSync.pushPartyRoom(roomToActivate, activeGroup?.id);
-        }
-      }
-
-      setPartyRoom(roomToActivate);
-      setMySeatIndex(assignedIdx !== -1 ? assignedIdx : 0);
-      setSelectedVariant(roomToActivate.variantId);
-      initGameForVariant(roomToActivate.variantId);
-
-      const botsConfig = {};
-      roomToActivate.seats.forEach(s => {
-        botsConfig[s.color] = s.type === 'bot';
-      });
-      setBotPlayers(botsConfig);
-      audioManager.playVictory();
-
-      if (partyBcRef.current) {
-        partyBcRef.current.postMessage({
-          type: 'PARTY_ROOM_ANNOUNCE',
-          roomData: roomToActivate
-        });
-      }
-      return;
+      roomEngine.handleIncomingState(targetRoom);
+      await roomEngine.claimFirstAvailableSeat(currentUser);
     }
-
-    // Si aún no se encuentra de inmediato, el polling continuo lo localizará en la nube
   };
 
   // Iniciar partida desde el Lobby (Host)
-  const handleStartPartyGame = () => {
+  const handleStartPartyGame = async () => {
     if (!partyRoom) return;
+
+    try {
+      await roomEngine.startGame();
+    } catch (e) {}
+
     const updated = {
       ...partyRoom,
       status: 'playing',
@@ -513,7 +492,7 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
     setPartyRoom(updated);
 
     const botsConfig = {};
-    updated.seats.forEach(s => {
+    (updated.seats || []).forEach(s => {
       botsConfig[s.color] = s.type === 'bot';
     });
     setBotPlayers(botsConfig);
@@ -521,7 +500,7 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
     audioManager.playVictory();
     confetti({ particleCount: 100, spread: 70, origin: { y: 0.5 } });
 
-    // Notificar a la Nube Central (/api/sync)
+    // Notificar a la Nube Central (/api/sync) como respaldo
     cloudSync.pushPartyRoom(updated, activeGroup?.id).catch(() => {});
 
     if (partyBcRef.current) {
@@ -534,8 +513,13 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
   };
 
   // Iniciar partida completando con robots de inmediato
-  const handleStartWithBotsNow = () => {
+  const handleStartWithBotsNow = async () => {
     if (!partyRoom) return;
+
+    try {
+      await roomEngine.startGame();
+    } catch (e) {}
+
     const availableBots = [
       { name: 'Cosmo-7', elo: 700, color: '#818cf8' },
       { name: 'Qwerty', elo: 400, color: '#38bdf8' },
@@ -543,7 +527,7 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
     ];
     let botCounter = 0;
 
-    const updatedSeats = partyRoom.seats.map(s => {
+    const updatedSeats = (partyRoom.seats || []).map(s => {
       if (s.type === 'human' && !s.user) {
         const b = availableBots[botCounter % availableBots.length];
         botCounter++;
@@ -580,7 +564,6 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
     audioManager.playVictory();
     confetti({ particleCount: 100, spread: 70, origin: { y: 0.5 } });
 
-    // Notificar a la Nube Central (/api/sync)
     cloudSync.pushPartyRoom(updatedRoom, activeGroup?.id).catch(() => {});
 
     if (partyBcRef.current) {
@@ -593,7 +576,11 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
   };
 
   // Salir de la sala
-  const handleLeavePartyRoom = () => {
+  const handleLeavePartyRoom = async () => {
+    try {
+      await roomEngine.leaveRoom();
+    } catch (e) {}
+
     if (partyRoom) {
       if (partyBcRef.current) {
         partyBcRef.current.postMessage({
@@ -737,8 +724,8 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
       } catch (err) {}
     };
 
-    // Sincronizar cada 1200ms en lobby y cada 850ms en partida
-    const intervalTime = partyRoom.status === 'playing' ? 850 : 1200;
+    // Heartbeat pasivo secundario (cada 15 segundos para no saturar Vercel)
+    const intervalTime = 15000;
     const intervalId = setInterval(syncRoomWithCloud, intervalTime);
     syncRoomWithCloud();
 
@@ -747,6 +734,77 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
       clearInterval(intervalId);
     };
   }, [partyRoom?.roomId, partyRoom?.status, activeGroup?.id, currentUser?.id, game, initGameForVariant]);
+
+  // Sincronización en tiempo real vía WebSockets de Supabase Realtime (<50ms, cero costo de cómputo en Vercel)
+  useEffect(() => {
+    if (currentUser) {
+      roomEngine.currentUser = currentUser;
+    }
+
+    const unsubState = roomEngine.onStateChange((state) => {
+      if (!state) return;
+
+      setPartyRoom((prev) => {
+        // Asignar mi asiento
+        const myIdx = roomEngine.getMySeatIndex();
+        if (myIdx !== -1) {
+          setMySeatIndex(myIdx);
+        } else if (!roomEngine.isHost && state.status === 'lobby' && Array.isArray(state.seats) && state.seats.length > 0) {
+          // Auto-reclamar primer asiento libre si somos invitados
+          roomEngine.claimFirstAvailableSeat(currentUser).catch(() => {});
+        }
+
+        // Si la sala está en juego, sincronizar variante y bots
+        if (state.status === 'playing') {
+          if (state.variantId && selectedVariant !== state.variantId) {
+            setSelectedVariant(state.variantId);
+            initGameForVariant(state.variantId);
+          }
+          const bConfig = {};
+          (state.seats || []).forEach(s => {
+            bConfig[s.color] = s.type === 'bot';
+          });
+          setBotPlayers(bConfig);
+
+          if (prev?.status === 'lobby') {
+            audioManager.playVictory();
+            confetti({ particleCount: 110, spread: 75, origin: { y: 0.5 } });
+          }
+        }
+
+        return state;
+      });
+    });
+
+    const unsubMove = roomEngine.onMove((moveData) => {
+      if (!moveData || moveData.senderId === currentUser?.id) return;
+      const moveTs = moveData.timestamp || 0;
+      if (moveTs <= lastProcessedMoveRef.current) return;
+      lastProcessedMoveRef.current = moveTs;
+
+      const [arg1, arg2, arg3, arg4] = moveData.moveArgs || [];
+      if (arg1 === 'pass') {
+        if (moveData.variantId === 'chaturaji') game?.passTurn();
+        else game?.nextTurn();
+      } else if (moveData.variantId === 'three_hex') {
+        game?.makeMove(arg1, arg2);
+      } else {
+        game?.makeMove(arg1, arg2, arg3, arg4);
+      }
+      audioManager.playMove();
+      setGameTick(t => t + 1);
+
+      if (game?.winner) {
+        audioManager.playVictory();
+        confetti({ particleCount: 130, spread: 80, origin: { y: 0.6 } });
+      }
+    });
+
+    return () => {
+      unsubState();
+      unsubMove();
+    };
+  }, [currentUser?.id, selectedVariant, game, initGameForVariant]);
 
   // Enviar reto familiar a un familiar
   const handleInviteFamilyMember = (targetUser, roomId) => {
@@ -934,6 +992,8 @@ export const MultiplayerPartyView = ({ onBackToMenu }) => {
           onStartWithBotsNow={handleStartWithBotsNow}
           onLeaveRoom={handleLeavePartyRoom}
           onInviteFamilyMember={handleInviteFamilyMember}
+          onClaimSeat={(idx) => roomEngine.claimSeat(idx, currentUser)}
+          onToggleSeatBot={(idx) => roomEngine.toggleSeatBot(idx)}
           familyMembers={users}
         />
       </div>

@@ -16,6 +16,8 @@ export const PartyRoomLobby = ({
   onStartWithBotsNow,
   onLeaveRoom,
   onInviteFamilyMember,
+  onClaimSeat,
+  onToggleSeatBot,
   familyMembers = []
 }) => {
   const [copiedCode, setCopiedCode] = useState(false);
@@ -417,30 +419,81 @@ export const PartyRoomLobby = ({
                   )}
                 </div>
 
-                {/* Acciones para Asiento Vacío (Invitar Familiar) */}
+                {/* Botón para que el invitado tome este asiento si aún no tiene uno */}
+                {isHumanWaiting && !isHost && mySeatIndex === -1 && onClaimSeat && (
+                  <button
+                    onClick={() => onClaimSeat(idx)}
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      backgroundColor: '#16a34a',
+                      border: 'none',
+                      borderRadius: '8px',
+                      color: '#ffffff',
+                      fontSize: '13px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      boxShadow: '0 4px 12px rgba(22, 163, 74, 0.3)'
+                    }}
+                  >
+                    <UserPlus size={15} />
+                    <span>Tomar este Asiento</span>
+                  </button>
+                )}
+
+                {/* Acciones para Asiento Vacío (Invitar Familiar / Bot) */}
                 {isHumanWaiting && isHost && (
-                  <div>
-                    <button
-                      onClick={() => setInvitingSeatIdx(invitingSeatIdx === idx ? null : idx)}
-                      style={{
-                        width: '100%',
-                        padding: '8px 12px',
-                        backgroundColor: 'rgba(56, 189, 248, 0.12)',
-                        border: '1px solid rgba(56, 189, 248, 0.3)',
-                        borderRadius: '8px',
-                        color: '#38bdf8',
-                        fontSize: '12px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px'
-                      }}
-                    >
-                      <UserPlus size={14} />
-                      <span>{invitingSeatIdx === idx ? 'Cerrar selector' : 'Invitar Familiar a 1 Clic'}</span>
-                    </button>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button
+                        onClick={() => setInvitingSeatIdx(invitingSeatIdx === idx ? null : idx)}
+                        style={{
+                          flex: 1,
+                          padding: '8px 12px',
+                          backgroundColor: 'rgba(56, 189, 248, 0.12)',
+                          border: '1px solid rgba(56, 189, 248, 0.3)',
+                          borderRadius: '8px',
+                          color: '#38bdf8',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        <UserPlus size={14} />
+                        <span>{invitingSeatIdx === idx ? 'Cerrar' : 'Invitar Familiar'}</span>
+                      </button>
+
+                      {onToggleSeatBot && (
+                        <button
+                          onClick={() => onToggleSeatBot(idx)}
+                          title="Convertir a Robot IA"
+                          style={{
+                            padding: '8px 12px',
+                            backgroundColor: '#1e293b',
+                            border: '1px solid #475569',
+                            borderRadius: '8px',
+                            color: '#facc15',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <Bot size={14} />
+                          <span>Bot</span>
+                        </button>
+                      )}
+                    </div>
 
                     {/* Selector de familiares desplegable */}
                     {invitingSeatIdx === idx && (
