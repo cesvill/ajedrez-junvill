@@ -11,9 +11,15 @@ export const FamilyGatekeeperModal = ({ isOpen, onClose, onOpenAvatarBuilder, on
     activeGroup, 
     activeGroupId, 
     isGroupUnlocked, 
+    unlockedGroupIds,
     unlockFamilyGroup, 
     recoverGroupPassword,
     leaveFamilyGroup, 
+    isDeviceTrusted,
+    trustDevice,
+    untrustDevice,
+    trustUser,
+    isUserTrusted,
     users, 
     currentUser, 
     setActiveUserId, 
@@ -52,6 +58,7 @@ export const FamilyGatekeeperModal = ({ isOpen, onClose, onOpenAvatarBuilder, on
   const [enteredGroupPassword, setEnteredGroupPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [unlockError, setUnlockError] = useState('');
+  const [rememberDevice, setRememberDevice] = useState(true);
 
   // Estado para Autenticación de Jugador
   const [targetPlayerToUnlock, setTargetPlayerToUnlock] = useState(null);
@@ -78,6 +85,10 @@ export const FamilyGatekeeperModal = ({ isOpen, onClose, onOpenAvatarBuilder, on
 
   // Manejar clic en tarjeta de grupo
   const handleSelectGroupCard = (group) => {
+    if ((unlockedGroupIds || []).includes(group.id)) {
+      setCurrentStep('select_player');
+      return;
+    }
     setTargetGroupToUnlock(group);
     setEnteredGroupPassword('');
     setUnlockError('');
@@ -90,8 +101,11 @@ export const FamilyGatekeeperModal = ({ isOpen, onClose, onOpenAvatarBuilder, on
     e.preventDefault();
     if (!targetGroupToUnlock) return;
 
-    const res = unlockFamilyGroup(targetGroupToUnlock.id, enteredGroupPassword);
+    const res = unlockFamilyGroup(targetGroupToUnlock.id, enteredGroupPassword, rememberDevice);
     if (res.success) {
+      if (rememberDevice) {
+        trustDevice();
+      }
       setTargetGroupToUnlock(null);
       setEnteredGroupPassword('');
       setUnlockError('');
@@ -124,8 +138,14 @@ export const FamilyGatekeeperModal = ({ isOpen, onClose, onOpenAvatarBuilder, on
     }
   };
 
-  // # OJO HUMANO: Selección de jugador requiere autenticación de contraseña (CWE-256 / CWE-306)
+  // # OJO HUMANO: Selección de jugador - Dispositivo de Confianza no pide contraseña (CWE-256 / CWE-306)
   const handlePickPlayer = (user) => {
+    if (isDeviceTrusted || isUserTrusted(user.id)) {
+      setActiveUserId(user.id);
+      localStorage.setItem('ajedrez_junvill_has_selected_profile', 'true');
+      onClose();
+      return;
+    }
     setTargetPlayerToUnlock(user);
     setEnteredPlayerPassword('');
     setPlayerPasswordError('');
@@ -141,6 +161,10 @@ export const FamilyGatekeeperModal = ({ isOpen, onClose, onOpenAvatarBuilder, on
     if (isValid) {
       setActiveUserId(targetPlayerToUnlock.id);
       localStorage.setItem('ajedrez_junvill_has_selected_profile', 'true');
+      if (rememberDevice) {
+        trustDevice();
+        trustUser(targetPlayerToUnlock.id);
+      }
       setTargetPlayerToUnlock(null);
       setEnteredPlayerPassword('');
       setPlayerPasswordError('');
@@ -157,6 +181,10 @@ export const FamilyGatekeeperModal = ({ isOpen, onClose, onOpenAvatarBuilder, on
       const targetId = activeGroup?.id || activeGroupId || 'group_junvill';
       const newUser = createUser(newPlayerName.trim(), selectedAvatar, newPlayerRole, null, DEFAULT_GENERIC_PASSWORD, targetId);
       if (newUser) {
+        if (rememberDevice || isDeviceTrusted) {
+          trustDevice();
+          trustUser(newUser.id);
+        }
         setNewPlayerName('');
         localStorage.setItem('ajedrez_junvill_has_selected_profile', 'true');
         onClose();
@@ -290,8 +318,8 @@ export const FamilyGatekeeperModal = ({ isOpen, onClose, onOpenAvatarBuilder, on
                       </div>
                     </div>
 
-                    <div style={{ color: 'var(--color-gold, #facc15)' }}>
-                      <Lock size={18} />
+                    <div style={{ color: (unlockedGroupIds || []).includes(grp.id) ? '#22c55e' : 'var(--color-gold, #facc15)' }}>
+                      {(unlockedGroupIds || []).includes(grp.id) ? <Check size={18} /> : <Lock size={18} />}
                     </div>
                   </button>
                 );
@@ -417,7 +445,37 @@ export const FamilyGatekeeperModal = ({ isOpen, onClose, onOpenAvatarBuilder, on
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+            {/* Opción de Dispositivo de Confianza */}
+            <div 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                background: 'rgba(30, 41, 59, 0.6)',
+                border: '1px solid rgba(234, 179, 8, 0.35)',
+                borderRadius: '10px',
+                padding: '10px 12px',
+                cursor: 'pointer'
+              }}
+              onClick={() => setRememberDevice(!rememberDevice)}
+            >
+              <input
+                type="checkbox"
+                id="rememberDeviceGroup"
+                checked={rememberDevice}
+                onChange={(e) => setRememberDevice(e.target.checked)}
+                style={{ width: '18px', height: '18px', accentColor: '#eab308', cursor: 'pointer' }}
+                onClick={(e) => e.stopPropagation()}
+              />
+              <label htmlFor="rememberDeviceGroup" style={{ fontSize: '0.82rem', color: '#f8fafc', cursor: 'pointer', lineHeight: '1.3' }}>
+                <b>🛡️ Recordar como Dispositivo de Confianza</b>
+                <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                  No volver a pedir contraseñas de familia ni de jugadores en este equipo.
+                </div>
+              </label>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
               <button
                 type="button"
                 className="btn-secondary"
@@ -632,6 +690,49 @@ export const FamilyGatekeeperModal = ({ isOpen, onClose, onOpenAvatarBuilder, on
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Banner Informativo de Dispositivo de Confianza */}
+            {isDeviceTrusted && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: 'rgba(34, 197, 94, 0.12)',
+                border: '1px solid rgba(34, 197, 94, 0.35)',
+                borderRadius: '10px',
+                padding: '8px 12px',
+                marginBottom: '14px',
+                fontSize: '0.78rem',
+                color: '#86efac'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Shield size={16} color="#22c55e" />
+                  <div>
+                    <span style={{ fontWeight: '800' }}>🛡️ Dispositivo de Confianza Activo:</span>
+                    <span style={{ color: '#cbd5e1', marginLeft: '4px' }}>Acceso directo y cambio sin contraseñas.</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm('¿Deseas olvidar este dispositivo de confianza? Se volverán a exigir las contraseñas.')) {
+                      untrustDevice();
+                    }
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#f87171',
+                    fontSize: '0.72rem',
+                    cursor: 'pointer',
+                    fontWeight: '700',
+                    textDecoration: 'underline'
+                  }}
+                >
+                  Olvidar equipo
+                </button>
               </div>
             )}
 
@@ -966,7 +1067,37 @@ export const FamilyGatekeeperModal = ({ isOpen, onClose, onOpenAvatarBuilder, on
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+            {/* Opción de Dispositivo de Confianza */}
+            <div 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                background: 'rgba(30, 41, 59, 0.6)',
+                border: '1px solid rgba(234, 179, 8, 0.35)',
+                borderRadius: '10px',
+                padding: '10px 12px',
+                cursor: 'pointer'
+              }}
+              onClick={() => setRememberDevice(!rememberDevice)}
+            >
+              <input
+                type="checkbox"
+                id="rememberDevicePlayer"
+                checked={rememberDevice}
+                onChange={(e) => setRememberDevice(e.target.checked)}
+                style={{ width: '18px', height: '18px', accentColor: '#eab308', cursor: 'pointer' }}
+                onClick={(e) => e.stopPropagation()}
+              />
+              <label htmlFor="rememberDevicePlayer" style={{ fontSize: '0.82rem', color: '#f8fafc', cursor: 'pointer', lineHeight: '1.3' }}>
+                <b>🛡️ Recordar como Dispositivo de Confianza</b>
+                <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                  No volver a pedir contraseña para este perfil ni para la familia en este equipo.
+                </div>
+              </label>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
               <button
                 type="button"
                 className="btn-secondary"

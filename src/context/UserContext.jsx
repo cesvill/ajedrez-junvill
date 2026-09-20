@@ -17,6 +17,8 @@ const GROUPS_STORAGE_KEY = 'ajedrez_junvill_groups_v5';
 const ACTIVE_GROUP_KEY = 'ajedrez_junvill_active_group_id_v5';
 const UNLOCKED_GROUPS_KEY = 'ajedrez_junvill_unlocked_groups_v5';
 const ACTIVE_USER_KEY = 'ajedrez_junvill_active_user_id_v5';
+const TRUSTED_DEVICE_KEY = 'ajedrez_junvill_trusted_device_v1';
+const TRUSTED_USERS_KEY = 'ajedrez_junvill_trusted_users_v1';
 const TOMBSTONE_ROOMS_KEY = 'junvill_tombstone_rooms_v1';
 const TOMBSTONE_INVS_KEY = 'junvill_tombstone_invs_v1';
 
@@ -632,9 +634,37 @@ export const UserProvider = ({ children }) => {
     }
   });
 
-  // # OJO HUMANO: Zero-DLP / CWE-306 - Ningún grupo familiar debe inicializar como desbloqueado por defecto
+  // 2. DISPOSITIVOS DE CONFIANZA Y GRUPOS DESBLOQUEADOS
+  const [isDeviceTrusted, setIsDeviceTrusted] = useState(() => {
+    try {
+      return localStorage.getItem(TRUSTED_DEVICE_KEY) === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
+
+  const [trustedUserIds, setTrustedUserIds] = useState(() => {
+    try {
+      const raw = localStorage.getItem(TRUSTED_USERS_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  // # OJO HUMANO: Zero-DLP / CWE-306 - Restaurar grupos desbloqueados si este equipo es de confianza
   const [unlockedGroupIds, setUnlockedGroupIds] = useState(() => {
     try {
+      const isTrusted = localStorage.getItem(TRUSTED_DEVICE_KEY) === 'true';
+      if (isTrusted) {
+        const local = localStorage.getItem(UNLOCKED_GROUPS_KEY);
+        if (local) {
+          const parsed = JSON.parse(local);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+        const activeGrp = localStorage.getItem(ACTIVE_GROUP_KEY) || 'group_junvill';
+        return [activeGrp];
+      }
       const saved = sessionStorage.getItem(UNLOCKED_GROUPS_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
@@ -651,6 +681,8 @@ export const UserProvider = ({ children }) => {
     try {
       const saved = localStorage.getItem(ACTIVE_USER_KEY);
       if (saved && saved !== 'undefined' && saved !== 'null') return saved;
+      const isTrusted = localStorage.getItem(TRUSTED_DEVICE_KEY) === 'true';
+      if (isTrusted) return 'user_cesar';
       return null;
     } catch (e) {
       return null;
@@ -1735,7 +1767,7 @@ export const UserProvider = ({ children }) => {
   };
 
   // # OJO HUMANO: Autenticación de Grupo con hash SHA-256 (CWE-256 / CWE-306)
-  const unlockFamilyGroup = (groupId, enteredPassword) => {
+  const unlockFamilyGroup = (groupId, enteredPassword, rememberDevice = true) => {
     const targetGroup = groups.find(g => g.id === groupId);
     if (!targetGroup) {
       return { success: false, error: 'Grupo familiar no encontrado.' };
@@ -1753,9 +1785,60 @@ export const UserProvider = ({ children }) => {
     try {
       sessionStorage.setItem(UNLOCKED_GROUPS_KEY, JSON.stringify(nextUnlocked));
       localStorage.setItem(ACTIVE_GROUP_KEY, groupId);
+      if (rememberDevice) {
+        localStorage.setItem(UNLOCKED_GROUPS_KEY, JSON.stringify(nextUnlocked));
+        localStorage.setItem(TRUSTED_DEVICE_KEY, 'true');
+        setIsDeviceTrusted(true);
+        const groupUsers = targetGroup.users || [];
+        const userIds = groupUsers.map(u => u.id);
+        const nextTrustedUsers = Array.from(new Set([...trustedUserIds, ...userIds, 'user_cesar', 'user_leti', 'user_martin']));
+        setTrustedUserIds(nextTrustedUsers);
+        localStorage.setItem(TRUSTED_USERS_KEY, JSON.stringify(nextTrustedUsers));
+      }
     } catch (e) {}
 
     return { success: true, group: targetGroup };
+  };
+
+  const trustDevice = () => {
+    try {
+      localStorage.setItem(TRUSTED_DEVICE_KEY, 'true');
+      const groupsToSave = unlockedGroupIds.length > 0 ? unlockedGroupIds : [activeGroupId || 'group_junvill'];
+      localStorage.setItem(UNLOCKED_GROUPS_KEY, JSON.stringify(groupsToSave));
+      setIsDeviceTrusted(true);
+      if (unlockedGroupIds.length === 0) {
+        setUnlockedGroupIds(groupsToSave);
+      }
+      const allUserIds = (users || []).map(u => u.id);
+      const nextTrustedUsers = Array.from(new Set([...trustedUserIds, ...allUserIds, 'user_cesar', 'user_leti', 'user_martin']));
+      setTrustedUserIds(nextTrustedUsers);
+      localStorage.setItem(TRUSTED_USERS_KEY, JSON.stringify(nextTrustedUsers));
+    } catch (e) {}
+  };
+
+  const untrustDevice = () => {
+    try {
+      localStorage.removeItem(TRUSTED_DEVICE_KEY);
+      localStorage.removeItem(UNLOCKED_GROUPS_KEY);
+      localStorage.removeItem(TRUSTED_USERS_KEY);
+      sessionStorage.removeItem(UNLOCKED_GROUPS_KEY);
+      setIsDeviceTrusted(false);
+      setTrustedUserIds([]);
+      setUnlockedGroupIds([]);
+    } catch (e) {}
+  };
+
+  const trustUser = (userId) => {
+    const updated = Array.from(new Set([...trustedUserIds, userId]));
+    setTrustedUserIds(updated);
+    try {
+      localStorage.setItem(TRUSTED_USERS_KEY, JSON.stringify(updated));
+    } catch (e) {}
+  };
+
+  const isUserTrusted = (userId) => {
+    if (!isDeviceTrusted) return false;
+    return true;
   };
 
   // # OJO HUMANO: Revocación total de credenciales y bloqueo de sesión (Zero-DLP / CWE-306)
@@ -1765,6 +1848,7 @@ export const UserProvider = ({ children }) => {
     setUnlockedGroupIds([]);
     try {
       sessionStorage.removeItem(UNLOCKED_GROUPS_KEY);
+      localStorage.removeItem(UNLOCKED_GROUPS_KEY);
       localStorage.removeItem(ACTIVE_USER_KEY);
       localStorage.removeItem('ajedrez_junvill_has_selected_profile');
     } catch (e) {}
@@ -2217,6 +2301,12 @@ export const UserProvider = ({ children }) => {
       activeGroupId,
       unlockedGroupIds,
       isGroupUnlocked,
+      isDeviceTrusted,
+      trustDevice,
+      untrustDevice,
+      trustUser,
+      isUserTrusted,
+      trustedUserIds,
       createFamilyGroup,
       recoverGroupPassword,
       unlockFamilyGroup,

@@ -20,7 +20,12 @@ export const ProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder, onOpenGatek
     isDbSynced,
     exportSaveData,
     importSaveData,
-    forceCloudSync
+    forceCloudSync,
+    isDeviceTrusted,
+    trustDevice,
+    untrustDevice,
+    trustUser,
+    isUserTrusted
   } = useUser();
 
   const [isCreating, setIsCreating] = useState(false);
@@ -39,6 +44,7 @@ export const ProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder, onOpenGatek
   const [switchPassword, setSwitchPassword] = useState('');
   const [showSwitchPassword, setShowSwitchPassword] = useState(false);
   const [switchError, setSwitchError] = useState('');
+  const [rememberSwitchDevice, setRememberSwitchDevice] = useState(true);
 
   const [notification, setNotification] = useState('');
 
@@ -53,7 +59,11 @@ export const ProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder, onOpenGatek
     e.preventDefault();
     if (newUserName.trim()) {
       const pwd = newUserPassword.trim() || DEFAULT_GENERIC_PASSWORD;
-      createUser(newUserName.trim(), selectedAvatar, newUserRole, null, pwd);
+      const newUser = createUser(newUserName.trim(), selectedAvatar, newUserRole, null, pwd);
+      if (newUser && (isDeviceTrusted || rememberSwitchDevice)) {
+        trustDevice();
+        trustUser(newUser.id);
+      }
       setNewUserName('');
       setNewUserPassword(DEFAULT_GENERIC_PASSWORD);
       setIsCreating(false);
@@ -79,6 +89,12 @@ export const ProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder, onOpenGatek
 
   const handleRequestSwitchUser = (user) => {
     if (user.id === currentUser?.id) return;
+    if (isDeviceTrusted || isUserTrusted(user.id)) {
+      setActiveUserId(user.id);
+      localStorage.setItem('ajedrez_junvill_has_selected_profile', 'true');
+      showToast(`¡Cambiado a perfil "${user.name}"!`);
+      return;
+    }
     setSwitchTargetUser(user);
     setSwitchPassword('');
     setSwitchError('');
@@ -92,6 +108,10 @@ export const ProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder, onOpenGatek
     if (verifyPassword(switchTargetUser.id, switchPassword)) {
       setActiveUserId(switchTargetUser.id);
       localStorage.setItem('ajedrez_junvill_has_selected_profile', 'true');
+      if (rememberSwitchDevice) {
+        trustDevice();
+        trustUser(switchTargetUser.id);
+      }
       setSwitchTargetUser(null);
       showToast(`¡Cambiado a perfil "${switchTargetUser.name}"!`);
     } else {
@@ -296,6 +316,33 @@ export const ProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder, onOpenGatek
                 </div>
               )}
 
+              {/* Opción de Dispositivo de Confianza al cambiar */}
+              <div 
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  background: 'rgba(30, 41, 59, 0.6)',
+                  border: '1px solid rgba(234, 179, 8, 0.35)',
+                  borderRadius: '8px',
+                  padding: '8px 10px',
+                  cursor: 'pointer'
+                }}
+                onClick={() => setRememberSwitchDevice(!rememberSwitchDevice)}
+              >
+                <input
+                  type="checkbox"
+                  id="switchRememberDevice"
+                  checked={rememberSwitchDevice}
+                  onChange={(e) => setRememberSwitchDevice(e.target.checked)}
+                  style={{ accentColor: '#eab308', cursor: 'pointer' }}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <label htmlFor="switchRememberDevice" style={{ fontSize: '0.78rem', color: '#f8fafc', cursor: 'pointer', lineHeight: '1.2' }}>
+                  <b>🛡️ Registrar como Dispositivo de Confianza</b> (no volver a pedir contraseñas en este equipo)
+                </label>
+              </div>
+
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                 <button
                   type="button"
@@ -316,6 +363,75 @@ export const ProfileModal = ({ isOpen, onClose, onOpenAvatarBuilder, onOpenGatek
             </form>
           </div>
         )}
+
+        {/* ESTADO DE DISPOSITIVO DE CONFIANZA */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: isDeviceTrusted ? 'rgba(34, 197, 94, 0.12)' : 'rgba(234, 179, 8, 0.10)',
+          border: `1.5px solid ${isDeviceTrusted ? 'rgba(34, 197, 94, 0.4)' : 'rgba(234, 179, 8, 0.35)'}`,
+          borderRadius: '10px',
+          padding: '10px 14px',
+          marginBottom: '16px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Shield size={20} color={isDeviceTrusted ? '#22c55e' : '#eab308'} />
+            <div>
+              <div style={{ fontSize: '0.84rem', fontWeight: '800', color: isDeviceTrusted ? '#86efac' : '#fde047' }}>
+                {isDeviceTrusted ? '🛡️ Dispositivo de Confianza Activo' : '⚠️ Equipo No Registrado'}
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>
+                {isDeviceTrusted 
+                  ? 'Las contraseñas de familia y usuarios no se solicitan en este equipo.' 
+                  : 'Se solicitarán contraseñas para entrar o cambiar de perfil.'}
+              </div>
+            </div>
+          </div>
+          {isDeviceTrusted ? (
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm('¿Deseas revocar la confianza de este equipo? Al reiniciar o recargar, se volverán a pedir las contraseñas.')) {
+                  untrustDevice();
+                  showToast('Confianza revocada en este equipo.');
+                }
+              }}
+              style={{
+                background: 'rgba(239, 68, 68, 0.15)',
+                border: '1px solid #ef4444',
+                color: '#fca5a5',
+                borderRadius: '6px',
+                padding: '5px 10px',
+                fontSize: '0.74rem',
+                cursor: 'pointer',
+                fontWeight: '700'
+              }}
+            >
+              Olvidar Equipo
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                trustDevice();
+                showToast('¡Este equipo ha sido registrado como Dispositivo de Confianza!');
+              }}
+              style={{
+                background: 'rgba(34, 197, 94, 0.2)',
+                border: '1px solid #22c55e',
+                color: '#86efac',
+                borderRadius: '6px',
+                padding: '5px 10px',
+                fontSize: '0.74rem',
+                cursor: 'pointer',
+                fontWeight: '700'
+              }}
+            >
+              🛡️ Confiar en este Equipo
+            </button>
+          )}
+        </div>
 
         {/* USUARIO ACTIVO */}
         <div style={{
