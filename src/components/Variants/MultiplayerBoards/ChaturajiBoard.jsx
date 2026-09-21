@@ -10,7 +10,9 @@ export const ChaturajiBoard = ({
   onPass,
   isBotTurn = false,
   allowedColors,
-  playerColor
+  playerColor,
+  sidebarHeader = null,
+  sidebarFooter = null
 }) => {
   const [selectedCell, setSelectedCell] = useState(null);
 
@@ -109,233 +111,256 @@ export const ChaturajiBoard = ({
   return (
     <div className="multiplayer-board-container">
       
-      {/* Panel del Dado y Turno Activo */}
-      <div className="multiplayer-hud-card" style={{
-        borderColor: activeCfg?.colorHex || '#3b82f6',
-        boxShadow: `0 8px 24px ${activeCfg?.colorHex || '#3b82f6'}26`
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            width: '44px',
-            height: '44px',
-            borderRadius: '12px',
-            backgroundColor: activeCfg?.colorHex || '#ef4444',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#ffffff',
-            fontWeight: 800,
-            fontSize: '18px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
-          }}>
-            {activeCfg?.name?.charAt(0)}
-          </div>
-          <div>
-            <div style={{ fontSize: '13px', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Turno Jugador
-            </div>
-            <div style={{ fontSize: '17px', fontWeight: 800, color: '#f8fafc' }}>
-              Bando {activeCfg?.name}
-            </div>
-          </div>
-        </div>
+      {/* Columna Izquierda: Tablero */}
+      <div className="multiplayer-board-area">
+        <div 
+          className="multiplayer-board-grid chaturaji-grid"
+          style={{
+            transform: `rotate(${boardRotation}deg)`,
+            transition: 'transform 0.4s ease'
+          }}
+        >
+          {Array(8).fill(null).map((_, y) => 
+            Array(8).fill(null).map((_, x) => {
+              const piece = game.board[y][x];
+              const isLight = (x + y) % 2 === 0;
+              const throne = isThrone(x, y);
+              const isSelected = selectedCell?.x === x && selectedCell?.y === y;
+              const isLegal = legalMoves.some(m => m.to.nx === x && m.to.ny === y);
 
-        {/* Dado Védico (Pasha) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', backgroundColor: 'rgba(15, 23, 42, 0.6)', padding: '8px 14px', borderRadius: '12px', border: '1px solid #334155' }}>
-          <div style={{
-            width: '38px',
-            height: '38px',
-            borderRadius: '8px',
-            backgroundColor: '#f59e0b',
-            color: '#1e293b',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontWeight: 900,
-            fontSize: '20px',
-            boxShadow: '0 4px 10px rgba(245, 158, 11, 0.4)'
-          }}>
-            {currentDice || '?'}
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: '14px', fontWeight: 800, color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Dices size={16} /> {diceInfo.name}
-            </span>
-            <span style={{ fontSize: '11px', color: '#94a3b8' }}>
-              {diceInfo.desc}
-            </span>
-          </div>
-        </div>
+              let cellBg = isLight ? '#f1f5f9' : '#94a3b8';
+              if (throne) cellBg = isLight ? '#fef08a' : '#eab308';
+              if (isSelected) cellBg = '#60a5fa';
+              if (isLegal) cellBg = piece ? '#f87171' : (isLight ? '#86efac' : '#4ade80');
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <button
-            onClick={cycleOrientation}
-            title="Girar orientación del tablero"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              backgroundColor: 'rgba(56, 189, 248, 0.15)',
-              border: '1px solid rgba(56, 189, 248, 0.4)',
-              color: '#38bdf8',
-              padding: '6px 12px',
-              borderRadius: '10px',
-              fontSize: '12px',
-              fontWeight: 800,
-              cursor: 'pointer',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <span>🔄 Vista: {CHATURAJI_CONFIG[effectiveOrientationColor]?.name || effectiveOrientationColor} (Abajo)</span>
-          </button>
+              return (
+                <div
+                  key={`${x}_${y}`}
+                  onClick={() => handleCellClick(x, y)}
+                  style={{
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: cellBg,
+                    cursor: (piece?.owner === activePlayer || isLegal) ? 'pointer' : 'default',
+                    userSelect: 'none',
+                    transition: 'background-color 0.15s ease'
+                  }}
+                >
+                  {/* Trono Decorador */}
+                  {throne && !piece && (
+                    <Crown
+                      size={20}
+                      color="#ca8a04"
+                      style={{ opacity: 0.5, transform: `rotate(${-boardRotation}deg)` }}
+                    />
+                  )}
 
-          {/* Botón de Pasar Turno si no hay movimientos */}
-          {activeMovesCount === 0 && !game.winner && (
-            <button
-              onClick={onPass}
-              disabled={isBotTurn || !validColors.includes(activePlayer)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                backgroundColor: '#dc2626',
-                color: '#ffffff',
-                border: 'none',
-                padding: '8px 14px',
-                borderRadius: '10px',
-                fontWeight: 700,
-                fontSize: '13px',
-                cursor: (isBotTurn || !validColors.includes(activePlayer)) ? 'not-allowed' : 'pointer'
-              }}
-            >
-              <SkipForward size={16} /> Pasar Turno
-            </button>
+                  {/* Indicador de destino legal vacío */}
+                  {isLegal && !piece && (
+                    <div style={{
+                      width: '12px',
+                      height: '12px',
+                      borderRadius: '50%',
+                      backgroundColor: '#16a34a',
+                      boxShadow: '0 0 6px #16a34a'
+                    }} />
+                  )}
+
+                  {/* Pieza de Ajedrez */}
+                  {piece && (
+                    <div style={{
+                      transform: `rotate(${-boardRotation}deg)`,
+                      transition: 'transform 0.4s ease',
+                      filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))'
+                    }}>
+                      <PieceIcon
+                        piece={piece.type}
+                        color={piece.owner}
+                        size={38}
+                        width={38}
+                        height={38}
+                      />
+                    </div>
+                  )}
+
+                  {/* Corona de Triunfo si la pieza ocupó el trono enemigo */}
+                  {throne && piece && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '2px',
+                      right: '2px',
+                      transform: `rotate(${-boardRotation}deg)`
+                    }}>
+                      <Sparkles size={14} color="#f59e0b" />
+                    </div>
+                  )}
+                </div>
+              );
+            })
           )}
         </div>
       </div>
 
-      {/* Tablero 8x8 */}
-      <div 
-        className="multiplayer-board-grid chaturaji-grid"
-        style={{
-          transform: `rotate(${boardRotation}deg)`,
-          transition: 'transform 0.4s ease'
-        }}
-      >
-        {Array(8).fill(null).map((_, y) => 
-          Array(8).fill(null).map((_, x) => {
-            const piece = game.board[y][x];
-            const isLight = (x + y) % 2 === 0;
-            const throne = isThrone(x, y);
-            const isSelected = selectedCell?.x === x && selectedCell?.y === y;
-            const isLegal = legalMoves.some(m => m.to.nx === x && m.to.ny === y);
+      {/* Columna Derecha: Sidebar de Opciones, Dado, Marcador y Acciones */}
+      <div className="multiplayer-sidebar-area">
+        {/* Panel del Dado y Turno Activo */}
+        <div className="multiplayer-hud-card" style={{
+          borderColor: activeCfg?.colorHex || '#3b82f6',
+          boxShadow: `0 8px 24px ${activeCfg?.colorHex || '#3b82f6'}26`
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '44px',
+              height: '44px',
+              borderRadius: '12px',
+              backgroundColor: activeCfg?.colorHex || '#ef4444',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#ffffff',
+              fontWeight: 800,
+              fontSize: '18px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+            }}>
+              {activeCfg?.name?.charAt(0)}
+            </div>
+            <div>
+              <div style={{ fontSize: '13px', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Turno Jugador
+              </div>
+              <div style={{ fontSize: '17px', fontWeight: 800, color: '#f8fafc' }}>
+                Bando {activeCfg?.name}
+              </div>
+            </div>
+          </div>
 
-            let cellBg = isLight ? '#f1f5f9' : '#94a3b8';
-            if (throne) cellBg = isLight ? '#fef08a' : '#eab308';
-            if (isSelected) cellBg = '#60a5fa';
-            if (isLegal) cellBg = piece ? '#f87171' : (isLight ? '#86efac' : '#4ade80');
+          {/* Dado Védico (Pasha) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', backgroundColor: 'rgba(15, 23, 42, 0.6)', padding: '8px 14px', borderRadius: '12px', border: '1px solid #334155' }}>
+            <div style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '8px',
+              backgroundColor: '#f59e0b',
+              color: '#1e293b',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 900,
+              fontSize: '20px',
+              boxShadow: '0 4px 10px rgba(245, 158, 11, 0.4)'
+            }}>
+              {currentDice || '?'}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: '14px', fontWeight: 800, color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Dices size={16} /> {diceInfo.name}
+              </span>
+              <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                {diceInfo.desc}
+              </span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <button
+              onClick={cycleOrientation}
+              title="Girar orientación del tablero"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                backgroundColor: 'rgba(56, 189, 248, 0.15)',
+                border: '1px solid rgba(56, 189, 248, 0.4)',
+                color: '#38bdf8',
+                padding: '6px 12px',
+                borderRadius: '10px',
+                fontSize: '12px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <span>🔄 Vista: {CHATURAJI_CONFIG[effectiveOrientationColor]?.name || effectiveOrientationColor} (Abajo)</span>
+            </button>
+
+            {/* Botón de Pasar Turno si no hay movimientos */}
+            {activeMovesCount === 0 && !game.winner && (
+              <button
+                onClick={onPass}
+                disabled={isBotTurn || !validColors.includes(activePlayer)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  backgroundColor: '#dc2626',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '8px 14px',
+                  borderRadius: '10px',
+                  fontWeight: 700,
+                  fontSize: '13px',
+                  cursor: (isBotTurn || !validColors.includes(activePlayer)) ? 'not-allowed' : 'pointer'
+                }}
+              >
+                <SkipForward size={16} /> Pasar Turno
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Banners Superiores (Turno / Bot) */}
+        {sidebarHeader && (
+          <div className="multiplayer-sidebar-header">
+            {sidebarHeader}
+          </div>
+        )}
+
+        {/* Marcador de Puntuación de los 4 Bandos */}
+        <div className="multiplayer-scores-grid">
+          {CHATURAJI_PLAYERS.map(player => {
+            const cfg = CHATURAJI_CONFIG[player];
+            const isEliminated = game.eliminated.has(player);
+            const isTurn = activePlayer === player;
 
             return (
               <div
-                key={`${x}_${y}`}
-                onClick={() => handleCellClick(x, y)}
+                key={player}
+                className="multiplayer-score-card"
                 style={{
-                  position: 'relative',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: cellBg,
-                  cursor: (piece?.owner === activePlayer || isLegal) ? 'pointer' : 'default',
-                  userSelect: 'none',
-                  transition: 'background-color 0.15s ease'
+                  backgroundColor: isTurn ? 'rgba(30, 41, 59, 0.95)' : '#0f172a',
+                  border: isTurn ? `2px solid ${cfg.colorHex}` : '1px solid #334155',
+                  opacity: isEliminated ? 0.45 : 1
                 }}
               >
-                {/* Corona de Trono Védico */}
-                {throne && !piece && (
-                  <Crown
-                    size={24}
-                    style={{
-                      position: 'absolute',
-                      color: '#b45309',
-                      opacity: 0.65,
-                      transform: `rotate(${-boardRotation}deg)`,
-                      transition: 'transform 0.4s ease'
-                    }}
-                  />
-                )}
-
-                {/* Marcador de movimiento legal */}
-                {isLegal && !piece && (
+                <div className="score-card-header">
                   <div style={{
-                    width: '14px',
-                    height: '14px',
+                    width: '10px',
+                    height: '10px',
                     borderRadius: '50%',
-                    backgroundColor: '#15803d',
-                    boxShadow: '0 0 8px #15803d'
+                    backgroundColor: cfg.colorHex,
+                    flexShrink: 0
                   }} />
-                )}
-
-                {/* Pieza con contrarotación para mantenerse erguida */}
-                {piece && (
-                  <div style={{
-                    width: '82%',
-                    height: '82%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    filter: piece.owner === 'frozen' ? 'grayscale(100%) opacity(0.55)' : 'drop-shadow(0 3px 6px rgba(0,0,0,0.35))',
-                    transform: `rotate(${-boardRotation}deg)`,
-                    transition: 'transform 0.4s ease'
-                  }}>
-                    <PieceIcon
-                      piece={piece.type}
-                      color={piece.owner}
-                      className="w-full h-full"
-                    />
-                  </div>
-                )}
+                  <span className="score-card-name">
+                    {cfg.name}
+                  </span>
+                </div>
+                <span className="score-card-pts" style={{ color: cfg.colorHex }}>
+                  {isEliminated ? 'ELIM' : `${game.scores[player]} pts`}
+                </span>
+                <MultiplayerCapturedPieces items={game.getCapturedSummary?.(player) || []} />
               </div>
             );
-          })
+          })}
+        </div>
+
+        {/* Controles Inferiores (Reacciones, Chat, Bots) */}
+        {sidebarFooter && (
+          <div className="multiplayer-sidebar-footer">
+            {sidebarFooter}
+          </div>
         )}
-      </div>
-
-      {/* Marcador de Puntuación de los 4 Bandos */}
-      <div className="multiplayer-scores-grid">
-        {CHATURAJI_PLAYERS.map(player => {
-          const cfg = CHATURAJI_CONFIG[player];
-          const isEliminated = game.eliminated.has(player);
-          const isTurn = activePlayer === player;
-
-          return (
-            <div
-              key={player}
-              className="multiplayer-score-card"
-              style={{
-                backgroundColor: isTurn ? 'rgba(30, 41, 59, 0.95)' : '#0f172a',
-                border: isTurn ? `2px solid ${cfg.colorHex}` : '1px solid #334155',
-                opacity: isEliminated ? 0.45 : 1
-              }}
-            >
-              <div className="score-card-header">
-                <div style={{
-                  width: '10px',
-                  height: '10px',
-                  borderRadius: '50%',
-                  backgroundColor: cfg.colorHex,
-                  flexShrink: 0
-                }} />
-                <span className="score-card-name">
-                  {cfg.name}
-                </span>
-              </div>
-              <span className="score-card-pts" style={{ color: cfg.colorHex }}>
-                {isEliminated ? 'ELIM' : `${game.scores[player]} pts`}
-              </span>
-              <MultiplayerCapturedPieces items={game.getCapturedSummary?.(player) || []} />
-            </div>
-          );
-        })}
       </div>
 
     </div>

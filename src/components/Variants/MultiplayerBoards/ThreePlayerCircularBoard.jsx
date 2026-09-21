@@ -22,7 +22,9 @@ export const ThreePlayerCircularBoard = ({
   onMove,
   isBotTurn = false,
   allowedColors,
-  playerColor
+  playerColor,
+  sidebarHeader = null,
+  sidebarFooter = null
 }) => {
   const [selectedCell, setSelectedCell] = useState(null);
 
@@ -124,197 +126,204 @@ export const ThreePlayerCircularBoard = ({
   return (
     <div className="multiplayer-board-container">
       
-      {/* HUD de Turno */}
-      <div className="multiplayer-hud-card" style={{
-        borderColor: PLAYER_INFO[activePlayer]?.colorHex || '#3b82f6',
-        boxShadow: '0 8px 24px rgba(0,0,0,0.4)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '50%',
-            backgroundColor: PLAYER_INFO[activePlayer]?.colorHex,
-            border: '2px solid #cbd5e1',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: activePlayer === 'white' ? '#0f172a' : '#ffffff',
-            fontWeight: 800
-          }}>
-            {activePlayer.charAt(0).toUpperCase()}
-          </div>
-          <div>
-            <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600 }}>TURNO (AJEDREZ CIRCULAR)</div>
-            <div style={{ fontSize: '17px', fontWeight: 800, color: '#f8fafc' }}>
-              Ejército {PLAYER_INFO[activePlayer]?.name}
-            </div>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <button
-            onClick={cycleOrientation}
-            title="Girar orientación del tablero"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              backgroundColor: 'rgba(56, 189, 248, 0.15)',
-              border: '1px solid rgba(56, 189, 248, 0.4)',
-              color: '#38bdf8',
-              padding: '6px 12px',
-              borderRadius: '10px',
-              fontSize: '12px',
-              fontWeight: 800,
-              cursor: 'pointer',
-              transition: 'all 0.15s ease'
-            }}
+      {/* Columna Izquierda: El Tablero Circular */}
+      <div className="multiplayer-board-area">
+        <div className="multiplayer-board-grid three-circular-grid">
+          <svg
+            viewBox="0 0 800 800"
+            style={{ width: '100%', height: '100%', overflow: 'visible' }}
           >
-            <span>🔄 Vista: {PLAYER_INFO[effectiveOrientationColor]?.name || effectiveOrientationColor} (Abajo)</span>
-          </button>
-        </div>
-      </div>
+            {/* Grupo rotado según la orientación del jugador ("mi bando siempre abajo") */}
+            <g transform={`rotate(${boardRotation}, ${cx}, ${cy})`} style={{ transition: 'transform 0.4s ease' }}>
+              {/* Borde exterior */}
+              <circle cx={cx} cy={cy} r={R_MAX + 5} fill="#334155" stroke="#1e293b" strokeWidth="4" />
 
-      {/* Tablero Circular SVG (144 Casillas) */}
-      <div className="multiplayer-board-grid three-circular-grid">
-        <svg
-          viewBox="0 0 800 800"
-          style={{ width: '100%', height: '100%', overflow: 'visible' }}
-        >
-          {/* Grupo rotado según la orientación del jugador ("mi bando siempre abajo") */}
-          <g transform={`rotate(${boardRotation}, ${cx}, ${cy})`} style={{ transition: 'transform 0.4s ease' }}>
-            {/* Borde exterior */}
-            <circle cx={cx} cy={cy} r={R_MAX + 5} fill="#334155" stroke="#1e293b" strokeWidth="4" />
+              {/* 144 Cuñas Anulares */}
+              {Array(6).fill(null).map((_, ring) => 
+                Array(24).fill(null).map((_, ray) => {
+                  const piece = game.board[ring][ray];
+                  const { pathData, center } = getArcGeometry(ring, ray);
+                  const isLight = (ring + ray) % 2 === 0;
+                  const isSelected = selectedCell?.ring === ring && selectedCell?.ray === ray;
+                  const isLegal = legalMoves.some(m => m.to.ring === ring && m.to.ray === ray);
 
-            {/* 144 Cuñas Anulares */}
-            {Array(6).fill(null).map((_, ring) => 
-              Array(24).fill(null).map((_, ray) => {
-                const piece = game.board[ring][ray];
-                const { pathData, center } = getArcGeometry(ring, ray);
-                const isLight = (ring + ray) % 2 === 0;
-                const isSelected = selectedCell?.ring === ring && selectedCell?.ray === ray;
-                const isLegal = legalMoves.some(m => m.to.ring === ring && m.to.ray === ray);
-                const hasPiece = !!piece;
+                  let fill = isLight ? LIGHT : DARK;
+                  if (isSelected) fill = '#60a5fa';
+                  else if (isLegal) fill = piece ? '#f87171' : '#4ade80';
 
-                let fill = isLight ? LIGHT : DARK;
-                if (isSelected) fill = '#60a5fa';
-                else if (isLegal) fill = hasPiece ? '#f87171' : '#4ade80';
-
-                return (
-                  <g key={`${ring}_${ray}`} onClick={() => handleCellClick(ring, ray)} style={{ cursor: 'pointer' }}>
-                    <path
-                      d={pathData}
-                      fill={fill}
-                      stroke="#475569"
-                      strokeWidth="1"
-                      style={{ transition: 'fill 0.15s ease' }}
-                    />
-
-                    {/* Indicador de destino legal */}
-                    {isLegal && !hasPiece && (
-                      <circle
-                        cx={center.x}
-                        cy={center.y}
-                        r="5"
-                        fill="#15803d"
-                        stroke="#ffffff"
-                        strokeWidth="1.5"
+                  return (
+                    <g key={`${ring}_${ray}`} onClick={() => handleCellClick(ring, ray)} style={{ cursor: 'pointer' }}>
+                      <path
+                        d={pathData}
+                        fill={fill}
+                        stroke="#1e293b"
+                        strokeWidth="1.2"
+                        style={{ transition: 'fill 0.15s ease' }}
                       />
-                    )}
 
-                    {/* Render de Pieza Centrada con contrarotación para mantenerse vertical */}
-                    {hasPiece && (() => {
-                      const isPawn = piece.type === 'p';
-                      const baseSize = Math.round(42 - ring * 2.2);
-                      const pieceSize = isPawn ? Math.max(26, Math.round(baseSize * 0.88)) : baseSize;
-                      const half = pieceSize / 2;
-                      return (
+                      {/* Indicador de destino legal */}
+                      {isLegal && !piece && (
+                        <circle
+                          cx={center.x}
+                          cy={center.y}
+                          r="5"
+                          fill="#15803d"
+                          stroke="#ffffff"
+                          strokeWidth="1.5"
+                        />
+                      )}
+
+                      {/* Pieza SVG orientada verticalmente con contrarotación */}
+                      {piece && (
                         <g
-                          transform={`translate(${center.x}, ${center.y}) rotate(${-boardRotation}) translate(${-half}, ${-half})`}
+                          transform={`translate(${center.x}, ${center.y}) rotate(${-boardRotation}) translate(-16, -16)`}
                           style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}
                         >
                           <PieceIcon
                             piece={piece.type}
                             color={piece.owner}
-                            size={pieceSize}
-                            width={pieceSize}
-                            height={pieceSize}
+                            size={32}
+                            width={32}
+                            height={32}
                           />
                         </g>
-                      );
-                    })()}
-                  </g>
+                      )}
+                    </g>
+                  );
+                })
+              )}
+
+              {/* Líneas divisorias de los 3 sectores (cada 8 radios = 120°) */}
+              {[0, 8, 16].map(ray => {
+                const angle = 30 + ray * 15;
+                const p1 = { x: cx + R_WELL * Math.cos(toRad(angle)), y: cy + R_WELL * Math.sin(toRad(angle)) };
+                const p2 = { x: cx + R_MAX * Math.cos(toRad(angle)), y: cy + R_MAX * Math.sin(toRad(angle)) };
+                return (
+                  <line
+                    key={ray}
+                    x1={p1.x}
+                    y1={p1.y}
+                    x2={p2.x}
+                    y2={p2.y}
+                    stroke="#0284c7"
+                    strokeWidth="3.5"
+                  />
                 );
-              })
-            )}
+              })}
 
-            {/* 3 Líneas Divisorias de Jugadores */}
-            {[30, 150, 270].map(deg => {
-              const x1 = cx + R_WELL * Math.cos(toRad(deg));
-              const y1 = cy + R_WELL * Math.sin(toRad(deg));
-              const x2 = cx + (R_MAX + 3) * Math.cos(toRad(deg));
-              const y2 = cy + (R_MAX + 3) * Math.sin(toRad(deg));
-              return (
-                <line
-                  key={deg}
-                  x1={x1.toFixed(1)}
-                  y1={y1.toFixed(1)}
-                  x2={x2.toFixed(1)}
-                  y2={y2.toFixed(1)}
-                  stroke="#22c55e"
-                  strokeWidth="4"
-                  strokeLinecap="round"
-                />
-              );
-            })}
-
-            {/* Borde exterior del tablero circular */}
-            <circle cx={cx} cy={cy} r={R_MAX} fill="none" stroke="#22c55e" strokeWidth="3" />
-
-            {/* Pozo Central (The Well) */}
-            <circle cx={cx} cy={cy} r={R_WELL} fill="#020617" stroke="#22c55e" strokeWidth="3" />
-            <text
-              x={cx}
-              y={cy + 7}
-              textAnchor="middle"
-              fill="#22c55e"
-              fontSize="18"
-              fontWeight="900"
-              letterSpacing="2"
-              transform={`rotate(${-boardRotation}, ${cx}, ${cy})`}
-            >
-              POZO
-            </text>
-          </g>
-        </svg>
+              {/* El Pozo Central */}
+              <circle cx={cx} cy={cy} r={R_WELL} fill="#0f172a" stroke="#38bdf8" strokeWidth="3" />
+              <text
+                x={cx}
+                y={cy + 7}
+                textAnchor="middle"
+                fill="#22c55e"
+                fontSize="18"
+                fontWeight="900"
+                letterSpacing="2"
+                transform={`rotate(${-boardRotation}, ${cx}, ${cy})`}
+              >
+                POZO
+              </text>
+            </g>
+          </svg>
+        </div>
       </div>
 
-      {/* Marcador de los 3 Jugadores */}
-      <div className="multiplayer-scores-grid three-scores-grid">
-        {THREE_CIRCULAR_PLAYERS.map(player => {
-          const info = PLAYER_INFO[player];
-          const isTurn = activePlayer === player;
-          return (
-            <div
-              key={player}
-              className="multiplayer-score-card"
+      {/* Columna Derecha: Sidebar de Opciones, Marcador y Acciones */}
+      <div className="multiplayer-sidebar-area">
+        {/* HUD de Turno */}
+        <div className="multiplayer-hud-card" style={{
+          borderColor: PLAYER_INFO[activePlayer]?.colorHex || '#3b82f6',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.4)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              backgroundColor: PLAYER_INFO[activePlayer]?.colorHex,
+              border: '2px solid #cbd5e1',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: activePlayer === 'white' ? '#0f172a' : '#ffffff',
+              fontWeight: 800
+            }}>
+              {activePlayer.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600 }}>TURNO (AJEDREZ CIRCULAR)</div>
+              <div style={{ fontSize: '17px', fontWeight: 800, color: '#f8fafc' }}>
+                Ejército {PLAYER_INFO[activePlayer]?.name}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <button
+              onClick={cycleOrientation}
+              title="Girar orientación del tablero"
               style={{
-                backgroundColor: isTurn ? 'rgba(30, 41, 59, 0.95)' : '#0f172a',
-                border: isTurn ? `2px solid ${info.colorHex}` : '1px solid #334155'
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                backgroundColor: 'rgba(56, 189, 248, 0.15)',
+                border: '1px solid rgba(56, 189, 248, 0.4)',
+                color: '#38bdf8',
+                padding: '6px 12px',
+                borderRadius: '10px',
+                fontSize: '12px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
               }}
             >
-              <div className="score-card-header">
-                <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: info.colorHex }} />
-                <span className="score-card-name">{info.name}</span>
+              <span>🔄 Vista: {PLAYER_INFO[effectiveOrientationColor]?.name || effectiveOrientationColor} (Abajo)</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Banners Superiores (Turno / Bot) */}
+        {sidebarHeader && (
+          <div className="multiplayer-sidebar-header">
+            {sidebarHeader}
+          </div>
+        )}
+
+        {/* Marcador de los 3 Jugadores */}
+        <div className="multiplayer-scores-grid three-scores-grid">
+          {THREE_CIRCULAR_PLAYERS.map(player => {
+            const info = PLAYER_INFO[player];
+            const isTurn = activePlayer === player;
+            return (
+              <div
+                key={player}
+                className="multiplayer-score-card"
+                style={{
+                  backgroundColor: isTurn ? 'rgba(30, 41, 59, 0.95)' : '#0f172a',
+                  border: isTurn ? `2px solid ${info.colorHex}` : '1px solid #334155'
+                }}
+              >
+                <div className="score-card-header">
+                  <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: info.colorHex }} />
+                  <span className="score-card-name">{info.name}</span>
+                </div>
+                <span className="score-card-pts" style={{ color: info.colorHex }}>
+                  {game.scores[player]} pts
+                </span>
+                <MultiplayerCapturedPieces items={game.getCapturedSummary?.(player) || []} />
               </div>
-              <span className="score-card-pts" style={{ color: info.colorHex }}>
-                {game.scores[player]} pts
-              </span>
-              <MultiplayerCapturedPieces items={game.getCapturedSummary?.(player) || []} />
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
+
+        {/* Controles Inferiores (Reacciones, Chat, Bots) */}
+        {sidebarFooter && (
+          <div className="multiplayer-sidebar-footer">
+            {sidebarFooter}
+          </div>
+        )}
       </div>
 
     </div>

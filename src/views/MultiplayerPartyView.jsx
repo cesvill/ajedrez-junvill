@@ -1559,6 +1559,344 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
   }
 
   // =========================================================================
+  // SLOTS DEL SIDEBAR (RESPONSIVO PARA PORTRAIT Y LANDSCAPE)
+  // =========================================================================
+  const sidebarHeaderContent = (
+    <>
+      {/* Banner de Ganador */}
+      {game?.winner && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          backgroundColor: '#d97706',
+          color: '#ffffff',
+          padding: '10px 14px',
+          borderRadius: '12px',
+          fontWeight: 800,
+          fontSize: '13px',
+          boxShadow: '0 6px 20px rgba(217, 119, 6, 0.4)'
+        }}>
+          <Trophy size={18} style={{ flexShrink: 0 }} />
+          <span>¡Victoria de {game.winner.toUpperCase()}! Partida Concluida.</span>
+          <button
+            onClick={() => initGameForVariant(selectedVariant)}
+            style={{
+              marginLeft: 'auto',
+              backgroundColor: '#ffffff',
+              color: '#92400e',
+              border: 'none',
+              padding: '4px 10px',
+              borderRadius: '6px',
+              fontWeight: 800,
+              fontSize: '11px',
+              cursor: 'pointer',
+              flexShrink: 0
+            }}
+          >
+            Nueva
+          </button>
+        </div>
+      )}
+
+      {/* Banner de Bot Pensando */}
+      {isBotThinking && !game?.winner && (
+        <div className="multiplayer-status-banner multiplayer-bot-thinking" style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          backgroundColor: 'rgba(56, 189, 248, 0.12)',
+          border: '1px solid rgba(56, 189, 248, 0.35)',
+          color: '#38bdf8',
+          padding: '6px 14px',
+          borderRadius: '16px',
+          fontSize: '11.5px',
+          fontWeight: 700,
+          boxShadow: '0 4px 12px rgba(56, 189, 248, 0.2)'
+        }}>
+          <Bot size={14} style={{ flexShrink: 0 }} />
+          <span>El Bot ({game?.activePlayer ? game.activePlayer.toUpperCase() : 'IA'}) calculando...</span>
+        </div>
+      )}
+
+      {/* Banner de Turno en este Dispositivo */}
+      {allowedColors.includes(game?.activePlayer) && !game?.winner && (
+        <div className="multiplayer-status-banner multiplayer-turn-banner" style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          backgroundColor: 'rgba(34, 197, 94, 0.15)',
+          border: '1.5px solid #22c55e',
+          color: '#4ade80',
+          padding: '6px 14px',
+          borderRadius: '16px',
+          fontSize: '11.5px',
+          fontWeight: 800,
+          boxShadow: '0 4px 14px rgba(34, 197, 94, 0.25)'
+        }}>
+          <span>🎮</span>
+          <span>
+            {partyRoom && partyRoom.seats ? (
+              (() => {
+                const activeSeat = partyRoom.seats.find(s => s.color === game.activePlayer);
+                return `¡Tu turno! Juega ${activeSeat?.user?.name || activeSeat?.label || game.activePlayer.toUpperCase()}`;
+              })()
+            ) : (
+              `¡Tu turno! Mueves el ejército ${game.activePlayer.toUpperCase()}`
+            )}
+          </span>
+        </div>
+      )}
+    </>
+  );
+
+  const sidebarFooterContent = (
+    <>
+      {/* Selector Compacto de Variantes y Reglas (para Landscape) */}
+      <div className="multiplayer-sidebar-variant-bar" style={{
+        backgroundColor: 'rgba(15, 23, 42, 0.7)',
+        border: '1px solid #334155',
+        borderRadius: '12px',
+        padding: '8px 10px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '6px',
+        width: '100%',
+        boxSizing: 'border-box'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', fontWeight: 800, color: '#f8fafc' }}>
+            <span>{currentVariantData.icon}</span>
+            <span>{currentVariantData.name}</span>
+          </div>
+          <button
+            onClick={() => setIsRulesOpen(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              backgroundColor: 'rgba(56, 189, 248, 0.15)',
+              border: '1px solid rgba(56, 189, 248, 0.35)',
+              color: '#38bdf8',
+              borderRadius: '8px',
+              padding: '3px 8px',
+              fontSize: '11px',
+              fontWeight: 800,
+              cursor: 'pointer'
+            }}
+          >
+            <BookOpen size={12} /> Reglas
+          </button>
+        </div>
+
+        {!partyRoom && (
+          <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: '2px' }}>
+            {VARIANTS.map(v => (
+              <button
+                key={v.id}
+                onClick={() => handleVariantChange(v.id)}
+                style={{
+                  flex: '1 0 auto',
+                  padding: '3px 7px',
+                  borderRadius: '6px',
+                  fontSize: '10px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  border: selectedVariant === v.id ? `1.5px solid ${v.badgeColor}` : '1px solid #334155',
+                  backgroundColor: selectedVariant === v.id ? 'rgba(30, 41, 59, 0.95)' : '#0f172a',
+                  color: selectedVariant === v.id ? '#f8fafc' : '#94a3b8',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                {v.icon} {v.name.split(' ')[0]}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Barra Social: Reacciones en Vivo y Chat Deportivo Familiar */}
+      <div className="multiplayer-social-bar" style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '8px',
+        flexWrap: 'wrap',
+        width: '100%',
+        padding: '2px 0'
+      }}>
+        <ReactionsBar
+          onSendReaction={handleSendReaction}
+          disabled={Boolean(game?.winner)}
+        />
+
+        {isFamilyOnlyGame ? (
+          <button
+            type="button"
+            className={`btn-safe-chat-trigger ${isChatOpen ? 'active' : ''}`}
+            onClick={() => {
+              setIsChatOpen(prev => !prev);
+              setHasUnreadChat(false);
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: isChatOpen ? '#0284c7' : '#1e293b',
+              color: '#f8fafc',
+              border: '1px solid #334155',
+              borderRadius: '8px',
+              padding: '6px 12px',
+              fontSize: '11.5px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              position: 'relative'
+            }}
+            title="Abrir Chat Deportivo Seguro (Familiares Registrados)"
+          >
+            <MessageCircle size={14} color="#38bdf8" />
+            <span>Chat Deportivo Familiar</span>
+            {hasUnreadChat && !isChatOpen && (
+              <span style={{
+                position: 'absolute',
+                top: '-3px',
+                right: '-3px',
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                backgroundColor: '#ef4444',
+                boxShadow: '0 0 6px #ef4444'
+              }} />
+            )}
+          </button>
+        ) : (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: 'rgba(15, 23, 42, 0.7)',
+              color: '#94a3b8',
+              border: '1px dashed #475569',
+              borderRadius: '8px',
+              padding: '5px 10px',
+              fontSize: '11px',
+              fontWeight: 700,
+              cursor: 'not-allowed',
+              userSelect: 'none'
+            }}
+            title="Chat bloqueado por protección infantil. Solo disponible cuando todos los participantes son miembros de la familia registrada."
+          >
+            <Lock size={12} color="#f59e0b" />
+            <span>🔒 Chat Bloqueado</span>
+          </div>
+        )}
+      </div>
+
+      {/* Control de Bots en Partida Local */}
+      {!partyRoom && game && Array.isArray(game.players) && (
+        <div className="multiplayer-bot-control-bar" style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '6px',
+          width: '100%',
+          padding: '6px 10px',
+          backgroundColor: '#0f172a',
+          borderRadius: '12px',
+          border: '1px solid #1e293b',
+          boxSizing: 'border-box'
+        }}>
+          <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 700 }}>
+            Jugadores:
+          </span>
+          {game.players.map(pKey => {
+            const isBot = botPlayers[pKey];
+            return (
+              <button
+                key={pKey}
+                onClick={() => togglePlayerType(pKey)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  backgroundColor: isBot ? '#334155' : '#0284c7',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                {isBot ? <Bot size={12} /> : <Users size={12} />}
+                {pKey.toUpperCase()}: {isBot ? 'Bot' : 'Humano'}
+              </button>
+            );
+          })}
+
+          {Object.values(botPlayers).some(Boolean) && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              backgroundColor: '#1e293b',
+              padding: '3px 8px',
+              borderRadius: '6px',
+              border: '1px solid #334155'
+            }}>
+              <Bot size={13} style={{ color: '#c084fc' }} />
+              <span style={{ fontSize: '10px', color: '#cbd5e1', fontWeight: 700 }}>Modelo:</span>
+              <select
+                value={selectedLocalBotId}
+                onChange={(e) => setSelectedLocalBotId(e.target.value)}
+                style={{
+                  backgroundColor: '#0f172a',
+                  color: '#fde047',
+                  border: '1px solid #475569',
+                  borderRadius: '6px',
+                  padding: '2px 6px',
+                  fontSize: '10.5px',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+              >
+                {BOT_ROSTER.slice(0, 10).map(b => (
+                  <option key={b.id} value={b.id}>
+                    {b.name} ({b.elo} Elo)
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <button
+            onClick={() => initGameForVariant(selectedVariant)}
+            style={{
+              marginLeft: 'auto',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              backgroundColor: '#1e293b',
+              color: '#f8fafc',
+              border: '1px solid #334155',
+              padding: '4px 8px',
+              borderRadius: '6px',
+              fontSize: '11px',
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
+          >
+            <RotateCcw size={12} /> Reiniciar
+          </button>
+        </div>
+      )}
+    </>
+  );
+
+  // =========================================================================
   // RENDER: TABLERO DE JUEGO (LOCAL O SALA ONLINE)
   // =========================================================================
   return (
@@ -1943,9 +2281,9 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
         </div>
       )}
 
-      {/* Selector de Variantes (Solo en juego local) */}
+      {/* Selector de Variantes (Solo en juego local, oculto en landscape para no restar altura) */}
       {!partyRoom && (
-        <div style={{
+        <div className="multiplayer-variant-cards-grid" style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
           gap: '12px',
@@ -1994,197 +2332,7 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
         </div>
       )}
 
-      {/* Selector Rápido de Participantes (Humano vs Bot Junvill) en Juego Local */}
-      {/* Selector Rápido de Participantes (Humano vs Bot Junvill) en Juego Local */}
-      {!partyRoom && game && Array.isArray(game.players) && (
-        <div className="multiplayer-bot-control-bar" style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '10px',
-          width: '100%',
-          maxWidth: '1080px',
-          marginBottom: '20px',
-          padding: '10px 16px',
-          backgroundColor: '#0f172a',
-          borderRadius: '14px',
-          border: '1px solid #1e293b'
-        }}>
-          <span style={{ fontSize: '13px', color: '#94a3b8', fontWeight: 700, marginRight: '6px' }}>
-            Control de Jugadores:
-          </span>
-          {game.players.map(pKey => {
-            const isBot = botPlayers[pKey];
-            return (
-              <button
-                key={pKey}
-                onClick={() => togglePlayerType(pKey)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  backgroundColor: isBot ? '#334155' : '#0284c7',
-                  color: '#ffffff',
-                  border: 'none',
-                  padding: '6px 12px',
-                  borderRadius: '8px',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  cursor: 'pointer'
-                }}
-              >
-                {isBot ? <Bot size={14} /> : <Users size={14} />}
-                {pKey.toUpperCase()}: {isBot ? 'Bot IA' : 'Humano'}
-              </button>
-            );
-          })}
-
-          {/* Selector de Modelo Homogéneo para los bots en local */}
-          {Object.values(botPlayers).some(Boolean) && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              backgroundColor: '#1e293b',
-              padding: '4px 10px',
-              borderRadius: '8px',
-              border: '1px solid #334155'
-            }}>
-              <Bot size={15} style={{ color: '#c084fc' }} />
-              <span style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: 700 }}>Modelo de Bots:</span>
-              <select
-                value={selectedLocalBotId}
-                onChange={(e) => setSelectedLocalBotId(e.target.value)}
-                style={{
-                  backgroundColor: '#0f172a',
-                  color: '#fde047',
-                  border: '1px solid #475569',
-                  borderRadius: '6px',
-                  padding: '3px 8px',
-                  fontSize: '11px',
-                  fontWeight: 800,
-                  cursor: 'pointer'
-                }}
-              >
-                {BOT_ROSTER.slice(0, 10).map(b => (
-                  <option key={b.id} value={b.id}>
-                    {b.name} ({b.elo} Elo)
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          <button
-            onClick={() => initGameForVariant(selectedVariant)}
-            style={{
-              marginLeft: 'auto',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              backgroundColor: '#1e293b',
-              color: '#f8fafc',
-              border: '1px solid #334155',
-              padding: '6px 14px',
-              borderRadius: '8px',
-              fontSize: '12px',
-              fontWeight: 700,
-              cursor: 'pointer'
-            }}
-          >
-            <RotateCcw size={14} /> Reiniciar Partida
-          </button>
-        </div>
-      )}
-
-      {/* Banner de Ganador */}
-      {game?.winner && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '14px',
-          backgroundColor: '#d97706',
-          color: '#ffffff',
-          padding: '14px 24px',
-          borderRadius: '16px',
-          fontWeight: 900,
-          fontSize: '18px',
-          boxShadow: '0 10px 30px rgba(217, 119, 6, 0.4)',
-          marginBottom: '20px'
-        }}>
-          <Trophy size={28} />
-          <span>¡Victoria de {game.winner.toUpperCase()}! Partida Concluida.</span>
-          <button
-            onClick={() => initGameForVariant(selectedVariant)}
-            style={{
-              marginLeft: '12px',
-              backgroundColor: '#ffffff',
-              color: '#92400e',
-              border: 'none',
-              padding: '6px 14px',
-              borderRadius: '8px',
-              fontWeight: 800,
-              cursor: 'pointer'
-            }}
-          >
-            Nueva Partida
-          </button>
-        </div>
-      )}
-
-      {/* Banner de Bot Pensando */}
-      {isBotThinking && !game?.winner && (
-        <div className="multiplayer-status-banner multiplayer-bot-thinking" style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          backgroundColor: 'rgba(56, 189, 248, 0.12)',
-          border: '1px solid rgba(56, 189, 248, 0.35)',
-          color: '#38bdf8',
-          padding: '8px 20px',
-          borderRadius: '24px',
-          fontSize: '13px',
-          fontWeight: 700,
-          marginBottom: '16px',
-          boxShadow: '0 4px 16px rgba(56, 189, 248, 0.2)'
-        }}>
-          <Bot size={16} />
-          <span>El Bot ({game?.activePlayer ? game.activePlayer.toUpperCase() : 'IA'}) está calculando su jugada...</span>
-        </div>
-      )}
-
-      {/* Banner de Turno en este Dispositivo */}
-      {allowedColors.includes(game?.activePlayer) && !game?.winner && (
-        <div className="multiplayer-status-banner multiplayer-turn-banner" style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          backgroundColor: 'rgba(34, 197, 94, 0.15)',
-          border: '1.5px solid #22c55e',
-          color: '#4ade80',
-          padding: '8px 20px',
-          borderRadius: '24px',
-          fontSize: '13px',
-          fontWeight: 800,
-          marginBottom: '16px',
-          boxShadow: '0 4px 16px rgba(34, 197, 94, 0.25)'
-        }}>
-          <span>🎮</span>
-          <span>
-            {partyRoom && partyRoom.seats ? (
-              (() => {
-                const activeSeat = partyRoom.seats.find(s => s.color === game.activePlayer);
-                return `¡Turno en este dispositivo! Juega ${activeSeat?.user?.name || activeSeat?.label || game.activePlayer.toUpperCase()}`;
-              })()
-            ) : (
-              `¡Tu turno! Mueves el ejército ${game.activePlayer.toUpperCase()}`
-            )}
-          </span>
-        </div>
-      )}
-
-      {/* Tablero Activo */}
+      {/* Tablero Activo Responsivo con slots de Sidebar integrados */}
       <div className="multiplayer-board-wrapper">
         {game && selectedVariant === 'chaturaji' && (
           <ChaturajiBoard
@@ -2195,6 +2343,8 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
             isBotTurn={botPlayers[game.activePlayer] || isBotThinking}
             allowedColors={allowedColors}
             playerColor={primaryPlayerColor}
+            sidebarHeader={sidebarHeaderContent}
+            sidebarFooter={sidebarFooterContent}
           />
         )}
 
@@ -2206,6 +2356,8 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
             isBotTurn={botPlayers[game.activePlayer] || isBotThinking}
             allowedColors={allowedColors}
             playerColor={primaryPlayerColor}
+            sidebarHeader={sidebarHeaderContent}
+            sidebarFooter={sidebarFooterContent}
           />
         )}
 
@@ -2217,6 +2369,8 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
             isBotTurn={botPlayers[game.activePlayer] || isBotThinking}
             allowedColors={allowedColors}
             playerColor={primaryPlayerColor}
+            sidebarHeader={sidebarHeaderContent}
+            sidebarFooter={sidebarFooterContent}
           />
         )}
 
@@ -2228,6 +2382,8 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
             isBotTurn={botPlayers[game.activePlayer] || isBotThinking}
             allowedColors={allowedColors}
             playerColor={primaryPlayerColor}
+            sidebarHeader={sidebarHeaderContent}
+            sidebarFooter={sidebarFooterContent}
           />
         )}
       </div>
@@ -2238,89 +2394,6 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
           <ReactionFloatingBubble reaction={latestFloatingReaction.reaction} position="bottom" />
         </div>
       )}
-
-      {/* Barra Social Multijugador: Reacciones en Vivo y Chat Deportivo Familiar */}
-      <div className="multiplayer-social-bar" style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '12px',
-        flexWrap: 'wrap',
-        margin: '12px 0 18px 0',
-        width: '100%',
-        maxWidth: '1080px',
-        padding: '6px 12px'
-      }}>
-        {/* Selector de Reacciones / Emojis en Vivo */}
-        <ReactionsBar
-          onSendReaction={handleSendReaction}
-          disabled={Boolean(game?.winner)}
-        />
-
-        {/* Botón de Chat Deportivo Seguro Condicionado a Familiares */}
-        {isFamilyOnlyGame ? (
-          <button
-            type="button"
-            className={`btn-safe-chat-trigger ${isChatOpen ? 'active' : ''}`}
-            onClick={() => {
-              setIsChatOpen(prev => !prev);
-              setHasUnreadChat(false);
-            }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '7px',
-              backgroundColor: isChatOpen ? '#0284c7' : '#1e293b',
-              color: '#f8fafc',
-              border: '1px solid #334155',
-              borderRadius: '8px',
-              padding: '6px 14px',
-              fontSize: '12px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              position: 'relative',
-              transition: 'all 0.15s ease'
-            }}
-            title="Abrir Chat Deportivo Seguro (Familiares Registrados)"
-          >
-            <MessageCircle size={15} color="#38bdf8" />
-            <span>Chat Deportivo Familiar</span>
-            {hasUnreadChat && !isChatOpen && (
-              <span style={{
-                position: 'absolute',
-                top: '-3px',
-                right: '-3px',
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                backgroundColor: '#ef4444',
-                boxShadow: '0 0 6px #ef4444'
-              }} />
-            )}
-          </button>
-        ) : (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              backgroundColor: 'rgba(15, 23, 42, 0.7)',
-              color: '#94a3b8',
-              border: '1px dashed #475569',
-              borderRadius: '8px',
-              padding: '6px 12px',
-              fontSize: '11px',
-              fontWeight: 700,
-              cursor: 'not-allowed',
-              userSelect: 'none'
-            }}
-            title="Chat bloqueado por protección infantil. Solo disponible cuando todos los participantes son miembros de la familia registrada."
-          >
-            <Lock size={13} color="#f59e0b" />
-            <span>🔒 Chat Bloqueado (Protección Infantil)</span>
-          </div>
-        )}
-      </div>
 
       {/* Cajón Desplegable de Chat Deportivo Familiar */}
       {isChatOpen && isFamilyOnlyGame && (

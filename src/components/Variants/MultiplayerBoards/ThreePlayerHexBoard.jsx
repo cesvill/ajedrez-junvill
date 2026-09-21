@@ -58,7 +58,9 @@ export const ThreePlayerHexBoard = ({
   onMove,
   isBotTurn = false,
   allowedColors,
-  playerColor
+  playerColor,
+  sidebarHeader = null,
+  sidebarFooter = null
 }) => {
   const [selectedCellId, setSelectedCellId] = useState(null);
 
@@ -155,201 +157,220 @@ export const ThreePlayerHexBoard = ({
   return (
     <div className="multiplayer-board-container">
       
-      {/* HUD de Turno */}
-      <div className="multiplayer-hud-card" style={{
-        borderColor: activePlayer === 'white' ? '#f8fafc' : activePlayer === 'red' ? '#ef4444' : '#64748b',
-        boxShadow: '0 8px 24px rgba(0,0,0,0.4)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '50%',
-            backgroundColor: activePlayer === 'white' ? '#ffffff' : activePlayer === 'red' ? '#ef4444' : '#1e293b',
-            border: '2px solid #cbd5e1',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: activePlayer === 'white' ? '#0f172a' : '#ffffff',
-            fontWeight: 800
-          }}>
-            {activePlayer.charAt(0).toUpperCase()}
-          </div>
-          <div>
-            <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600 }}>TURNO (AJEDREZ A 3)</div>
-            <div style={{ fontSize: '17px', fontWeight: 800, color: '#f8fafc', textTransform: 'capitalize' }}>
-              Ejército {activePlayer === 'white' ? 'Blanco' : activePlayer === 'black' ? 'Negro' : 'Rojo'}
-            </div>
-          </div>
-        </div>
+      {/* Columna Izquierda: El Tablero */}
+      <div className="multiplayer-board-area">
+        <div className="multiplayer-board-grid three-hex-grid">
+          <svg
+            viewBox="0 0 800 800"
+            style={{ width: '100%', height: '100%', overflow: 'visible' }}
+          >
+            {/* Grupo rotado según la orientación del jugador ("mi bando siempre abajo") */}
+            <g transform={`rotate(${boardRotation}, ${cx}, ${cy})`} style={{ transition: 'transform 0.4s ease' }}>
+              {/* Borde exterior del hexágono */}
+              <polygon
+                points={V.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')}
+                fill="#3d2612"
+                stroke="#1e293b"
+                strokeWidth="6"
+                strokeLinejoin="round"
+              />
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <button
-            onClick={cycleOrientation}
-            title="Girar orientación del tablero"
-            style={{
+              {/* 96 Casillas Cuadriláteras */}
+              {['A', 'B', 'C'].map(sec => 
+                Array(4).fill(null).map((_, r) => 
+                  Array(8).fill(null).map((_, f) => {
+                    const cellId = `${sec}_${f}_${r}`;
+                    const cell = game.cells[cellId];
+                    const { pathData, center } = getCellGeometry(sec, f, r);
+                    const isSelected = selectedCellId === cellId;
+                    const isLegal = legalMoves.some(m => m.to === cellId);
+                    const hasPiece = !!cell?.piece;
+
+                    const isDark = (f + r) % 2 === 0;
+                    let fill = isDark ? DARK_SQUARE : LIGHT_SQUARE;
+                    if (isSelected) fill = '#60a5fa';
+                    else if (isLegal) fill = hasPiece ? '#f87171' : '#4ade80';
+
+                    return (
+                      <g key={cellId} onClick={() => handleCellClick(cellId)} style={{ cursor: 'pointer' }}>
+                        <path
+                          d={pathData}
+                          fill={fill}
+                          stroke="#3d2612"
+                          strokeWidth="1.2"
+                          style={{ transition: 'fill 0.15s ease' }}
+                        />
+
+                        {/* Indicador de destino legal */}
+                        {isLegal && !hasPiece && (
+                          <circle
+                            cx={center.x}
+                            cy={center.y}
+                            r="6"
+                            fill="#15803d"
+                            stroke="#ffffff"
+                            strokeWidth="1.5"
+                          />
+                        )}
+
+                        {/* Render de Pieza Centrada con contrarotación para mantenerse vertical */}
+                        {hasPiece && (() => {
+                          const isPawn = cell.piece.type === 'p';
+                          const pieceSize = isPawn ? 35 : 42;
+                          const half = pieceSize / 2;
+                          return (
+                            <g
+                              transform={`translate(${center.x}, ${center.y}) rotate(${-boardRotation}) translate(${-half}, ${-half})`}
+                              style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}
+                            >
+                              <PieceIcon
+                                piece={cell.piece.type}
+                                color={cell.piece.owner}
+                                size={pieceSize}
+                                width={pieceSize}
+                                height={pieceSize}
+                              />
+                            </g>
+                          );
+                        })()}
+                      </g>
+                    );
+                  })
+                )
+              )}
+
+              {/* Costuras centrales divisorias */}
+              <line x1={M_S.x} y1={M_S.y} x2={C.x} y2={C.y} stroke="#3d2612" strokeWidth="2.5" />
+              <line x1={M_SE.x} y1={M_SE.y} x2={C.x} y2={C.y} stroke="#3d2612" strokeWidth="3" />
+              <line x1={M_NE.x} y1={M_NE.y} x2={C.x} y2={C.y} stroke="#3d2612" strokeWidth="2.5" />
+              <line x1={M_N.x} y1={M_N.y} x2={C.x} y2={C.y} stroke="#3d2612" strokeWidth="3" />
+              <line x1={M_NW.x} y1={M_NW.y} x2={C.x} y2={C.y} stroke="#3d2612" strokeWidth="2.5" />
+              <line x1={M_SW.x} y1={M_SW.y} x2={C.x} y2={C.y} stroke="#3d2612" strokeWidth="3" />
+
+              {/* Letras de columnas para el bando que está en la base inferior */}
+              {['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].map((letter, idx) => {
+                const activeSec = effectiveOrientationColor === 'black' ? 'B' : effectiveOrientationColor === 'red' ? 'C' : 'A';
+                const { outerEdgeMid } = getCellGeometry(activeSec, idx, 0);
+                const dirX = outerEdgeMid.x - cx;
+                const dirY = outerEdgeMid.y - cy;
+                const dist = Math.sqrt(dirX * dirX + dirY * dirY) || 1;
+                const labelX = (outerEdgeMid.x + (dirX / dist) * 16).toFixed(1);
+                const labelY = (outerEdgeMid.y + (dirY / dist) * 16).toFixed(1);
+                return (
+                  <text
+                    key={`${activeSec}_${letter}_${idx}`}
+                    x={labelX}
+                    y={labelY}
+                    fill="#cbd5e1"
+                    fontSize="14"
+                    fontWeight="800"
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    transform={`rotate(${-boardRotation}, ${labelX}, ${labelY})`}
+                    style={{ textShadow: '0 2px 4px rgba(0,0,0,0.9)' }}
+                  >
+                    {letter}
+                  </text>
+                );
+              })}
+            </g>
+          </svg>
+        </div>
+      </div>
+
+      {/* Columna Derecha: Sidebar de Opciones, Marcador y Acciones */}
+      <div className="multiplayer-sidebar-area">
+        {/* HUD de Turno */}
+        <div className="multiplayer-hud-card" style={{
+          borderColor: activePlayer === 'white' ? '#f8fafc' : activePlayer === 'red' ? '#ef4444' : '#64748b',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.4)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              backgroundColor: activePlayer === 'white' ? '#ffffff' : activePlayer === 'red' ? '#ef4444' : '#1e293b',
+              border: '2px solid #cbd5e1',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
-              backgroundColor: 'rgba(56, 189, 248, 0.15)',
-              border: '1px solid rgba(56, 189, 248, 0.4)',
-              color: '#38bdf8',
-              padding: '6px 12px',
-              borderRadius: '10px',
-              fontSize: '12px',
-              fontWeight: 800,
-              cursor: 'pointer',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <span>🔄 Vista: {effectiveOrientationColor === 'white' ? 'Blanco' : effectiveOrientationColor === 'black' ? 'Negro' : 'Rojo'} (Abajo)</span>
-          </button>
-        </div>
-      </div>
+              justifyContent: 'center',
+              color: activePlayer === 'white' ? '#0f172a' : '#ffffff',
+              fontWeight: 800
+            }}>
+              {activePlayer.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600 }}>TURNO (AJEDREZ A 3)</div>
+              <div style={{ fontSize: '17px', fontWeight: 800, color: '#f8fafc', textTransform: 'capitalize' }}>
+                Ejército {activePlayer === 'white' ? 'Blanco' : activePlayer === 'black' ? 'Negro' : 'Rojo'}
+              </div>
+            </div>
+          </div>
 
-      {/* Tablero SVG Hexagonal Regular (96 casillas) */}
-      <div className="multiplayer-board-grid three-hex-grid">
-        <svg
-          viewBox="0 0 800 800"
-          style={{ width: '100%', height: '100%', overflow: 'visible' }}
-        >
-          {/* Grupo rotado según la orientación del jugador ("mi bando siempre abajo") */}
-          <g transform={`rotate(${boardRotation}, ${cx}, ${cy})`} style={{ transition: 'transform 0.4s ease' }}>
-            {/* Borde exterior del hexágono */}
-            <polygon
-              points={V.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')}
-              fill="#3d2612"
-              stroke="#1e293b"
-              strokeWidth="6"
-              strokeLinejoin="round"
-            />
-
-            {/* 96 Casillas Cuadriláteras */}
-            {['A', 'B', 'C'].map(sec => 
-              Array(4).fill(null).map((_, r) => 
-                Array(8).fill(null).map((_, f) => {
-                  const cellId = `${sec}_${f}_${r}`;
-                  const cell = game.cells[cellId];
-                  const { pathData, center } = getCellGeometry(sec, f, r);
-                  const isSelected = selectedCellId === cellId;
-                  const isLegal = legalMoves.some(m => m.to === cellId);
-                  const hasPiece = !!cell?.piece;
-
-                  const isDark = (f + r) % 2 === 0;
-                  let fill = isDark ? DARK_SQUARE : LIGHT_SQUARE;
-                  if (isSelected) fill = '#60a5fa';
-                  else if (isLegal) fill = hasPiece ? '#f87171' : '#4ade80';
-
-                  return (
-                    <g key={cellId} onClick={() => handleCellClick(cellId)} style={{ cursor: 'pointer' }}>
-                      <path
-                        d={pathData}
-                        fill={fill}
-                        stroke="#3d2612"
-                        strokeWidth="1.2"
-                        style={{ transition: 'fill 0.15s ease' }}
-                      />
-
-                      {/* Indicador de destino legal */}
-                      {isLegal && !hasPiece && (
-                        <circle
-                          cx={center.x}
-                          cy={center.y}
-                          r="6"
-                          fill="#15803d"
-                          stroke="#ffffff"
-                          strokeWidth="1.5"
-                        />
-                      )}
-
-                      {/* Render de Pieza Centrada con contrarotación para mantenerse vertical */}
-                      {hasPiece && (() => {
-                        const isPawn = cell.piece.type === 'p';
-                        const pieceSize = isPawn ? 35 : 42;
-                        const half = pieceSize / 2;
-                        return (
-                          <g
-                            transform={`translate(${center.x}, ${center.y}) rotate(${-boardRotation}) translate(${-half}, ${-half})`}
-                            style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}
-                          >
-                            <PieceIcon
-                              piece={cell.piece.type}
-                              color={cell.piece.owner}
-                              size={pieceSize}
-                              width={pieceSize}
-                              height={pieceSize}
-                            />
-                          </g>
-                        );
-                      })()}
-                    </g>
-                  );
-                })
-              )
-            )}
-
-            {/* Costuras centrales divisorias */}
-            <line x1={M_S.x} y1={M_S.y} x2={C.x} y2={C.y} stroke="#3d2612" strokeWidth="2.5" />
-            <line x1={M_SE.x} y1={M_SE.y} x2={C.x} y2={C.y} stroke="#3d2612" strokeWidth="3" />
-            <line x1={M_NE.x} y1={M_NE.y} x2={C.x} y2={C.y} stroke="#3d2612" strokeWidth="2.5" />
-            <line x1={M_N.x} y1={M_N.y} x2={C.x} y2={C.y} stroke="#3d2612" strokeWidth="3" />
-            <line x1={M_NW.x} y1={M_NW.y} x2={C.x} y2={C.y} stroke="#3d2612" strokeWidth="2.5" />
-            <line x1={M_SW.x} y1={M_SW.y} x2={C.x} y2={C.y} stroke="#3d2612" strokeWidth="3" />
-
-            {/* Letras de columnas para el bando que está en la base inferior */}
-            {['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].map((letter, idx) => {
-              const activeSec = effectiveOrientationColor === 'black' ? 'B' : effectiveOrientationColor === 'red' ? 'C' : 'A';
-              const { outerEdgeMid } = getCellGeometry(activeSec, idx, 0);
-              const dirX = outerEdgeMid.x - cx;
-              const dirY = outerEdgeMid.y - cy;
-              const dist = Math.sqrt(dirX * dirX + dirY * dirY) || 1;
-              const labelX = (outerEdgeMid.x + (dirX / dist) * 16).toFixed(1);
-              const labelY = (outerEdgeMid.y + (dirY / dist) * 16).toFixed(1);
-              return (
-                <text
-                  key={`${activeSec}_${letter}_${idx}`}
-                  x={labelX}
-                  y={labelY}
-                  fill="#cbd5e1"
-                  fontSize="14"
-                  fontWeight="800"
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  transform={`rotate(${-boardRotation}, ${labelX}, ${labelY})`}
-                  style={{ textShadow: '0 2px 4px rgba(0,0,0,0.9)' }}
-                >
-                  {letter}
-                </text>
-              );
-            })}
-          </g>
-        </svg>
-      </div>
-
-      {/* Marcador de Puntuación */}
-      <div className="multiplayer-scores-grid three-scores-grid">
-        {THREE_HEX_PLAYERS.map(player => {
-          const isTurn = activePlayer === player;
-          const label = player === 'white' ? 'Blanco' : player === 'black' ? 'Negro' : 'Rojo';
-          const colorHex = player === 'white' ? '#f8fafc' : player === 'red' ? '#ef4444' : '#64748b';
-          return (
-            <div
-              key={player}
-              className="multiplayer-score-card"
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <button
+              onClick={cycleOrientation}
+              title="Girar orientación del tablero"
               style={{
-                backgroundColor: isTurn ? 'rgba(30, 41, 59, 0.95)' : '#0f172a',
-                border: isTurn ? `2px solid ${colorHex}` : '1px solid #334155'
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                backgroundColor: 'rgba(56, 189, 248, 0.15)',
+                border: '1px solid rgba(56, 189, 248, 0.4)',
+                color: '#38bdf8',
+                padding: '6px 12px',
+                borderRadius: '10px',
+                fontSize: '12px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
               }}
             >
-              <div className="score-card-header">
-                <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: colorHex }} />
-                <span className="score-card-name">{label}</span>
+              <span>🔄 Vista: {effectiveOrientationColor === 'white' ? 'Blanco' : effectiveOrientationColor === 'black' ? 'Negro' : 'Rojo'} (Abajo)</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Banners Superiores (Turno / Bot) */}
+        {sidebarHeader && (
+          <div className="multiplayer-sidebar-header">
+            {sidebarHeader}
+          </div>
+        )}
+
+        {/* Marcador de Puntuación */}
+        <div className="multiplayer-scores-grid three-scores-grid">
+          {THREE_HEX_PLAYERS.map(player => {
+            const isTurn = activePlayer === player;
+            const label = player === 'white' ? 'Blanco' : player === 'black' ? 'Negro' : 'Rojo';
+            const colorHex = player === 'white' ? '#f8fafc' : player === 'red' ? '#ef4444' : '#64748b';
+            return (
+              <div
+                key={player}
+                className="multiplayer-score-card"
+                style={{
+                  backgroundColor: isTurn ? 'rgba(30, 41, 59, 0.95)' : '#0f172a',
+                  border: isTurn ? `2px solid ${colorHex}` : '1px solid #334155'
+                }}
+              >
+                <div className="score-card-header">
+                  <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: colorHex }} />
+                  <span className="score-card-name">{label}</span>
+                </div>
+                <span className="score-card-pts" style={{ color: '#38bdf8' }}>{game.scores[player]} pts</span>
+                <MultiplayerCapturedPieces items={game.getCapturedSummary?.(player) || []} />
               </div>
-              <span className="score-card-pts" style={{ color: '#38bdf8' }}>{game.scores[player]} pts</span>
-              <MultiplayerCapturedPieces items={game.getCapturedSummary?.(player) || []} />
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
+
+        {/* Controles Inferiores (Reacciones, Chat, Bots) */}
+        {sidebarFooter && (
+          <div className="multiplayer-sidebar-footer">
+            {sidebarFooter}
+          </div>
+        )}
       </div>
 
     </div>

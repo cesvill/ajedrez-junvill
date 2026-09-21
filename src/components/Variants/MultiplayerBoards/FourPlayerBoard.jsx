@@ -16,7 +16,9 @@ export const FourPlayerBoard = ({
   onMove,
   isBotTurn = false,
   allowedColors,
-  playerColor
+  playerColor,
+  sidebarHeader = null,
+  sidebarFooter = null
 }) => {
   const [selectedCell, setSelectedCell] = useState(null);
 
@@ -94,183 +96,200 @@ export const FourPlayerBoard = ({
   return (
     <div className="multiplayer-board-container">
       
-      {/* HUD del Jugador Activo */}
-      <div className="multiplayer-hud-card" style={{
-        borderColor: activeMeta?.colorHex || '#3b82f6',
-        boxShadow: `0 8px 24px ${activeMeta?.colorHex || '#3b82f6'}26`
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            width: '42px',
-            height: '42px',
-            borderRadius: '12px',
-            backgroundColor: activeMeta?.colorHex || '#ef4444',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#ffffff',
-            fontWeight: 800,
-            fontSize: '18px'
-          }}>
-            {activeMeta?.name?.charAt(0)}
-          </div>
-          <div>
-            <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase' }}>
-              Turno ({game.mode === 'teams' ? 'Equipos 2v2' : 'FFA Todos contra Todos'})
-            </div>
-            <div style={{ fontSize: '18px', fontWeight: 800, color: '#f8fafc' }}>
-              {activeMeta?.name}
-            </div>
-          </div>
-        </div>
+      {/* Columna Izquierda: Tablero */}
+      <div className="multiplayer-board-area">
+        <div 
+          className="multiplayer-board-grid four-player-grid"
+          style={{
+            transform: `rotate(${boardRotation}deg)`,
+            transition: 'transform 0.4s ease'
+          }}
+        >
+          {Array(14).fill(null).map((_, y) => 
+            Array(14).fill(null).map((_, x) => {
+              const isOut = FourPlayerGame.isOutOfBounds(x, y);
+              const piece = game.board[y][x];
+              const isLight = (x + y) % 2 === 0;
+              const isSelected = selectedCell?.x === x && selectedCell?.y === y;
+              const isLegal = legalMoves.some(m => m.to.nx === x && m.to.ny === y);
 
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <button
-            onClick={cycleOrientation}
-            title="Girar orientación del tablero"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              backgroundColor: 'rgba(56, 189, 248, 0.15)',
-              border: '1px solid rgba(56, 189, 248, 0.4)',
-              color: '#38bdf8',
-              padding: '6px 12px',
-              borderRadius: '10px',
-              fontSize: '12px',
-              fontWeight: 800,
-              cursor: 'pointer',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <span>🔄 Vista: {PLAYER_META[effectiveOrientationColor]?.name || effectiveOrientationColor} (Abajo)</span>
-          </button>
-          <span style={{ fontSize: '14px', fontWeight: 800, color: activeMeta?.colorHex, backgroundColor: 'rgba(15,23,42,0.6)', padding: '6px 14px', borderRadius: '10px', border: '1px solid #334155' }}>
-            {game.scores[activePlayer]} Puntos
-          </span>
-        </div>
-      </div>
+              if (isOut) {
+                return (
+                  <div
+                    key={`${x}_${y}`}
+                    style={{
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      pointerEvents: 'none'
+                    }}
+                  />
+                );
+              }
 
-      {/* Tablero 14x14 en Cruz */}
-      <div 
-        className="multiplayer-board-grid four-player-grid"
-        style={{
-          transform: `rotate(${boardRotation}deg)`,
-          transition: 'transform 0.4s ease'
-        }}
-      >
-        {Array(14).fill(null).map((_, y) => 
-          Array(14).fill(null).map((_, x) => {
-            const isOut = FourPlayerGame.isOutOfBounds(x, y);
-            const piece = game.board[y][x];
-            const isLight = (x + y) % 2 === 0;
-            const isSelected = selectedCell?.x === x && selectedCell?.y === y;
-            const isLegal = legalMoves.some(m => m.to.nx === x && m.to.ny === y);
+              let cellBg = isLight ? '#f1f5f9' : '#94a3b8';
+              if (isSelected) cellBg = '#60a5fa';
+              if (isLegal) cellBg = piece ? '#f87171' : (isLight ? '#86efac' : '#4ade80');
 
-            if (isOut) {
               return (
                 <div
                   key={`${x}_${y}`}
+                  onClick={() => handleCellClick(x, y)}
                   style={{
-                    backgroundColor: 'transparent',
-                    border: 'none',
-                    pointerEvents: 'none'
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: cellBg,
+                    border: '0.5px solid rgba(15, 23, 42, 0.25)',
+                    cursor: (piece?.owner === activePlayer || isLegal) ? 'pointer' : 'default',
+                    userSelect: 'none',
+                    transition: 'background-color 0.15s ease'
                   }}
-                />
-              );
-            }
+                >
+                  {isLegal && !piece && (
+                    <div style={{
+                      width: '10px',
+                      height: '10px',
+                      borderRadius: '50%',
+                      backgroundColor: '#16a34a',
+                      boxShadow: '0 0 6px #16a34a'
+                    }} />
+                  )}
 
-            let cellBg = isLight ? '#f1f5f9' : '#64748b';
-            if (isSelected) cellBg = '#60a5fa';
-            if (isLegal) cellBg = piece ? '#f87171' : (isLight ? '#86efac' : '#4ade80');
+                  {piece && (
+                    <div style={{
+                      width: '85%',
+                      height: '85%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.35))',
+                      transform: `rotate(${-boardRotation}deg)`,
+                      transition: 'transform 0.4s ease'
+                    }}>
+                      <PieceIcon
+                        piece={piece.type}
+                        color={piece.owner}
+                        className="w-full h-full"
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+
+      {/* Columna Derecha: Sidebar de Opciones, Marcador y Acciones */}
+      <div className="multiplayer-sidebar-area">
+        {/* HUD del Jugador Activo */}
+        <div className="multiplayer-hud-card" style={{
+          borderColor: activeMeta?.colorHex || '#3b82f6',
+          boxShadow: `0 8px 24px ${activeMeta?.colorHex || '#3b82f6'}26`
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '42px',
+              height: '42px',
+              borderRadius: '12px',
+              backgroundColor: activeMeta?.colorHex || '#ef4444',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#ffffff',
+              fontWeight: 800,
+              fontSize: '18px'
+            }}>
+              {activeMeta?.name?.charAt(0)}
+            </div>
+            <div>
+              <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase' }}>
+                Turno ({game.mode === 'teams' ? 'Equipos 2v2' : 'FFA Todos contra Todos'})
+              </div>
+              <div style={{ fontSize: '18px', fontWeight: 800, color: '#f8fafc' }}>
+                {activeMeta?.name}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <button
+              onClick={cycleOrientation}
+              title="Girar orientación del tablero"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                backgroundColor: 'rgba(56, 189, 248, 0.15)',
+                border: '1px solid rgba(56, 189, 248, 0.4)',
+                color: '#38bdf8',
+                padding: '6px 12px',
+                borderRadius: '10px',
+                fontSize: '12px',
+                fontWeight: 800,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <span>🔄 Vista: {PLAYER_META[effectiveOrientationColor]?.name || effectiveOrientationColor} (Abajo)</span>
+            </button>
+            <span style={{ fontSize: '14px', fontWeight: 800, color: activeMeta?.colorHex, backgroundColor: 'rgba(15,23,42,0.6)', padding: '6px 14px', borderRadius: '10px', border: '1px solid #334155' }}>
+              {game.scores[activePlayer]} Puntos
+            </span>
+          </div>
+        </div>
+
+        {/* Banners Superiores (Turno / Bot) */}
+        {sidebarHeader && (
+          <div className="multiplayer-sidebar-header">
+            {sidebarHeader}
+          </div>
+        )}
+
+        {/* Marcador de los 4 Jugadores */}
+        <div className="multiplayer-scores-grid">
+          {FOUR_PLAYERS.map(player => {
+            const meta = PLAYER_META[player];
+            const isEliminated = game.eliminated.has(player);
+            const isTurn = activePlayer === player;
 
             return (
               <div
-                key={`${x}_${y}`}
-                onClick={() => handleCellClick(x, y)}
+                key={player}
+                className="multiplayer-score-card"
                 style={{
-                  position: 'relative',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: cellBg,
-                  cursor: (piece?.owner === activePlayer || isLegal) ? 'pointer' : 'default',
-                  userSelect: 'none',
-                  border: '0.5px solid rgba(0,0,0,0.08)'
+                  backgroundColor: isTurn ? 'rgba(30, 41, 59, 0.95)' : '#0f172a',
+                  border: isTurn ? `2px solid ${meta.colorHex}` : '1px solid #334155',
+                  opacity: isEliminated ? 0.45 : 1
                 }}
               >
-                {/* Indicador de jugada legal */}
-                {isLegal && !piece && (
+                <div className="score-card-header">
                   <div style={{
                     width: '10px',
                     height: '10px',
                     borderRadius: '50%',
-                    backgroundColor: '#15803d',
-                    boxShadow: '0 0 6px #15803d'
+                    backgroundColor: meta.colorHex,
+                    flexShrink: 0
                   }} />
-                )}
-
-                {/* Pieza con contrarotación para mantenerse erguida */}
-                {piece && (
-                  <div style={{
-                    width: '88%',
-                    height: '88%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    filter: piece.owner === 'frozen' ? 'grayscale(100%) opacity(0.5)' : 'drop-shadow(0 2px 5px rgba(0,0,0,0.3))',
-                    transform: `rotate(${-boardRotation}deg)`,
-                    transition: 'transform 0.4s ease'
-                  }}>
-                    <PieceIcon
-                      piece={piece.type}
-                      color={piece.owner}
-                      className="w-full h-full"
-                    />
-                  </div>
-                )}
+                  <span className="score-card-name">
+                    {meta.name.split(' ')[0]}
+                  </span>
+                </div>
+                <span className="score-card-pts" style={{ color: meta.colorHex }}>
+                  {isEliminated ? 'ELIM' : `${game.scores[player]} pts`}
+                </span>
+                <MultiplayerCapturedPieces items={game.getCapturedSummary?.(player) || []} />
               </div>
             );
-          })
+          })}
+        </div>
+
+        {/* Controles Inferiores (Reacciones, Chat, Bots) */}
+        {sidebarFooter && (
+          <div className="multiplayer-sidebar-footer">
+            {sidebarFooter}
+          </div>
         )}
-      </div>
-
-      {/* Marcador de los 4 Jugadores */}
-      <div className="multiplayer-scores-grid">
-        {FOUR_PLAYERS.map(player => {
-          const meta = PLAYER_META[player];
-          const isEliminated = game.eliminated.has(player);
-          const isTurn = activePlayer === player;
-
-          return (
-            <div
-              key={player}
-              className="multiplayer-score-card"
-              style={{
-                backgroundColor: isTurn ? 'rgba(30, 41, 59, 0.95)' : '#0f172a',
-                border: isTurn ? `2px solid ${meta.colorHex}` : '1px solid #334155',
-                opacity: isEliminated ? 0.45 : 1
-              }}
-            >
-              <div className="score-card-header">
-                <div style={{
-                  width: '10px',
-                  height: '10px',
-                  borderRadius: '50%',
-                  backgroundColor: meta.colorHex,
-                  flexShrink: 0
-                }} />
-                <span className="score-card-name">
-                  {meta.name.split(' ')[0]}
-                </span>
-              </div>
-              <span className="score-card-pts" style={{ color: meta.colorHex }}>
-                {isEliminated ? 'ELIM' : `${game.scores[player]} pts`}
-              </span>
-              <MultiplayerCapturedPieces items={game.getCapturedSummary?.(player) || []} />
-            </div>
-          );
-        })}
       </div>
 
     </div>
