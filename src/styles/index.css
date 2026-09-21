@@ -2452,6 +2452,17 @@ html.touch-dragging body {
   width: 100%;
 }
 
+.multiplayer-portrait-top-banners {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.multiplayer-landscape-only {
+  display: none !important;
+}
+
 .multiplayer-header-bar {
   display: flex;
   align-items: center;
@@ -2801,38 +2812,52 @@ html.in-simulator .multiplayer-board-wrapper {
   }
 
   .main-content.multiplayer-active {
-    padding: 2px 4px calc(44px + var(--sab)) 4px !important;
+    padding: 2px 4px calc(48px + var(--sab)) 4px !important;
     height: 100dvh !important;
     max-height: 100dvh !important;
     overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Ocultar banners verticales y tarjetas en landscape */
+  .multiplayer-portrait-top-banners,
+  .multiplayer-variant-cards-grid {
+    display: none !important;
+  }
+
+  /* Mostrar controles específicos de landscape */
+  .multiplayer-landscape-only {
+    display: flex !important;
   }
 
   .multiplayer-party-container {
-    padding: 2px 6px !important;
+    padding: 0 !important;
+    margin: 0 auto !important;
     width: 100% !important;
     max-width: 100vw !important;
-    height: calc(100dvh - 48px) !important;
-    max-height: calc(100dvh - 48px) !important;
+    height: calc(100dvh - 50px - var(--sab)) !important;
+    max-height: calc(100dvh - 50px - var(--sab)) !important;
     overflow: hidden !important;
     display: flex !important;
-    flex-direction: column !important;
+    flex-direction: row !important;
     align-items: center !important;
     justify-content: center !important;
     box-sizing: border-box !important;
   }
 
-  .multiplayer-variant-cards-grid {
-    display: none !important;
-  }
-
   .multiplayer-board-wrapper {
     width: 100% !important;
     height: 100% !important;
+    max-height: 100% !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     padding: 0 !important;
     margin: 0 !important;
+    box-sizing: border-box !important;
   }
 
   /* CONTENEDOR DE 2 COLUMNAS EN LANDSCAPE */
@@ -2841,12 +2866,12 @@ html.in-simulator .multiplayer-board-wrapper {
     flex-direction: row !important;
     align-items: center !important;
     justify-content: center !important;
-    gap: 16px !important;
+    gap: 14px !important;
     width: 100% !important;
-    max-width: 1360px !important;
+    max-width: 100% !important;
     height: 100% !important;
-    max-height: calc(100dvh - 50px) !important;
-    padding: 0 6px !important;
+    max-height: calc(100dvh - 52px - var(--sab)) !important;
+    padding: 2px 8px !important;
     margin: 0 auto !important;
     overflow: hidden !important;
     box-sizing: border-box !important;
@@ -2859,13 +2884,14 @@ html.in-simulator .multiplayer-board-wrapper {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    height: calc(100dvh - 54px) !important;
-    max-height: calc(100dvh - 54px) !important;
-    width: calc(100dvh - 54px) !important;
-    max-width: min(calc(100dvh - 54px), 64vw) !important;
+    height: calc(100dvh - 56px - var(--sab)) !important;
+    max-height: calc(100dvh - 56px - var(--sab)) !important;
+    width: calc(100dvh - 56px - var(--sab)) !important;
+    max-width: min(calc(100dvh - 56px - var(--sab)), 58vw) !important;
     aspect-ratio: 1 / 1 !important;
     margin: 0 !important;
     padding: 0 !important;
+    box-sizing: border-box !important;
   }
 
   .multiplayer-board-grid {
@@ -2874,11 +2900,12 @@ html.in-simulator .multiplayer-board-wrapper {
     max-width: 100% !important;
     max-height: 100% !important;
     aspect-ratio: 1 / 1 !important;
-    border-radius: 14px !important;
+    border-radius: 12px !important;
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6) !important;
     margin: 0 auto !important;
     padding: 0 !important;
     border: 2px solid #334155 !important;
+    box-sizing: border-box !important;
   }
 
   .three-hex-grid,
@@ -2898,14 +2925,15 @@ html.in-simulator .multiplayer-board-wrapper {
     order: unset !important;
     display: flex !important;
     flex: 1 1 280px !important;
-    max-width: 440px !important;
+    max-width: 520px !important;
     min-width: 250px !important;
-    height: calc(100dvh - 54px) !important;
-    max-height: calc(100dvh - 54px) !important;
+    height: calc(100dvh - 56px - var(--sab)) !important;
+    max-height: calc(100dvh - 56px - var(--sab)) !important;
     flex-direction: column !important;
     gap: 8px !important;
     overflow-y: auto !important;
-    padding: 2px 6px 16px 2px !important;
+    -webkit-overflow-scrolling: touch;
+    padding: 2px 8px 16px 2px !important;
     box-sizing: border-box !important;
     scrollbar-width: thin;
   }
@@ -2987,10 +3015,10 @@ html.in-simulator .multiplayer-board-wrapper {
   }
 
   html.in-simulator .multiplayer-board-area {
-    height: calc(100dvh - 54px) !important;
-    max-height: calc(100dvh - 54px) !important;
-    width: calc(100dvh - 54px) !important;
-    max-width: min(calc(100dvh - 54px), 64vw) !important;
+    height: calc(100dvh - 56px - var(--sab)) !important;
+    max-height: calc(100dvh - 56px - var(--sab)) !important;
+    width: calc(100dvh - 56px - var(--sab)) !important;
+    max-width: min(calc(100dvh - 56px - var(--sab)), 58vw) !important;
   }
 
   html.in-simulator .multiplayer-board-grid,

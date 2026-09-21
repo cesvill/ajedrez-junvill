@@ -1563,6 +1563,278 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
   // =========================================================================
   const sidebarHeaderContent = (
     <>
+      {/* Barra de Encabezado Superior (Solo en Landscape) */}
+      <div className="multiplayer-landscape-only multiplayer-landscape-topbar" style={{
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        width: '100%',
+        padding: '6px 10px',
+        backgroundColor: '#0f172a',
+        border: '1px solid #1e293b',
+        borderRadius: '12px',
+        boxSizing: 'border-box'
+      }}>
+        <button
+          onClick={handlePauseAndExit}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            backgroundColor: '#1e293b',
+            color: '#38bdf8',
+            border: '1px solid rgba(56, 189, 248, 0.4)',
+            padding: '6px 12px',
+            borderRadius: '8px',
+            fontWeight: 800,
+            fontSize: '11.5px',
+            cursor: 'pointer'
+          }}
+        >
+          <ArrowLeft size={14} /> Volver
+        </button>
+
+        <div style={{ fontSize: '12px', fontWeight: 900, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <Users size={14} style={{ color: '#38bdf8' }} />
+          <span>Multijugador</span>
+        </div>
+
+        <button
+          onClick={() => setIsRulesOpen(true)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            backgroundColor: 'rgba(56, 189, 248, 0.12)',
+            color: '#38bdf8',
+            border: '1px solid rgba(56, 189, 248, 0.3)',
+            padding: '6px 10px',
+            borderRadius: '8px',
+            fontWeight: 700,
+            fontSize: '11.5px',
+            cursor: 'pointer'
+          }}
+        >
+          <BookOpen size={14} /> Reglas
+        </button>
+      </div>
+
+      {/* Retomar Sala Activa (Solo en Landscape si existe) */}
+      {!partyRoom && activePartyRoom && (
+        <div className="multiplayer-landscape-only" style={{
+          width: '100%',
+          background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(147, 51, 234, 0.25) 100%)',
+          border: '1.5px solid #a855f7',
+          borderRadius: '12px',
+          padding: '8px 12px',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '8px',
+          boxSizing: 'border-box'
+        }}>
+          <div style={{ fontSize: '11.5px', color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span>⏳</span>
+            <span>Sala: <b style={{ color: '#facc15', fontFamily: 'monospace' }}>{activePartyRoom.roomId}</b></span>
+          </div>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button
+              onClick={() => handleJoinRoomByCode(activePartyRoom.roomId)}
+              style={{
+                backgroundColor: '#9333ea',
+                color: '#ffffff',
+                border: 'none',
+                padding: '4px 8px',
+                borderRadius: '6px',
+                fontWeight: 800,
+                fontSize: '11px',
+                cursor: 'pointer'
+              }}
+            >
+              Retomar
+            </button>
+            <button
+              onClick={() => clearActivePartyRoom && clearActivePartyRoom(activePartyRoom.roomId)}
+              style={{
+                backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                color: '#ef4444',
+                border: '1px solid #ef4444',
+                padding: '4px 6px',
+                borderRadius: '6px',
+                fontWeight: 700,
+                fontSize: '11px',
+                cursor: 'pointer'
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Botones de Sala Online (Solo en Landscape si no hay sala activa) */}
+      {!partyRoom ? (
+        <div className="multiplayer-landscape-only" style={{
+          width: '100%',
+          backgroundColor: '#0f172a',
+          border: '1px solid rgba(56, 189, 248, 0.3)',
+          borderRadius: '12px',
+          padding: '8px 10px',
+          flexDirection: 'column',
+          gap: '6px',
+          boxSizing: 'border-box'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '14px' }}>🌐</span>
+              <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#f8fafc' }}>Juego en Red Online</span>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button
+              onClick={() => setIsJoinRoomModalOpen(true)}
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '5px',
+                backgroundColor: '#1e293b',
+                color: '#f8fafc',
+                border: '1px solid #334155',
+                padding: '6px 8px',
+                borderRadius: '8px',
+                fontWeight: 800,
+                fontSize: '11px',
+                cursor: 'pointer'
+              }}
+            >
+              <KeyRound size={13} style={{ color: '#facc15' }} />
+              <span>Código</span>
+            </button>
+
+            <button
+              onClick={() => setIsCreateRoomModalOpen(true)}
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '5px',
+                backgroundColor: '#0284c7',
+                color: '#ffffff',
+                border: 'none',
+                padding: '6px 8px',
+                borderRadius: '8px',
+                fontWeight: 800,
+                fontSize: '11px',
+                cursor: 'pointer'
+              }}
+            >
+              <Users size={13} />
+              <span>Crear Sala</span>
+            </button>
+          </div>
+        </div>
+      ) : (
+        /* HUD de Sala Online en Juego (Solo en Landscape) */
+        <div className="multiplayer-landscape-only" style={{
+          width: '100%',
+          backgroundColor: '#0f172a',
+          border: '1.5px solid #38bdf8',
+          borderRadius: '12px',
+          padding: '8px 10px',
+          flexDirection: 'column',
+          gap: '6px',
+          boxSizing: 'border-box'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ fontSize: '11.5px', fontWeight: 800, color: '#f8fafc' }}>
+              SALA: <span style={{ color: '#facc15', fontFamily: 'monospace' }}>{partyRoom.roomId}</span>
+            </div>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              <button
+                onClick={handlePauseAndExit}
+                style={{
+                  backgroundColor: '#1e293b',
+                  color: '#38bdf8',
+                  border: '1px solid rgba(56, 189, 248, 0.4)',
+                  padding: '3px 6px',
+                  borderRadius: '6px',
+                  fontSize: '10px',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+                title="Pausar y salir"
+              >
+                <Pause size={10} /> Pausar
+              </button>
+              <button
+                onClick={handleAbandonPartyRoom}
+                style={{
+                  backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                  color: '#ef4444',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  padding: '3px 6px',
+                  borderRadius: '6px',
+                  fontSize: '10px',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+                title="Abandonar definitivamente"
+              >
+                <Trash2 size={10} />
+              </button>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+            {partyRoom.seats.map((st, i) => {
+              const isTurn = game.activePlayer === st.color;
+              const isOtherHuman = st.type === 'human' && st.user && st.user.id !== currentUser?.id;
+              const seatReaction = activeReactions[st.color] || (st.user?.id && activeReactions[st.user.id]);
+              return (
+                <div
+                  key={i}
+                  style={{
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '2px 6px',
+                    borderRadius: '6px',
+                    backgroundColor: isTurn ? `${st.colorHex}33` : '#1e293b',
+                    border: isTurn ? `1.5px solid ${st.colorHex}` : '1px solid #334155',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    color: isTurn ? '#f8fafc' : '#94a3b8'
+                  }}
+                >
+                  <ReactionFloatingBubble reaction={seatReaction} position="top" />
+                  <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: st.colorHex }} />
+                  <span>{st.type === 'human' ? st.user?.name || 'Humano' : st.bot?.name || 'Bot'}</span>
+                  {isOtherHuman && (
+                    <button
+                      onClick={() => handleSendPingToSeat(st)}
+                      style={{
+                        backgroundColor: '#d97706',
+                        border: 'none',
+                        color: '#ffffff',
+                        borderRadius: '3px',
+                        padding: '1px 3px',
+                        cursor: 'pointer',
+                        fontSize: '9px'
+                      }}
+                      title="Dar toque"
+                    >
+                      👋
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Banner de Ganador */}
       {game?.winner && (
         <div style={{
@@ -1926,8 +2198,10 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
         </div>
       )}
       
-      {/* Barra de Encabezado Superior */}
-      <div className="multiplayer-header-bar">
+      {/* Contenedor de Banners Superiores (Solo en Modo Vertical / Portrait) */}
+      <div className="multiplayer-portrait-top-banners">
+        {/* Barra de Encabezado Superior */}
+        <div className="multiplayer-header-bar">
         <button
           onClick={handlePauseAndExit}
           style={{
@@ -2280,6 +2554,7 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
           </div>
         </div>
       )}
+      </div>
 
       {/* Selector de Variantes (Solo en juego local, oculto en landscape para no restar altura) */}
       {!partyRoom && (
