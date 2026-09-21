@@ -694,49 +694,95 @@ export class ThreePlayerHexGame {
     return this.players[this.currentTurnIdx];
   }
 
-  getAdjacentCells(id, direction) {
-    const [sec, fileStr, rankStr] = id.split('_');
-    const f = parseInt(fileStr, 10);
-    const r = parseInt(rankStr, 10);
-    const adjacent = [];
+  getRay(startId, rayType) {
+    const [startSec, fStr, rStr] = startId.split('_');
+    const startF = parseInt(fStr, 10);
+    const startR = parseInt(rStr, 10);
+    const path = [];
+    const visited = new Set([startId]);
 
-    if (direction === 'N') {
-      if (r < 3) {
-        adjacent.push(`${sec}_${f}_${r + 1}`);
-      } else {
-        const nextSecLeft = sec === 'A' ? 'B' : sec === 'B' ? 'C' : 'A';
-        const nextSecRight = sec === 'A' ? 'C' : sec === 'B' ? 'A' : 'B';
-        if (f <= 3) {
-          adjacent.push(`${nextSecLeft}_${7 - f}_3`);
-        } else {
-          adjacent.push(`${nextSecRight}_${7 - f}_3`);
+    let sec = startSec;
+    let f = startF;
+    let r = startR;
+    let dr = 0;
+    let df = 0;
+
+    if (rayType === 'N')  { dr = 1; df = 0; }
+    else if (rayType === 'S')  { dr = -1; df = 0; }
+    else if (rayType === 'E')  { dr = 0; df = 1; }
+    else if (rayType === 'W')  { dr = 0; df = -1; }
+    else if (rayType === 'NE') { dr = 1; df = 1; }
+    else if (rayType === 'NW') { dr = 1; df = -1; }
+    else if (rayType === 'SE') { dr = -1; df = 1; }
+    else if (rayType === 'SW') { dr = -1; df = -1; }
+
+    for (let step = 0; step < 12; step++) {
+      let nextSec = sec;
+      let nextF = f + df;
+      let nextR = r + dr;
+      let nextDr = dr;
+      let nextDf = df;
+
+      if (dr === 0) {
+        if (nextF < 0 || nextF > 7) break;
+      } else if (dr === -1) {
+        if (nextR < 0 || nextF < 0 || nextF > 7) break;
+      } else if (dr === 1) {
+        if (df !== 0 && (nextF < 0 || nextF > 7)) break;
+
+        if (nextR > 3) {
+          // Cruzar costura hacia el sector contiguo en rango 3
+          let seamSec = null;
+          let seamF = f;
+          if (sec === 'A') {
+            seamSec = f <= 3 ? 'B' : 'C';
+          } else if (sec === 'B') {
+            seamSec = f <= 3 ? 'A' : 'C';
+            if (f >= 4) seamF = 7 - f;
+          } else if (sec === 'C') {
+            seamSec = f <= 3 ? 'B' : 'A';
+            if (f <= 3) seamF = 7 - f;
+          }
+
+          if (!seamSec) break;
+
+          nextSec = seamSec;
+          nextR = 3;
+          nextDr = -1; // En el nuevo sector avanza hacia la base enemiga (rango 0)
+
+          if (df === 0) {
+            nextF = seamF;
+            nextDf = 0;
+          } else {
+            if ((sec === 'B' && f >= 4) || (sec === 'C' && f <= 3)) {
+              nextDf = -df;
+            } else {
+              nextDf = df;
+            }
+            nextF = seamF + nextDf;
+            if (nextF < 0 || nextF > 7) break;
+          }
         }
       }
-    } else if (direction === 'S') {
-      if (r > 0) adjacent.push(`${sec}_${f}_${r - 1}`);
-    } else if (direction === 'E') {
-      if (f < 7) adjacent.push(`${sec}_${f + 1}_${r}`);
-    } else if (direction === 'W') {
-      if (f > 0) adjacent.push(`${sec}_${f - 1}_${r}`);
-    } else if (direction === 'NE') {
-      if (r < 3 && f < 7) adjacent.push(`${sec}_${f + 1}_${r + 1}`);
-      else if (r === 3 && f < 7) {
-        const nextSec = sec === 'A' ? 'C' : sec === 'B' ? 'A' : 'B';
-        adjacent.push(`${nextSec}_${f}_3`);
-      }
-    } else if (direction === 'NW') {
-      if (r < 3 && f > 0) adjacent.push(`${sec}_${f - 1}_${r + 1}`);
-      else if (r === 3 && f > 0) {
-        const nextSec = sec === 'A' ? 'B' : sec === 'B' ? 'C' : 'A';
-        adjacent.push(`${nextSec}_${f}_3`);
-      }
-    } else if (direction === 'SE') {
-      if (r > 0 && f < 7) adjacent.push(`${sec}_${f + 1}_${r - 1}`);
-    } else if (direction === 'SW') {
-      if (r > 0 && f > 0) adjacent.push(`${sec}_${f - 1}_${r - 1}`);
+
+      const nextId = `${nextSec}_${nextF}_${nextR}`;
+      if (visited.has(nextId) || !this.cells[nextId]) break;
+      visited.add(nextId);
+      path.push(nextId);
+
+      sec = nextSec;
+      f = nextF;
+      r = nextR;
+      dr = nextDr;
+      df = nextDf;
     }
 
-    return adjacent;
+    return path;
+  }
+
+  getAdjacentCells(id, direction) {
+    const ray = this.getRay(id, direction);
+    return ray.length > 0 ? [ray[0]] : [];
   }
 
   getLegalMovesForCell(cellId) {
@@ -745,25 +791,19 @@ export class ThreePlayerHexGame {
     const piece = cell.piece;
     const moves = [];
 
-    const exploreRay = (direction) => {
-      let currentId = cellId;
-      while (true) {
-        const nextIds = this.getAdjacentCells(currentId, direction);
-        if (!nextIds || nextIds.length === 0) break;
-        const nextId = nextIds[0];
-        const targetCell = this.cells[nextId];
+    const exploreRay = (dir) => {
+      const ray = this.getRay(cellId, dir);
+      for (const targetId of ray) {
+        const targetCell = this.cells[targetId];
         if (!targetCell) break;
-
         if (!targetCell.piece) {
-          moves.push({ from: cellId, to: nextId });
+          moves.push({ from: cellId, to: targetId });
         } else {
           if (targetCell.piece.owner !== piece.owner) {
-            moves.push({ from: cellId, to: nextId });
+            moves.push({ from: cellId, to: targetId });
           }
-          break;
+          break; // Obstáculo bloquea la trayectoria
         }
-        currentId = nextId;
-        if (currentId === cellId) break;
       }
     };
 
@@ -775,53 +815,90 @@ export class ThreePlayerHexGame {
     }
     if (piece.type === 'k') {
       ['N', 'S', 'E', 'W', 'NE', 'NW', 'SE', 'SW'].forEach(dir => {
-        const nextIds = this.getAdjacentCells(cellId, dir);
-        nextIds.forEach(nid => {
-          const target = this.cells[nid];
-          if (target && (!target.piece || target.piece.owner !== piece.owner)) {
-            moves.push({ from: cellId, to: nid });
+        const ray = this.getRay(cellId, dir);
+        if (ray.length > 0) {
+          const targetId = ray[0];
+          const targetCell = this.cells[targetId];
+          if (targetCell && (!targetCell.piece || targetCell.piece.owner !== piece.owner)) {
+            moves.push({ from: cellId, to: targetId });
           }
-        });
+        }
       });
     }
     if (piece.type === 'n') {
-      const orths = ['N', 'S', 'E', 'W'];
-      orths.forEach(d1 => {
-        const step1 = this.getAdjacentCells(cellId, d1);
-        step1.forEach(s1 => {
-          const step2 = this.getAdjacentCells(s1, d1);
-          step2.forEach(s2 => {
-            const perpendiculars = (d1 === 'N' || d1 === 'S') ? ['E', 'W'] : ['N', 'S'];
-            perpendiculars.forEach(d2 => {
-              const finals = this.getAdjacentCells(s2, d2);
-              finals.forEach(fid => {
-                const target = this.cells[fid];
-                if (target && (!target.piece || target.piece.owner !== piece.owner)) {
-                  moves.push({ from: cellId, to: fid });
-                }
-              });
-            });
+      const orthDirs = ['N', 'S', 'E', 'W'];
+      const targets = new Set();
+
+      orthDirs.forEach(d1 => {
+        const ray1 = this.getRay(cellId, d1);
+        const perps = (d1 === 'N' || d1 === 'S') ? ['E', 'W'] : ['N', 'S'];
+
+        if (ray1.length >= 2) {
+          perps.forEach(d2 => {
+            const ray2 = this.getRay(ray1[1], d2);
+            if (ray2.length >= 1) targets.add(ray2[0]);
           });
-        });
+        }
+        if (ray1.length >= 1) {
+          perps.forEach(d2 => {
+            const ray2 = this.getRay(ray1[0], d2);
+            if (ray2.length >= 2) targets.add(ray2[1]);
+          });
+        }
+      });
+
+      targets.forEach(tid => {
+        const targetCell = this.cells[tid];
+        if (targetCell && (!targetCell.piece || targetCell.piece.owner !== piece.owner)) {
+          moves.push({ from: cellId, to: tid });
+        }
       });
     }
     if (piece.type === 'p') {
-      const forwardCells = this.getAdjacentCells(cellId, 'N');
-      forwardCells.forEach(fid => {
-        const target = this.cells[fid];
-        if (target && !target.piece) {
-          moves.push({ from: cellId, to: fid });
+      const homeSector = piece.owner === 'white' ? 'A' : piece.owner === 'black' ? 'B' : 'C';
+      const isHome = cell.sector === homeSector;
+
+      if (isHome) {
+        const fwdRay = this.getRay(cellId, 'N');
+        if (fwdRay.length > 0) {
+          const step1 = fwdRay[0];
+          if (!this.cells[step1]?.piece) {
+            moves.push({ from: cellId, to: step1 });
+            if (cell.rank === 1 && fwdRay.length > 1) {
+              const step2 = fwdRay[1];
+              if (!this.cells[step2]?.piece) {
+                moves.push({ from: cellId, to: step2 });
+              }
+            }
+          }
         }
-      });
-      ['NE', 'NW'].forEach(dir => {
-        const diagCells = this.getAdjacentCells(cellId, dir);
-        diagCells.forEach(did => {
-          const target = this.cells[did];
-          if (target && target.piece && target.piece.owner !== piece.owner) {
-            moves.push({ from: cellId, to: did });
+        ['NE', 'NW'].forEach(d => {
+          const dRay = this.getRay(cellId, d);
+          if (dRay.length > 0) {
+            const dest = this.cells[dRay[0]];
+            if (dest && dest.piece && dest.piece.owner !== piece.owner) {
+              moves.push({ from: cellId, to: dRay[0] });
+            }
           }
         });
-      });
+      } else {
+        const fwdRay = this.getRay(cellId, 'S');
+        if (fwdRay.length > 0) {
+          const step1 = fwdRay[0];
+          if (!this.cells[step1]?.piece) {
+            moves.push({ from: cellId, to: step1 });
+          }
+        }
+        ['SE', 'SW'].forEach(d => {
+          const dRay = this.getRay(cellId, d);
+          if (dRay.length > 0) {
+            const dest = this.cells[dRay[0]];
+            if (dest && dest.piece && dest.piece.owner !== piece.owner) {
+              moves.push({ from: cellId, to: dRay[0] });
+            }
+          }
+        });
+      }
     }
 
     return moves;
@@ -859,10 +936,12 @@ export class ThreePlayerHexGame {
       }
     }
 
-    if (piece.type === 'p' && destCell.rank === 0 && destCell.sector !== sourceCell.sector) {
+    const homeSector = piece.owner === 'white' ? 'A' : piece.owner === 'black' ? 'B' : 'C';
+    if (piece.type === 'p' && destCell.rank === 0 && destCell.sector !== homeSector) {
       piece.type = 'q';
     }
 
+    piece.hasMoved = true;
     destCell.piece = piece;
     sourceCell.piece = null;
 
@@ -1192,11 +1271,12 @@ export function getBestMultiplayerBotMove(gameInstance, variant) {
   if (variant === 'three_hex') {
     const moves = gameInstance.getAllLegalMovesForActivePlayer();
     if (moves.length === 0) return null;
+    const pieceVal = { p: 10, n: 30, b: 35, r: 50, q: 90, k: 500 };
     moves.sort((a, b) => {
       const destA = gameInstance.cells[a.to]?.piece;
       const destB = gameInstance.cells[b.to]?.piece;
-      const valA = destA ? 50 : 0;
-      const valB = destB ? 50 : 0;
+      const valA = destA ? (pieceVal[destA.type] || 10) : 0;
+      const valB = destB ? (pieceVal[destB.type] || 10) : 0;
       return (valB + Math.random() * 5) - (valA + Math.random() * 5);
     });
     return moves[0];

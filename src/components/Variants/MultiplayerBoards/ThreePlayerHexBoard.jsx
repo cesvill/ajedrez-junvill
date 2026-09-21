@@ -192,7 +192,7 @@ export const ThreePlayerHexBoard = ({
                     else if (isLegal) fill = hasPiece ? '#f87171' : '#4ade80';
 
                     return (
-                      <g key={cellId} onClick={() => handleCellClick(cellId)} style={{ cursor: 'pointer' }}>
+                      <g key={cellId} data-cell-id={cellId} onClick={() => handleCellClick(cellId)} style={{ cursor: 'pointer' }}>
                         <path
                           d={pathData}
                           fill={fill}
