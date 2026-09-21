@@ -26,7 +26,11 @@ export const PartyRoomLobby = ({
   const [invitingSeatIdx, setInvitingSeatIdx] = useState(null);
   const [invitedUsers, setInvitedUsers] = useState(new Set());
 
-  const { roomId, variantName, seats = [], expectedHumans, botsCount, totalPlayers } = roomData;
+  const cleanDisplayRoomId = (typeof roomData?.roomId === 'string' && roomData.roomId !== 'OBJECTOBJECT' && roomData.roomId) 
+    ? roomData.roomId 
+    : 'JUNVILL';
+  const { variantName, seats = [], expectedHumans, botsCount, totalPlayers } = roomData || {};
+  const roomId = cleanDisplayRoomId;
 
   // Contar cuántos humanos ya están sentados
   const connectedHumans = seats.filter(s => s.type === 'human' && s.user).length;

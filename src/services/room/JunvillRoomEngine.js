@@ -133,8 +133,10 @@ export class JunvillRoomEngine {
    * Limpia un código de sala
    */
   static cleanRoomId(id) {
-    if (!id) return '';
-    return String(id).toUpperCase().replace(/[^A-Z0-9-]/g, '').trim();
+    if (!id || typeof id !== 'string') return '';
+    const clean = id.toUpperCase().replace(/[^A-Z0-9-]/g, '').trim();
+    if (clean === 'OBJECTOBJECT' || clean === 'UNDEFINED' || clean === 'NULL') return '';
+    return clean;
   }
 
   /**

@@ -1335,7 +1335,7 @@ export const PlayView = ({
 
             <button
               type="button"
-              onClick={onOpenMultiplayer}
+              onClick={() => onOpenMultiplayer && onOpenMultiplayer()}
               style={{
                 background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
                 color: '#ffffff',

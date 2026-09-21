@@ -178,10 +178,10 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
     setIsBotThinking(false);
 
     let newGame;
-    if (variantId === 'chaturaji') newGame = new ChaturajiGame();
-    else if (variantId === 'four_player') newGame = new FourPlayerGame('ffa');
+    if (variantId === 'four_player') newGame = new FourPlayerGame('ffa');
     else if (variantId === 'three_hex') newGame = new ThreePlayerHexGame();
     else if (variantId === 'three_circular') newGame = new ThreePlayerCircularGame();
+    else newGame = new ChaturajiGame();
 
     setGame(newGame);
     setGameTick(t => t + 1);
@@ -538,8 +538,10 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
   };
 
   // Manejar unirse a sala por código
-  const handleJoinRoomByCode = async (cleanRoomId) => {
+  const handleJoinRoomByCode = async (rawRoomId) => {
     setIsJoinRoomModalOpen(false);
+    const cleanRoomId = typeof rawRoomId === 'string' ? JunvillRoomEngine.cleanRoomId(rawRoomId) : '';
+    if (!cleanRoomId || cleanRoomId === 'OBJECTOBJECT') return;
 
     // Estado visual inicial mientras se conecta
     setPartyRoom({
@@ -727,6 +729,7 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
     audioManager.playClick();
     setMySeatIndex(0);
     setBotPlayers(getDefaultBotPlayers(selectedVariant));
+    initGameForVariant(selectedVariant);
   };
 
   // Sincronización continua de la sala activa (Lobby y Partida) vía Nube Central
@@ -1018,9 +1021,14 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
   useEffect(() => {
     try {
       const urlParams = new URLSearchParams(window.location.search);
-      const roomParam = initialRoomId || urlParams.get('partyRoom') || urlParams.get('party_room');
-      if (roomParam) {
-        handleJoinRoomByCode(JunvillRoomEngine.cleanRoomId(roomParam));
+      const rawParam = (typeof initialRoomId === 'string' && initialRoomId.trim()) 
+        ? initialRoomId.trim() 
+        : (urlParams.get('partyRoom') || urlParams.get('party_room'));
+      if (rawParam && typeof rawParam === 'string') {
+        const clean = JunvillRoomEngine.cleanRoomId(rawParam);
+        if (clean && clean !== 'OBJECTOBJECT') {
+          handleJoinRoomByCode(clean);
+        }
       }
     } catch (e) {}
   }, [initialRoomId]);
@@ -1464,7 +1472,8 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
       )}
 
       {/* Selector Rápido de Participantes (Humano vs Bot Junvill) en Juego Local */}
-      {!partyRoom && (
+      {/* Selector Rápido de Participantes (Humano vs Bot Junvill) en Juego Local */}
+      {!partyRoom && game && Array.isArray(game.players) && (
         <div style={{
           display: 'flex',
           flexWrap: 'wrap',
@@ -1530,7 +1539,7 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
       )}
 
       {/* Banner de Ganador */}
-      {game.winner && (
+      {game?.winner && (
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -1565,7 +1574,7 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
       )}
 
       {/* Banner de Bot Pensando */}
-      {isBotThinking && !game.winner && (
+      {isBotThinking && !game?.winner && (
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -1581,13 +1590,13 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
           boxShadow: '0 4px 16px rgba(56, 189, 248, 0.2)'
         }}>
           <Bot size={16} />
-          <span>El Bot ({game.activePlayer.toUpperCase()}) está calculando su jugada...</span>
+          <span>El Bot ({game?.activePlayer ? game.activePlayer.toUpperCase() : 'IA'}) está calculando su jugada...</span>
         </div>
       )}
 
       {/* Tablero Activo */}
       <div style={{ width: '100%', maxWidth: '720px', display: 'flex', justifyContent: 'center' }}>
-        {selectedVariant === 'chaturaji' && (
+        {game && selectedVariant === 'chaturaji' && (
           <ChaturajiBoard
             key={`chaturaji_${gameTick}`}
             game={game}
@@ -1597,7 +1606,7 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
           />
         )}
 
-        {selectedVariant === 'four_player' && (
+        {game && selectedVariant === 'four_player' && (
           <FourPlayerBoard
             key={`four_player_${gameTick}`}
             game={game}
@@ -1606,7 +1615,7 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
           />
         )}
 
-        {selectedVariant === 'three_hex' && (
+        {game && selectedVariant === 'three_hex' && (
           <ThreePlayerHexBoard
             key={`three_hex_${gameTick}`}
             game={game}
@@ -1615,7 +1624,7 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
           />
         )}
 
-        {selectedVariant === 'three_circular' && (
+        {game && selectedVariant === 'three_circular' && (
           <ThreePlayerCircularBoard
             key={`three_circular_${gameTick}`}
             game={game}

@@ -565,7 +565,10 @@ export const App = () => {
   };
 
   const handleOpenMultiplayer = (roomId = null) => {
-    setTargetPartyRoomId(roomId);
+    const safeRoomId = typeof roomId === 'string' && roomId.trim() 
+      ? roomId.trim().toUpperCase().replace(/[^A-Z0-9-]/g, '') 
+      : null;
+    setTargetPartyRoomId(safeRoomId && safeRoomId !== 'OBJECTOBJECT' ? safeRoomId : null);
     setActiveTab('multijugador');
   };
 
