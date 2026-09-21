@@ -21,6 +21,7 @@ import { P2PEngine } from '../engine/p2pEngine';
 import { roomEngine, JunvillRoomEngine } from '../services/room/JunvillRoomEngine';
 import { audioManager } from '../engine/audio';
 import confetti from 'canvas-confetti';
+import { BOT_ROSTER, BotAvatarRenderer } from '../assets/botRoster';
 import { ReactionsBar, ReactionFloatingBubble } from '../components/Reactions/ReactionsBar';
 import { SafeChat } from '../components/SafeChat/SafeChat';
 import {
