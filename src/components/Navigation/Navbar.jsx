@@ -1,7 +1,7 @@
 import React from 'react';
 import { Home, Swords, Bot, Puzzle, BookOpen, User, Trophy } from 'lucide-react';
 
-export const Navbar = ({ activeTab, onTabChange }) => {
+export const Navbar = ({ activeTab, onTabChange, isMultiplayerActive = false }) => {
   const tabs = [
     { id: 'inicio', label: 'Inicio', icon: Home },
     { id: 'aprender', label: 'Aprender', icon: BookOpen },
@@ -13,7 +13,7 @@ export const Navbar = ({ activeTab, onTabChange }) => {
   ];
 
   return (
-    <nav className="bottom-nav" style={{ gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}>
+    <nav className={`bottom-nav ${isMultiplayerActive ? 'multiplayer-active-nav' : ''}`} style={{ gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}>
       {tabs.map((tab) => {
         const Icon = tab.icon;
         const isActive = activeTab === tab.id;

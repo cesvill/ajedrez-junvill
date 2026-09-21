@@ -2807,12 +2807,14 @@ html.in-simulator .multiplayer-board-wrapper {
    - Derecha: Panel de Opciones, Marcadores, Cementerio y Chat
    ========================================================= */
 @media (orientation: landscape) {
-  .app-header {
-    height: calc(38px + var(--sat)) !important;
+  /* Ocultar header y barra inferior cuando se juega ajedrez multijugador en landscape */
+  .app-header.multiplayer-active-header,
+  .bottom-nav.multiplayer-active-nav {
+    display: none !important;
   }
 
   .main-content.multiplayer-active {
-    padding: 2px 4px calc(48px + var(--sab)) 4px !important;
+    padding: 4px 6px !important;
     height: 100dvh !important;
     max-height: 100dvh !important;
     overflow: hidden !important;
@@ -2838,8 +2840,8 @@ html.in-simulator .multiplayer-board-wrapper {
     margin: 0 auto !important;
     width: 100% !important;
     max-width: 100vw !important;
-    height: calc(100dvh - 50px - var(--sab)) !important;
-    max-height: calc(100dvh - 50px - var(--sab)) !important;
+    height: calc(100dvh - 8px) !important;
+    max-height: calc(100dvh - 8px) !important;
     overflow: hidden !important;
     display: flex !important;
     flex-direction: row !important;
@@ -2870,8 +2872,8 @@ html.in-simulator .multiplayer-board-wrapper {
     width: 100% !important;
     max-width: 100% !important;
     height: 100% !important;
-    max-height: calc(100dvh - 52px - var(--sab)) !important;
-    padding: 2px 8px !important;
+    max-height: calc(100dvh - 8px) !important;
+    padding: 0 4px !important;
     margin: 0 auto !important;
     overflow: hidden !important;
     box-sizing: border-box !important;
@@ -2884,10 +2886,10 @@ html.in-simulator .multiplayer-board-wrapper {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    height: calc(100dvh - 56px - var(--sab)) !important;
-    max-height: calc(100dvh - 56px - var(--sab)) !important;
-    width: calc(100dvh - 56px - var(--sab)) !important;
-    max-width: min(calc(100dvh - 56px - var(--sab)), 58vw) !important;
+    height: calc(100dvh - 12px) !important;
+    max-height: calc(100dvh - 12px) !important;
+    width: calc(100dvh - 12px) !important;
+    max-width: min(calc(100dvh - 12px), 64vw) !important;
     aspect-ratio: 1 / 1 !important;
     margin: 0 !important;
     padding: 0 !important;
@@ -2927,8 +2929,8 @@ html.in-simulator .multiplayer-board-wrapper {
     flex: 1 1 280px !important;
     max-width: 520px !important;
     min-width: 250px !important;
-    height: calc(100dvh - 56px - var(--sab)) !important;
-    max-height: calc(100dvh - 56px - var(--sab)) !important;
+    height: calc(100dvh - 12px) !important;
+    max-height: calc(100dvh - 12px) !important;
     flex-direction: column !important;
     gap: 8px !important;
     overflow-y: auto !important;
@@ -3015,10 +3017,10 @@ html.in-simulator .multiplayer-board-wrapper {
   }
 
   html.in-simulator .multiplayer-board-area {
-    height: calc(100dvh - 56px - var(--sab)) !important;
-    max-height: calc(100dvh - 56px - var(--sab)) !important;
-    width: calc(100dvh - 56px - var(--sab)) !important;
-    max-width: min(calc(100dvh - 56px - var(--sab)), 58vw) !important;
+    height: calc(100dvh - 12px) !important;
+    max-height: calc(100dvh - 12px) !important;
+    width: calc(100dvh - 12px) !important;
+    max-width: min(calc(100dvh - 12px), 64vw) !important;
   }
 
   html.in-simulator .multiplayer-board-grid,

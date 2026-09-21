@@ -25,7 +25,8 @@ export const Header = ({
   onOpenCuby3x3,
   isLocalEnvironment = false,
   onToggleSimulator,
-  simulatedDevice = 'responsive'
+  simulatedDevice = 'responsive',
+  isMultiplayerActive = false
 }) => {
   const { currentUser, activeGroup, users, forceCloudSync, unreadMessagesCount } = useUser();
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -86,7 +87,7 @@ export const Header = ({
 
   return (
     <>
-      <header className="app-header">
+      <header className={`app-header ${isMultiplayerActive ? 'multiplayer-active-header' : ''}`}>
         <div className="header-inner">
           {/* 1. SECCIÓN MARCA / LOGO (Solo icono para ganar máximo espacio horizontal en móviles) */}
           <div className="brand-section" onClick={() => onTabChange('inicio')} style={{ cursor: 'pointer' }} title="Ir al Inicio">

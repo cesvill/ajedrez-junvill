@@ -47,8 +47,24 @@ import {
   Trash2,
   MessageCircle,
   Lock,
-  Smile
+  Smile,
+  ChevronDown,
+  Home,
+  Swords,
+  Puzzle,
+  User
 } from 'lucide-react';
+
+const APP_SECTIONS = [
+  { id: 'inicio', label: 'Inicio', icon: Home, color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.15)' },
+  { id: 'aprender', label: 'Aprender', icon: BookOpen, color: '#34d399', bg: 'rgba(52, 211, 153, 0.15)' },
+  { id: 'problemas', label: 'Problemas', icon: Puzzle, color: '#fbbf24', bg: 'rgba(251, 191, 36, 0.15)' },
+  { id: 'robots', label: 'Robots', icon: Bot, color: '#a78bfa', bg: 'rgba(167, 139, 250, 0.15)' },
+  { id: 'jugar', label: 'Jugar', icon: Swords, color: '#f87171', bg: 'rgba(248, 113, 113, 0.15)' },
+  { id: 'multijugador', label: 'Multi-Bando (3-4)', icon: Users, color: '#eab308', bg: 'rgba(234, 179, 8, 0.2)' },
+  { id: 'torneos', label: 'Torneos', icon: Trophy, color: '#fb923c', bg: 'rgba(251, 146, 60, 0.15)' },
+  { id: 'yo', label: 'Yo / Perfil', icon: User, color: '#ec4899', bg: 'rgba(236, 72, 153, 0.15)' },
+];
 
 const VARIANTS = [
   {
@@ -117,8 +133,20 @@ const VARIANTS = [
   }
 ];
 
-export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => {
+export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null, onTabChange = null }) => {
   const { currentUser, users, activeGroup, sendFamilyInvitation, activePartyRoom, saveActivePartyRoom, clearActivePartyRoom } = useUser();
+  const [isNavDropdownOpen, setIsNavDropdownOpen] = useState(false);
+  const navDropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (navDropdownRef.current && !navDropdownRef.current.contains(e.target)) {
+        setIsNavDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const getInitialVariant = () => {
     try {
@@ -1563,39 +1591,173 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
   // =========================================================================
   const sidebarHeaderContent = (
     <>
-      {/* Barra de Encabezado Superior (Solo en Landscape) */}
+      {/* Barra de Encabezado Superior con Selector de Sección Dropdown (Exacto a Imagen 2) */}
       <div className="multiplayer-landscape-only multiplayer-landscape-topbar" style={{
         alignItems: 'center',
         justifyContent: 'space-between',
         width: '100%',
-        padding: '6px 10px',
+        padding: '5px 8px',
         backgroundColor: '#0f172a',
         border: '1px solid #1e293b',
-        borderRadius: '12px',
-        boxSizing: 'border-box'
+        borderRadius: '14px',
+        boxSizing: 'border-box',
+        position: 'relative'
       }}>
         <button
           onClick={handlePauseAndExit}
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
+            gap: '5px',
             backgroundColor: '#1e293b',
             color: '#38bdf8',
             border: '1px solid rgba(56, 189, 248, 0.4)',
-            padding: '6px 12px',
+            padding: '6px 10px',
             borderRadius: '8px',
             fontWeight: 800,
-            fontSize: '11.5px',
+            fontSize: '11px',
             cursor: 'pointer'
           }}
+          title="Volver a Jugar"
         >
-          <ArrowLeft size={14} /> Volver
+          <ArrowLeft size={13} /> Volver
         </button>
 
-        <div style={{ fontSize: '12px', fontWeight: 900, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <Users size={14} style={{ color: '#38bdf8' }} />
-          <span>Multijugador</span>
+        {/* BOTÓN DESPLEGABLE CENTRAL (SELECTOR DE SECCIÓN - IMAGEN 2) */}
+        <div style={{ position: 'relative' }} ref={navDropdownRef}>
+          <button
+            type="button"
+            onClick={() => setIsNavDropdownOpen(prev => !prev)}
+            title="Explorar y cambiar de sección"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '3px 10px',
+              background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%)',
+              border: '1.5px solid #eab308',
+              borderRadius: '9999px',
+              color: '#f8fafc',
+              cursor: 'pointer',
+              boxShadow: isNavDropdownOpen 
+                ? '0 0 14px rgba(234, 179, 8, 0.4)' 
+                : '0 2px 8px rgba(0, 0, 0, 0.3), 0 0 6px rgba(234, 179, 8, 0.2)',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <div style={{
+              background: 'linear-gradient(135deg, #eab308 0%, #ca8a04 100%)',
+              color: '#0f172a',
+              width: '20px',
+              height: '20px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              boxShadow: '0 2px 4px rgba(234, 179, 8, 0.4)'
+            }}>
+              <Users size={12} strokeWidth={2.5} />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left', lineHeight: 1.1 }}>
+              <span style={{ fontSize: '0.52rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.4px', fontWeight: 800 }}>
+                Sección
+              </span>
+              <span style={{ fontSize: '0.74rem', fontWeight: 900, color: '#facc15', whiteSpace: 'nowrap' }}>
+                Multi-Bando (3-4)
+              </span>
+            </div>
+
+            <ChevronDown 
+              size={14} 
+              strokeWidth={2.5}
+              color="#eab308"
+              style={{
+                transition: 'transform 0.2s ease',
+                transform: isNavDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                marginLeft: '2px',
+                flexShrink: 0
+              }}
+            />
+          </button>
+
+          {/* MENÚ POPOVER DESPLEGABLE */}
+          {isNavDropdownOpen && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 'calc(100% + 8px)',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                background: '#0f172a',
+                border: '2px solid rgba(234, 179, 8, 0.4)',
+                borderRadius: '16px',
+                boxShadow: '0 16px 40px rgba(0,0,0,0.85), 0 0 20px rgba(234, 179, 8, 0.25)',
+                padding: '10px',
+                width: '240px',
+                zIndex: 9999,
+                backdropFilter: 'blur(16px)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', paddingBottom: '6px', borderBottom: '1px solid #1e293b' }}>
+                <span style={{ fontSize: '0.74rem', fontWeight: 900, color: '#fde047', textTransform: 'uppercase' }}>
+                  Secciones de la Academia
+                </span>
+                <span style={{ fontSize: '0.66rem', color: '#94a3b8' }}>8 Módulos</span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                {APP_SECTIONS.map((sec) => {
+                  const Icon = sec.icon;
+                  const isCurrent = sec.id === 'multijugador';
+                  return (
+                    <button
+                      key={sec.id}
+                      type="button"
+                      onClick={() => {
+                        setIsNavDropdownOpen(false);
+                        if (onTabChange) {
+                          onTabChange(sec.id);
+                        } else if (sec.id === 'inicio') {
+                          handlePauseAndExit();
+                        }
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '6px 8px',
+                        borderRadius: '8px',
+                        border: isCurrent ? '1.5px solid #eab308' : '1px solid transparent',
+                        background: isCurrent ? 'rgba(234, 179, 8, 0.15)' : 'rgba(30, 41, 59, 0.5)',
+                        color: isCurrent ? '#facc15' : '#f8fafc',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        fontSize: '11px',
+                        fontWeight: 700
+                      }}
+                    >
+                      <div style={{
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '6px',
+                        backgroundColor: sec.bg,
+                        color: sec.color,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0
+                      }}>
+                        <Icon size={12} />
+                      </div>
+                      <span>{sec.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         <button
@@ -1610,11 +1772,12 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
             padding: '6px 10px',
             borderRadius: '8px',
             fontWeight: 700,
-            fontSize: '11.5px',
+            fontSize: '11px',
             cursor: 'pointer'
           }}
+          title="Ver Reglas del Juego"
         >
-          <BookOpen size={14} /> Reglas
+          <BookOpen size={13} /> Reglas
         </button>
       </div>
 

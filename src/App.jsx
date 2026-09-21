@@ -779,6 +779,7 @@ export const App = () => {
       {/* Cabecera Principal */}
       <Header
         activeTab={activeTab}
+        isMultiplayerActive={activeTab === 'multijugador'}
         onOpenFamilyChat={() => handleOpenFamilyChat()}
         onTabChange={handleTabChange}
         onOpenProfile={() => setIsProfileModalOpen(true)}
@@ -954,6 +955,7 @@ export const App = () => {
           <MultiplayerPartyView
             initialRoomId={targetPartyRoomId}
             onBackToMenu={() => handleTabChange('inicio')}
+            onTabChange={handleTabChange}
           />
         )}
           </>
@@ -972,6 +974,7 @@ export const App = () => {
               : (activeTab === 'jugar' && playHubInitialTab === 'robots' ? 'robots' : activeTab)
           }
           onTabChange={handleTabChange}
+          isMultiplayerActive={activeTab === 'multijugador'}
         />
       )}
 
