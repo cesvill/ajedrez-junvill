@@ -5,7 +5,7 @@ import { MultiplayerCapturedPieces } from './MultiplayerCapturedPieces';
 
 const cx = 400;
 const cy = 400;
-const R = 396;
+const R = 388;
 
 const toRad = (deg) => (deg * Math.PI) / 180;
 

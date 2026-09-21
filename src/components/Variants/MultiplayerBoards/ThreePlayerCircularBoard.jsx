@@ -12,7 +12,7 @@ const PLAYER_INFO = {
 const cx = 400;
 const cy = 400;
 const R_WELL = 100;
-const R_MAX = 394;
+const R_MAX = 388;
 const DELTA_R = (R_MAX - R_WELL) / 6;
 
 const toRad = (deg) => (deg * Math.PI) / 180;
