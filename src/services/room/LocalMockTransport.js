@@ -39,4 +39,18 @@ export class LocalMockTransport extends IRoomTransport {
   async trackPresence(meta) {
     return Promise.resolve();
   }
+
+  async broadcastReaction(reaction) {
+    for (const cb of this.reactionCallbacks) {
+      try { cb(reaction); } catch (e) { console.error(e); }
+    }
+    return Promise.resolve();
+  }
+
+  async broadcastChatMessage(chatMessage) {
+    for (const cb of this.chatCallbacks) {
+      try { cb(chatMessage); } catch (e) { console.error(e); }
+    }
+    return Promise.resolve();
+  }
 }

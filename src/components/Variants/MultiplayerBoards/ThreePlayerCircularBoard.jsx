@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { PieceIcon } from '../../../assets/pieces';
 import { THREE_CIRCULAR_PLAYERS } from '../../../engine/multiplayerChessEngine';
+import { MultiplayerCapturedPieces } from './MultiplayerCapturedPieces';
 
 const PLAYER_INFO = {
   white: { name: 'Blanco', colorHex: '#f8fafc', bg: '#ffffff', text: '#0f172a', rays: '0-7' },
@@ -310,6 +311,7 @@ export const ThreePlayerCircularBoard = ({
               <span className="score-card-pts" style={{ color: info.colorHex }}>
                 {game.scores[player]} pts
               </span>
+              <MultiplayerCapturedPieces items={game.getCapturedSummary?.(player) || []} />
             </div>
           );
         })}

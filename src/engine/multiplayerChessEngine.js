@@ -89,6 +89,7 @@ export class ChaturajiGame {
     this.eliminated = new Set();
     this.currentDice = null;
     this.scores = { red: 0, green: 0, yellow: 0, black: 0 };
+    this.capturedPieces = { red: [], green: [], yellow: [], black: [] };
     this.moveHistory = [];
     this.winner = null;
     this.initBoard();
@@ -253,6 +254,11 @@ export class ChaturajiGame {
     if (targetPiece) {
       const pointsMap = { p: 1, s: 2, n: 3, e: 4, k: 10 };
       this.scores[this.activePlayer] += (pointsMap[targetPiece.type] || 1);
+      if (!this.capturedPieces[this.activePlayer]) this.capturedPieces[this.activePlayer] = [];
+      this.capturedPieces[this.activePlayer].push({
+        type: targetPiece.type,
+        owner: targetPiece.owner
+      });
 
       if (targetPiece.type === 'k') {
         this.eliminatePlayer(targetPiece.owner);
@@ -325,6 +331,17 @@ export class ChaturajiGame {
       this.winner = activeCount[0];
     }
   }
+
+  getCapturedSummary(player) {
+    const list = this.capturedPieces?.[player] || [];
+    const counts = {};
+    list.forEach(p => {
+      const key = `${p.type}_${p.owner}`;
+      if (!counts[key]) counts[key] = { type: p.type, owner: p.owner, count: 0 };
+      counts[key].count++;
+    });
+    return Object.values(counts);
+  }
 }
 
 // ============================================================================
@@ -341,6 +358,7 @@ export class FourPlayerGame {
     this.currentTurnIdx = 0;
     this.eliminated = new Set();
     this.scores = { red: 0, blue: 0, yellow: 0, green: 0 };
+    this.capturedPieces = { red: [], blue: [], yellow: [], green: [] };
     this.winner = null;
     this.moveHistory = [];
     this.initBoard();
@@ -539,6 +557,11 @@ export class FourPlayerGame {
     if (targetPiece) {
       const pieceValues = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 20 };
       this.scores[this.activePlayer] += (pieceValues[targetPiece.type] || 1);
+      if (!this.capturedPieces[this.activePlayer]) this.capturedPieces[this.activePlayer] = [];
+      this.capturedPieces[this.activePlayer].push({
+        type: targetPiece.type,
+        owner: targetPiece.owner
+      });
 
       if (targetPiece.type === 'k') {
         this.eliminatePlayer(targetPiece.owner);
@@ -600,6 +623,17 @@ export class FourPlayerGame {
       }
     }
   }
+
+  getCapturedSummary(player) {
+    const list = this.capturedPieces?.[player] || [];
+    const counts = {};
+    list.forEach(p => {
+      const key = `${p.type}_${p.owner}`;
+      if (!counts[key]) counts[key] = { type: p.type, owner: p.owner, count: 0 };
+      counts[key].count++;
+    });
+    return Object.values(counts);
+  }
 }
 
 // ============================================================================
@@ -614,6 +648,7 @@ export class ThreePlayerHexGame {
     this.currentTurnIdx = 0;
     this.eliminated = new Set();
     this.scores = { white: 0, black: 0, red: 0 };
+    this.capturedPieces = { white: [], black: [], red: [] };
     this.winner = null;
     this.moveHistory = [];
     this.cells = {};
@@ -814,6 +849,11 @@ export class ThreePlayerHexGame {
 
     if (captured) {
       this.scores[this.activePlayer] += (captured.type === 'k' ? 20 : 3);
+      if (!this.capturedPieces[this.activePlayer]) this.capturedPieces[this.activePlayer] = [];
+      this.capturedPieces[this.activePlayer].push({
+        type: captured.type,
+        owner: captured.owner
+      });
       if (captured.type === 'k') {
         this.winner = this.activePlayer;
       }
@@ -843,6 +883,17 @@ export class ThreePlayerHexGame {
   nextTurn() {
     this.currentTurnIdx = (this.currentTurnIdx + 1) % this.players.length;
   }
+
+  getCapturedSummary(player) {
+    const list = this.capturedPieces?.[player] || [];
+    const counts = {};
+    list.forEach(p => {
+      const key = `${p.type}_${p.owner}`;
+      if (!counts[key]) counts[key] = { type: p.type, owner: p.owner, count: 0 };
+      counts[key].count++;
+    });
+    return Object.values(counts);
+  }
 }
 
 // ============================================================================
@@ -858,6 +909,7 @@ export class ThreePlayerCircularGame {
     this.currentTurnIdx = 0;
     this.eliminated = new Set();
     this.scores = { white: 0, black: 0, red: 0 };
+    this.capturedPieces = { white: [], black: [], red: [] };
     this.winner = null;
     this.moveHistory = [];
     this.initBoard();
@@ -1059,6 +1111,11 @@ export class ThreePlayerCircularGame {
 
     if (target) {
       this.scores[this.activePlayer] += (target.type === 'k' ? 20 : 3);
+      if (!this.capturedPieces[this.activePlayer]) this.capturedPieces[this.activePlayer] = [];
+      this.capturedPieces[this.activePlayer].push({
+        type: target.type,
+        owner: target.owner
+      });
       if (target.type === 'k') {
         this.winner = this.activePlayer;
       }
@@ -1083,6 +1140,17 @@ export class ThreePlayerCircularGame {
 
   nextTurn() {
     this.currentTurnIdx = (this.currentTurnIdx + 1) % this.players.length;
+  }
+
+  getCapturedSummary(player) {
+    const list = this.capturedPieces?.[player] || [];
+    const counts = {};
+    list.forEach(p => {
+      const key = `${p.type}_${p.owner}`;
+      if (!counts[key]) counts[key] = { type: p.type, owner: p.owner, count: 0 };
+      counts[key].count++;
+    });
+    return Object.values(counts);
   }
 }
 

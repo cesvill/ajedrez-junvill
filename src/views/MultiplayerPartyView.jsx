@@ -21,7 +21,8 @@ import { P2PEngine } from '../engine/p2pEngine';
 import { roomEngine, JunvillRoomEngine } from '../services/room/JunvillRoomEngine';
 import { audioManager } from '../engine/audio';
 import confetti from 'canvas-confetti';
-import { BOT_ROSTER, BotAvatarRenderer } from '../assets/botRoster';
+import { ReactionsBar, ReactionFloatingBubble } from '../components/Reactions/ReactionsBar';
+import { SafeChat } from '../components/SafeChat/SafeChat';
 import {
   Users,
   Bot,
@@ -42,7 +43,10 @@ import {
   AlertCircle,
   Pause,
   Bell,
-  Trash2
+  Trash2,
+  MessageCircle,
+  Lock,
+  Smile
 } from 'lucide-react';
 
 const VARIANTS = [
@@ -209,6 +213,217 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
 
   // Canal de difusión en tiempo real (<10ms local)
   const partyBcRef = useRef(null);
+
+  // Sistema de Reacciones y Emociones en Vivo (Paso 2)
+  const [activeReactions, setActiveReactions] = useState({}); // { [colorOrSeat]: reaction }
+  const [latestFloatingReaction, setLatestFloatingReaction] = useState(null);
+
+  // Chat Deportivo Seguro Protegido por Familia (Paso 3)
+  const [chatMessages, setChatMessages] = useState([]);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [hasUnreadChat, setHasUnreadChat] = useState(false);
+
+  // Regla de Protección Infantil Estricta (Paso 3):
+  // El chat deportivo seguro está habilitado SI Y SOLO SI todos los participantes humanos
+  // de la partida son miembros verificados de la familia registrada.
+  const isFamilyOnlyGame = useMemo(() => {
+    if (!activeGroup || !users || users.length === 0) return false;
+
+    // En partida local (en el mismo dispositivo): siempre es familiar
+    if (!partyRoom) return true;
+
+    // Obtener todos los asientos humanos de la sala
+    const humanSeats = (partyRoom.seats || []).filter(s => s.type === 'human' && !s.isBot);
+    // Si no hay asientos humanos (todos bots), se considera seguro
+    if (humanSeats.length === 0) return true;
+
+    const familyIds = new Set(users.map(u => String(u.id || u.uid || '').toLowerCase().trim()).filter(Boolean));
+    const familyNames = new Set(users.map(u => String(u.name || '').toLowerCase().trim()).filter(Boolean));
+
+    // Validar que cada participante humano pertenezca a la familia registrada
+    return humanSeats.every(seat => {
+      if (seat.isLocalDevice || seat.user?.isLocalDevice) return true;
+      const seatUserId = String(seat.user?.id || seat.player?.id || '').toLowerCase().trim();
+      const seatUserName = String(seat.user?.name || seat.player?.name || '').toLowerCase().trim();
+      if (!seatUserId && !seatUserName) return false;
+      return familyIds.has(seatUserId) || familyNames.has(seatUserName);
+    });
+  }, [activeGroup, users, partyRoom]);
+
+  // Si deja de ser una partida familiar (ej: entra un invitado externo), cerrar de inmediato el chat
+  useEffect(() => {
+    if (!isFamilyOnlyGame && isChatOpen) {
+      setIsChatOpen(false);
+    }
+  }, [isFamilyOnlyGame, isChatOpen]);
+
+  const showReactionBubble = useCallback((payload) => {
+    if (!payload || !payload.reaction) return;
+    const key = payload.color || payload.senderId || 'global';
+    setActiveReactions(prev => ({ ...prev, [key]: payload.reaction }));
+    setLatestFloatingReaction(payload);
+
+    setTimeout(() => {
+      setActiveReactions(prev => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    }, 2500);
+
+    setTimeout(() => {
+      setLatestFloatingReaction(prev => (prev?.timestamp === payload.timestamp ? null : prev));
+    }, 2800);
+  }, []);
+
+  const handleSendReaction = useCallback((reaction) => {
+    if (!reaction) return;
+    try { audioManager?.playMove?.(); } catch (e) {}
+
+    const mySeat = partyRoom?.seats?.[effectiveSeatIndex];
+    const myColor = mySeat?.color || primaryPlayerColor || 'white';
+    const senderName = currentUser?.name || 'Tú';
+
+    const reactionPayload = {
+      reaction,
+      senderId: currentUser?.id,
+      senderName,
+      color: myColor,
+      seatIndex: effectiveSeatIndex,
+      roomId: partyRoom?.roomId || 'local',
+      timestamp: Date.now()
+    };
+
+    showReactionBubble(reactionPayload);
+
+    // Enviar por red (Supabase Realtime) si estamos en sala
+    if (partyRoom && partyRoom.status === 'playing') {
+      try {
+        roomEngine.sendReaction?.(reactionPayload);
+      } catch (e) {}
+
+      if (roomEngine.transport?.channel) {
+        roomEngine.transport.channel.send({
+          type: 'broadcast',
+          event: 'PARTY_REACTION',
+          payload: reactionPayload
+        }).catch(() => {});
+      }
+    }
+
+    // Enviar por BroadcastChannel local
+    if (partyBcRef.current) {
+      partyBcRef.current.postMessage({
+        type: 'PARTY_REACTION',
+        ...reactionPayload
+      });
+    }
+
+    // Si jugamos contra bots en local, posible respuesta reactiva simpática
+    const activeBots = Object.entries(botPlayers).filter(([c, isB]) => isB);
+    if (activeBots.length > 0 && (!partyRoom || isPartyHost)) {
+      if (Math.random() < 0.45) {
+        setTimeout(() => {
+          const botResponses = [
+            { emoji: '😎', label: '¡Buen intento!' },
+            { emoji: '🔥', label: '¡Sube la emoción!' },
+            { emoji: '🤔', label: 'Mmm interesante...' },
+            { emoji: '👏', label: '¡Gran juego!' },
+            { emoji: '🛡️', label: '¡Buena defensa!' }
+          ];
+          const chosenBot = activeBots[Math.floor(Math.random() * activeBots.length)][0];
+          const botRes = botResponses[Math.floor(Math.random() * botResponses.length)];
+          const botPayload = {
+            reaction: botRes,
+            senderId: `bot_${chosenBot}`,
+            senderName: `Bot ${chosenBot.toUpperCase()}`,
+            color: chosenBot,
+            timestamp: Date.now()
+          };
+          showReactionBubble(botPayload);
+
+          if (partyRoom && isPartyHost) {
+            if (roomEngine.transport?.channel) {
+              roomEngine.transport.channel.send({
+                type: 'broadcast',
+                event: 'PARTY_REACTION',
+                payload: botPayload
+              }).catch(() => {});
+            }
+            if (partyBcRef.current) {
+              partyBcRef.current.postMessage({
+                type: 'PARTY_REACTION',
+                ...botPayload
+              });
+            }
+          }
+        }, 800 + Math.random() * 600);
+      }
+    }
+  }, [partyRoom, effectiveSeatIndex, primaryPlayerColor, currentUser, botPlayers, isPartyHost, showReactionBubble]);
+
+  const handleSendSafeChat = useCallback((rawMessage, isEmote = false) => {
+    // REGLA ESTRICTA: Solo habilitado si y solo si todos los participantes son familiares
+    if (!isFamilyOnlyGame) return;
+
+    let text = rawMessage;
+    let emote = isEmote;
+    if (typeof rawMessage === 'object' && rawMessage !== null) {
+      text = rawMessage.text || rawMessage.emoji || '';
+      if (rawMessage.isEmote !== undefined) emote = rawMessage.isEmote;
+    }
+    const safeText = String(text || '').trim();
+    if (!safeText) return;
+
+    const chatTimestamp = Date.now();
+    const mySeat = partyRoom?.seats?.[effectiveSeatIndex];
+    const myColor = mySeat?.color || primaryPlayerColor;
+
+    const chatPayload = {
+      senderId: currentUser?.id,
+      senderName: currentUser?.name || 'Familiar',
+      color: myColor,
+      text: safeText,
+      isEmote: emote,
+      timestamp: chatTimestamp,
+      roomId: partyRoom?.roomId || 'local'
+    };
+
+    setChatMessages(prev => [...prev, {
+      ...chatPayload,
+      isMe: true
+    }]);
+
+    if (partyRoom && partyRoom.status === 'playing') {
+      try {
+        roomEngine.sendChatMessage?.(chatPayload);
+      } catch (e) {}
+
+      if (roomEngine.transport?.channel) {
+        roomEngine.transport.channel.send({
+          type: 'broadcast',
+          event: 'PARTY_CHAT',
+          payload: chatPayload
+        }).catch(() => {});
+      }
+
+      // Respaldo en la nube central
+      try {
+        cloudSync.pushPartyRoom({
+          ...partyRoom,
+          lastChatMessage: chatPayload,
+          updatedAt: chatTimestamp
+        }, activeGroup?.id).catch(() => {});
+      } catch (e) {}
+    }
+
+    if (partyBcRef.current) {
+      partyBcRef.current.postMessage({
+        type: 'PARTY_CHAT',
+        ...chatPayload
+      });
+    }
+  }, [isFamilyOnlyGame, partyRoom, effectiveSeatIndex, primaryPlayerColor, currentUser, activeGroup?.id]);
 
   // Inicializar juego al cambiar de variante
   const initGameForVariant = useCallback((variantId) => {
@@ -978,6 +1193,30 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
       applyIncomingMove(moveData);
     });
 
+    const unsubReaction = roomEngine.onReaction((payload) => {
+      if (payload && payload.senderId !== currentUser?.id) {
+        showReactionBubble(payload);
+        try { audioManager?.playMove?.(); } catch (e) {}
+      }
+    });
+
+    const unsubChat = roomEngine.onChatMessage((payload) => {
+      if (payload && payload.senderId !== currentUser?.id) {
+        if (isFamilyOnlyGame) {
+          setChatMessages(prev => [...prev, {
+            senderName: payload.senderName || 'Familiar',
+            text: payload.text,
+            isEmote: payload.isEmote,
+            isMe: false,
+            color: payload.color,
+            timestamp: payload.timestamp || Date.now()
+          }]);
+          setHasUnreadChat(true);
+          try { audioManager?.playHint?.(); } catch (e) {}
+        }
+      }
+    });
+
     // Petición periódica de estado fresco si somos invitados en lobby (<100ms)
     let lobbySyncTimer = null;
     if (partyRoom?.status === 'lobby' && !isPartyHost && roomEngine.transport?.channel) {
@@ -993,9 +1232,11 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
     return () => {
       unsubState();
       unsubMove();
+      unsubReaction();
+      unsubChat();
       if (lobbySyncTimer) clearInterval(lobbySyncTimer);
     };
-  }, [currentUser?.id, selectedVariant, game, initGameForVariant, partyRoom?.status, partyRoom?.roomId, isPartyHost]);
+  }, [currentUser?.id, selectedVariant, game, initGameForVariant, partyRoom?.status, partyRoom?.roomId, isPartyHost, isFamilyOnlyGame, showReactionBubble]);
 
   // Enviar reto familiar a un familiar
   const handleInviteFamilyMember = (targetUser, roomId) => {
@@ -1092,6 +1333,36 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
               audioManager.playWarning();
             }
           }
+
+          // 6. REACCIÓN RECIBIDA POR BROADCAST CHANNEL LOCAL
+          if (data.type === 'PARTY_REACTION') {
+            if (!currentRoom || !data.roomId || data.roomId === currentRoom.roomId || data.roomId === 'local') {
+              if (data.senderId !== currentUser?.id) {
+                showReactionBubble(data);
+                try { audioManager?.playMove?.(); } catch (e) {}
+              }
+            }
+          }
+
+          // 7. MENSAJE DE CHAT RECIBIDO POR BROADCAST CHANNEL LOCAL
+          if (data.type === 'PARTY_CHAT') {
+            if (!currentRoom || !data.roomId || data.roomId === currentRoom.roomId || data.roomId === 'local') {
+              if (data.senderId !== currentUser?.id) {
+                if (isFamilyOnlyGame) {
+                  setChatMessages(prev => [...prev, {
+                    senderName: data.senderName || 'Familiar',
+                    text: data.text,
+                    isEmote: data.isEmote,
+                    isMe: false,
+                    color: data.color,
+                    timestamp: data.timestamp || Date.now()
+                  }]);
+                  setHasUnreadChat(true);
+                  try { audioManager?.playHint?.(); } catch (e) {}
+                }
+              }
+            }
+          }
         };
       }
     } catch (e) {}
@@ -1099,7 +1370,7 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
     return () => {
       try { bc?.close(); } catch (e) {}
     };
-  }, [currentUser?.id, game, initGameForVariant]);
+  }, [currentUser?.id, game, initGameForVariant, isFamilyOnlyGame, showReactionBubble]);
 
   // Deep Link desde la URL (ej: ?partyRoom=JUN7K2) o sala inicial por prop
   useEffect(() => {
@@ -1575,10 +1846,12 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
             {partyRoom.seats.map((st, i) => {
               const isTurn = game.activePlayer === st.color;
               const isOtherHuman = st.type === 'human' && st.user && st.user.id !== currentUser?.id;
+              const seatReaction = activeReactions[st.color] || (st.user?.id && activeReactions[st.user.id]);
               return (
                 <div
                   key={i}
                   style={{
+                    position: 'relative',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
@@ -1591,6 +1864,9 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
                     color: isTurn ? '#f8fafc' : '#94a3b8'
                   }}
                 >
+                  {/* Burbuja de reacción flotante sobre el asiento */}
+                  <ReactionFloatingBubble reaction={seatReaction} position="top" />
+
                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: st.colorHex }} />
                   <span>{st.type === 'human' ? st.user?.name || 'Humano' : st.bot?.name || 'Bot'}</span>
                   {isTurn && <span>🎯</span>}
@@ -1955,7 +2231,150 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
         )}
       </div>
 
-      {/* Modal Informativo de Reglas */}
+      {/* Burbuja Flotante de Reacción sobre el Tablero */}
+      {latestFloatingReaction && (
+        <div style={{ position: 'relative', width: '100%', maxWidth: '1080px', display: 'flex', justifyContent: 'center' }}>
+          <ReactionFloatingBubble reaction={latestFloatingReaction.reaction} position="bottom" />
+        </div>
+      )}
+
+      {/* Barra Social Multijugador: Reacciones en Vivo y Chat Deportivo Familiar */}
+      <div className="multiplayer-social-bar" style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '12px',
+        flexWrap: 'wrap',
+        margin: '12px 0 18px 0',
+        width: '100%',
+        maxWidth: '1080px',
+        padding: '6px 12px'
+      }}>
+        {/* Selector de Reacciones / Emojis en Vivo */}
+        <ReactionsBar
+          onSendReaction={handleSendReaction}
+          disabled={Boolean(game?.winner)}
+        />
+
+        {/* Botón de Chat Deportivo Seguro Condicionado a Familiares */}
+        {isFamilyOnlyGame ? (
+          <button
+            type="button"
+            className={`btn-safe-chat-trigger ${isChatOpen ? 'active' : ''}`}
+            onClick={() => {
+              setIsChatOpen(prev => !prev);
+              setHasUnreadChat(false);
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '7px',
+              backgroundColor: isChatOpen ? '#0284c7' : '#1e293b',
+              color: '#f8fafc',
+              border: '1px solid #334155',
+              borderRadius: '8px',
+              padding: '6px 14px',
+              fontSize: '12px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              position: 'relative',
+              transition: 'all 0.15s ease'
+            }}
+            title="Abrir Chat Deportivo Seguro (Familiares Registrados)"
+          >
+            <MessageCircle size={15} color="#38bdf8" />
+            <span>Chat Deportivo Familiar</span>
+            {hasUnreadChat && !isChatOpen && (
+              <span style={{
+                position: 'absolute',
+                top: '-3px',
+                right: '-3px',
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                backgroundColor: '#ef4444',
+                boxShadow: '0 0 6px #ef4444'
+              }} />
+            )}
+          </button>
+        ) : (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: 'rgba(15, 23, 42, 0.7)',
+              color: '#94a3b8',
+              border: '1px dashed #475569',
+              borderRadius: '8px',
+              padding: '6px 12px',
+              fontSize: '11px',
+              fontWeight: 700,
+              cursor: 'not-allowed',
+              userSelect: 'none'
+            }}
+            title="Chat bloqueado por protección infantil. Solo disponible cuando todos los participantes son miembros de la familia registrada."
+          >
+            <Lock size={13} color="#f59e0b" />
+            <span>🔒 Chat Bloqueado (Protección Infantil)</span>
+          </div>
+        )}
+      </div>
+
+      {/* Cajón Desplegable de Chat Deportivo Familiar */}
+      {isChatOpen && isFamilyOnlyGame && (
+        <div style={{
+          position: 'fixed',
+          bottom: '20px',
+          right: '20px',
+          width: 'min(390px, calc(100vw - 32px))',
+          maxHeight: 'min(500px, calc(100vh - 80px))',
+          backgroundColor: '#0f172a',
+          border: '2px solid #38bdf8',
+          borderRadius: '16px',
+          boxShadow: '0 16px 40px rgba(0,0,0,0.85)',
+          zIndex: 9998,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '10px 14px',
+            backgroundColor: '#1e293b',
+            borderBottom: '1px solid #334155'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#38bdf8', fontWeight: 800, fontSize: '13px' }}>
+              <MessageCircle size={16} />
+              <span>Chat Familiar Seguro</span>
+            </div>
+            <button
+              onClick={() => setIsChatOpen(false)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#94a3b8',
+                cursor: 'pointer',
+                padding: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              title="Cerrar Chat"
+            >
+              <X size={16} />
+            </button>
+          </div>
+          <div style={{ padding: '10px', overflowY: 'auto' }}>
+            <SafeChat
+              messages={chatMessages}
+              onSendMessage={handleSendSafeChat}
+            />
+          </div>
+        </div>
+      )}
       {isRulesOpen && (
         <div style={{
           position: 'fixed',

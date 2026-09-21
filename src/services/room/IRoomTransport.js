@@ -12,6 +12,8 @@ export class IRoomTransport {
     this.peerJoinCallbacks = new Set();
     this.peerLeaveCallbacks = new Set();
     this.presenceSyncCallbacks = new Set();
+    this.reactionCallbacks = new Set();
+    this.chatCallbacks = new Set();
   }
 
   /**
@@ -54,6 +56,32 @@ export class IRoomTransport {
    */
   async trackPresence(meta) {
     throw new Error('trackPresence() must be implemented by transport adapter');
+  }
+
+  /**
+   * Difunde una reacción en vivo (PARTY_REACTION)
+   * @param {object} reaction
+   */
+  async broadcastReaction(reaction) {
+    throw new Error('broadcastReaction() must be implemented by transport adapter');
+  }
+
+  /**
+   * Difunde un mensaje deportivo seguro (PARTY_CHAT)
+   * @param {object} chatMessage
+   */
+  async broadcastChatMessage(chatMessage) {
+    throw new Error('broadcastChatMessage() must be implemented by transport adapter');
+  }
+
+  onReaction(callback) {
+    this.reactionCallbacks.add(callback);
+    return () => this.reactionCallbacks.delete(callback);
+  }
+
+  onChatMessage(callback) {
+    this.chatCallbacks.add(callback);
+    return () => this.chatCallbacks.delete(callback);
   }
 
   onStateUpdate(callback) {

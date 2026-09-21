@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { PieceIcon, PLAYER_PIECE_COLORS } from '../../../assets/pieces';
 import { FourPlayerGame, FOUR_PLAYERS } from '../../../engine/multiplayerChessEngine';
 import { Crown, Shield, Zap } from 'lucide-react';
+import { MultiplayerCapturedPieces } from './MultiplayerCapturedPieces';
 
 const PLAYER_META = {
   red: { name: 'Rojo (Sur)', colorHex: '#ef4444' },
@@ -266,6 +267,7 @@ export const FourPlayerBoard = ({
               <span className="score-card-pts" style={{ color: meta.colorHex }}>
                 {isEliminated ? 'ELIM' : `${game.scores[player]} pts`}
               </span>
+              <MultiplayerCapturedPieces items={game.getCapturedSummary?.(player) || []} />
             </div>
           );
         })}

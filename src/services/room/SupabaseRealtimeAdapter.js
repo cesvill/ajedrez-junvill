@@ -92,6 +92,20 @@ export class SupabaseRealtimeAdapter extends IRoomTransport {
               try { cb(payload); } catch (e) { console.error(e); }
             }
           }
+        })
+        .on('broadcast', { event: 'PARTY_REACTION' }, ({ payload }) => {
+          if (payload) {
+            for (const cb of this.reactionCallbacks) {
+              try { cb(payload.reaction || payload); } catch (e) { console.error(e); }
+            }
+          }
+        })
+        .on('broadcast', { event: 'PARTY_CHAT' }, ({ payload }) => {
+          if (payload) {
+            for (const cb of this.chatCallbacks) {
+              try { cb(payload); } catch (e) { console.error(e); }
+            }
+          }
         });
 
       // 2. Escucha de Presencia en tiempo real
@@ -204,6 +218,38 @@ export class SupabaseRealtimeAdapter extends IRoomTransport {
       await this.channel.track(meta);
     } catch (e) {
       console.warn('[SupabaseRealtimeAdapter] Error tracking presence:', e);
+    }
+  }
+
+  /**
+   * Difunde una reacción en vivo
+   */
+  async broadcastReaction(reactionPayload) {
+    if (!this.channel) return;
+    try {
+      await this.channel.send({
+        type: 'broadcast',
+        event: 'PARTY_REACTION',
+        payload: reactionPayload
+      });
+    } catch (e) {
+      console.warn('[SupabaseRealtimeAdapter] Error broadcasting reaction:', e);
+    }
+  }
+
+  /**
+   * Difunde un mensaje deportivo seguro
+   */
+  async broadcastChatMessage(chatPayload) {
+    if (!this.channel) return;
+    try {
+      await this.channel.send({
+        type: 'broadcast',
+        event: 'PARTY_CHAT',
+        payload: chatPayload
+      });
+    } catch (e) {
+      console.warn('[SupabaseRealtimeAdapter] Error broadcasting chat message:', e);
     }
   }
 }

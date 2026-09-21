@@ -26,6 +26,8 @@ export class JunvillRoomEngine {
     this.currentUser = null;
     this.stateListeners = new Set();
     this.moveListeners = new Set();
+    this.reactionListeners = new Set();
+    this.chatListeners = new Set();
     this.isHost = false;
     this.visibilityListenerAttached = false;
 
@@ -84,6 +86,22 @@ export class JunvillRoomEngine {
         const isMeHost = this.isHost || (this.currentState?.seats?.[0]?.user?.id === this.currentUser?.id);
         if (isMeHost && this.currentState) {
           this.transport.broadcastState(this.currentState);
+        }
+      });
+    }
+
+    if (this.transport.onReaction) {
+      this.transport.onReaction((payload) => {
+        for (const cb of this.reactionListeners) {
+          try { cb(payload); } catch (e) { console.error(e); }
+        }
+      });
+    }
+
+    if (this.transport.onChatMessage) {
+      this.transport.onChatMessage((payload) => {
+        for (const cb of this.chatListeners) {
+          try { cb(payload); } catch (e) { console.error(e); }
         }
       });
     }
@@ -723,6 +741,30 @@ export class JunvillRoomEngine {
     return () => {
       this.moveListeners.delete(listener);
     };
+  }
+
+  onReaction(listener) {
+    this.reactionListeners.add(listener);
+    return () => {
+      this.reactionListeners.delete(listener);
+    };
+  }
+
+  onChatMessage(listener) {
+    this.chatListeners.add(listener);
+    return () => {
+      this.chatListeners.delete(listener);
+    };
+  }
+
+  async sendReaction(reaction) {
+    if (!this.transport) return;
+    return this.transport.broadcastReaction(reaction);
+  }
+
+  async sendChatMessage(chatMessage) {
+    if (!this.transport) return;
+    return this.transport.broadcastChatMessage(chatMessage);
   }
 
   emitStateChange() {

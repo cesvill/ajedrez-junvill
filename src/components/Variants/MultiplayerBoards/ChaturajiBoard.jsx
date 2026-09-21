@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { PieceIcon, PLAYER_PIECE_COLORS } from '../../../assets/pieces';
 import { CHATURAJI_CONFIG, CHATURAJI_PLAYERS } from '../../../engine/multiplayerChessEngine';
 import { Dices, Crown, SkipForward, Sparkles } from 'lucide-react';
+import { MultiplayerCapturedPieces } from './MultiplayerCapturedPieces';
 
 export const ChaturajiBoard = ({
   game,
@@ -331,6 +332,7 @@ export const ChaturajiBoard = ({
               <span className="score-card-pts" style={{ color: cfg.colorHex }}>
                 {isEliminated ? 'ELIM' : `${game.scores[player]} pts`}
               </span>
+              <MultiplayerCapturedPieces items={game.getCapturedSummary?.(player) || []} />
             </div>
           );
         })}
