@@ -13,12 +13,40 @@ const PLAYER_META = {
 export const FourPlayerBoard = ({
   game,
   onMove,
-  isBotTurn = false
+  isBotTurn = false,
+  allowedColors,
+  playerColor
 }) => {
   const [selectedCell, setSelectedCell] = useState(null);
 
   const activePlayer = game.activePlayer;
   const activeMeta = PLAYER_META[activePlayer];
+
+  const validColors = useMemo(() => {
+    if (Array.isArray(allowedColors) && allowedColors.length > 0) {
+      return allowedColors;
+    }
+    return [game.activePlayer];
+  }, [allowedColors, game.activePlayer]);
+
+  // Orientación del tablero: el bando del jugador local se ubica en la parte inferior
+  const [manualRotation, setManualRotation] = useState(null);
+  const defaultOrientationColor = playerColor || validColors[0] || 'red';
+  const effectiveOrientationColor = manualRotation || defaultOrientationColor;
+
+  const boardRotation = useMemo(() => {
+    if (effectiveOrientationColor === 'red') return 180;
+    if (effectiveOrientationColor === 'blue') return 270;
+    if (effectiveOrientationColor === 'green') return 90;
+    return 0; // yellow
+  }, [effectiveOrientationColor]);
+
+  const cycleOrientation = () => {
+    const sequence = ['red', 'blue', 'yellow', 'green'];
+    const currentIdx = sequence.indexOf(effectiveOrientationColor);
+    const nextColor = sequence[(currentIdx + 1) % sequence.length];
+    setManualRotation(nextColor);
+  };
 
   const legalMoves = useMemo(() => {
     if (!selectedCell) return [];
@@ -27,6 +55,8 @@ export const FourPlayerBoard = ({
 
   const handleCellClick = (x, y) => {
     if (isBotTurn || game.winner || FourPlayerGame.isOutOfBounds(x, y)) return;
+
+    const isMyTurn = validColors.includes(activePlayer);
 
     if (selectedCell) {
       if (selectedCell.x === x && selectedCell.y === y) {
@@ -42,8 +72,15 @@ export const FourPlayerBoard = ({
       }
     }
 
+    // Si no es el turno de ningún color de este dispositivo, NO permitir seleccionar nada
+    if (!isMyTurn) {
+      setSelectedCell(null);
+      return;
+    }
+
     const piece = game.board[y]?.[x];
-    if (piece && piece.owner === activePlayer) {
+    // ÚNICAMENTE permitir seleccionar piezas del jugador activo Y que pertenezcan a los colores de este dispositivo
+    if (piece && piece.owner === activePlayer && validColors.includes(piece.owner)) {
       const moves = game.getLegalMovesForPiece(x, y);
       if (moves.length > 0) {
         setSelectedCell({ x, y });
@@ -54,18 +91,11 @@ export const FourPlayerBoard = ({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', width: '100%', maxWidth: '720px', margin: '0 auto' }}>
+    <div className="multiplayer-board-container">
       
       {/* HUD del Jugador Activo */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        width: '100%',
-        padding: '12px 18px',
-        backgroundColor: '#1e293b',
-        borderRadius: '16px',
-        border: `2px solid ${activeMeta?.colorHex || '#3b82f6'}`,
+      <div className="multiplayer-hud-card" style={{
+        borderColor: activeMeta?.colorHex || '#3b82f6',
         boxShadow: `0 8px 24px ${activeMeta?.colorHex || '#3b82f6'}26`
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -93,7 +123,27 @@ export const FourPlayerBoard = ({
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <button
+            onClick={cycleOrientation}
+            title="Girar orientación del tablero"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: 'rgba(56, 189, 248, 0.15)',
+              border: '1px solid rgba(56, 189, 248, 0.4)',
+              color: '#38bdf8',
+              padding: '6px 12px',
+              borderRadius: '10px',
+              fontSize: '12px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <span>🔄 Vista: {PLAYER_META[effectiveOrientationColor]?.name || effectiveOrientationColor} (Abajo)</span>
+          </button>
           <span style={{ fontSize: '14px', fontWeight: 800, color: activeMeta?.colorHex, backgroundColor: 'rgba(15,23,42,0.6)', padding: '6px 14px', borderRadius: '10px', border: '1px solid #334155' }}>
             {game.scores[activePlayer]} Puntos
           </span>
@@ -101,18 +151,13 @@ export const FourPlayerBoard = ({
       </div>
 
       {/* Tablero 14x14 en Cruz */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(14, 1fr)',
-        gridTemplateRows: 'repeat(14, 1fr)',
-        width: '100%',
-        aspectRatio: '1 / 1',
-        backgroundColor: '#0a0f1d',
-        borderRadius: '16px',
-        padding: '8px',
-        boxShadow: '0 16px 40px rgba(0,0,0,0.6)',
-        border: '3px solid #1e293b'
-      }}>
+      <div 
+        className="multiplayer-board-grid four-player-grid"
+        style={{
+          transform: `rotate(${boardRotation}deg)`,
+          transition: 'transform 0.4s ease'
+        }}
+      >
         {Array(14).fill(null).map((_, y) => 
           Array(14).fill(null).map((_, x) => {
             const isOut = FourPlayerGame.isOutOfBounds(x, y);
@@ -164,7 +209,7 @@ export const FourPlayerBoard = ({
                   }} />
                 )}
 
-                {/* Pieza */}
+                {/* Pieza con contrarotación para mantenerse erguida */}
                 {piece && (
                   <div style={{
                     width: '88%',
@@ -172,7 +217,9 @@ export const FourPlayerBoard = ({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    filter: piece.owner === 'frozen' ? 'grayscale(100%) opacity(0.5)' : 'drop-shadow(0 2px 5px rgba(0,0,0,0.3))'
+                    filter: piece.owner === 'frozen' ? 'grayscale(100%) opacity(0.5)' : 'drop-shadow(0 2px 5px rgba(0,0,0,0.3))',
+                    transform: `rotate(${-boardRotation}deg)`,
+                    transition: 'transform 0.4s ease'
                   }}>
                     <PieceIcon
                       piece={piece.type}
@@ -188,12 +235,7 @@ export const FourPlayerBoard = ({
       </div>
 
       {/* Marcador de los 4 Jugadores */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: '8px',
-        width: '100%'
-      }}>
+      <div className="multiplayer-scores-grid">
         {FOUR_PLAYERS.map(player => {
           const meta = PLAYER_META[player];
           const isEliminated = game.eliminated.has(player);
@@ -202,30 +244,27 @@ export const FourPlayerBoard = ({
           return (
             <div
               key={player}
+              className="multiplayer-score-card"
               style={{
                 backgroundColor: isTurn ? 'rgba(30, 41, 59, 0.95)' : '#0f172a',
                 border: isTurn ? `2px solid ${meta.colorHex}` : '1px solid #334155',
-                borderRadius: '12px',
-                padding: '8px 12px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '4px',
                 opacity: isEliminated ? 0.45 : 1
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div className="score-card-header">
                 <div style={{
                   width: '10px',
                   height: '10px',
                   borderRadius: '50%',
-                  backgroundColor: meta.colorHex
+                  backgroundColor: meta.colorHex,
+                  flexShrink: 0
                 }} />
-                <span style={{ fontSize: '13px', fontWeight: 700, color: '#f8fafc' }}>
+                <span className="score-card-name">
                   {meta.name.split(' ')[0]}
                 </span>
               </div>
-              <span style={{ fontSize: '14px', fontWeight: 900, color: meta.colorHex }}>
-                {isEliminated ? 'ELIMINADO' : `${game.scores[player]} pts`}
+              <span className="score-card-pts" style={{ color: meta.colorHex }}>
+                {isEliminated ? 'ELIM' : `${game.scores[player]} pts`}
               </span>
             </div>
           );

@@ -4,7 +4,7 @@ import { THREE_HEX_PLAYERS } from '../../../engine/multiplayerChessEngine';
 
 const cx = 400;
 const cy = 400;
-const R = 360;
+const R = 396;
 
 const toRad = (deg) => (deg * Math.PI) / 180;
 
@@ -55,11 +55,32 @@ const DARK_SQUARE  = '#b87333';
 export const ThreePlayerHexBoard = ({
   game,
   onMove,
-  isBotTurn = false
+  isBotTurn = false,
+  allowedColors,
+  playerColor
 }) => {
   const [selectedCellId, setSelectedCellId] = useState(null);
 
   const activePlayer = game.activePlayer;
+
+  const validColors = useMemo(() => {
+    if (Array.isArray(allowedColors) && allowedColors.length > 0) {
+      return allowedColors;
+    }
+    return [game.activePlayer];
+  }, [allowedColors, game.activePlayer]);
+
+  // Orientación del tablero: el bando del jugador local se ubica en la parte inferior
+  const [manualRotation, setManualRotation] = useState(null);
+  const defaultOrientationColor = playerColor || validColors[0] || 'white';
+  const effectiveOrientationColor = manualRotation || defaultOrientationColor;
+
+  const boardRotation = useMemo(() => {
+    if (effectiveOrientationColor === 'black') return 240;
+    if (effectiveOrientationColor === 'red') return 120;
+    return 0; // white
+  }, [effectiveOrientationColor]);
+
   const legalMoves = useMemo(() => {
     if (!selectedCellId) return [];
     return game.getLegalMovesForCell(selectedCellId);
@@ -68,6 +89,9 @@ export const ThreePlayerHexBoard = ({
   const handleCellClick = (cellId) => {
     if (isBotTurn || game.winner) return;
 
+    const isMyTurn = validColors.includes(activePlayer);
+
+    // Si ya hay una ficha seleccionada, verificar si se hace clic en un movimiento legal
     if (selectedCellId) {
       if (selectedCellId === cellId) {
         setSelectedCellId(null);
@@ -81,8 +105,15 @@ export const ThreePlayerHexBoard = ({
       }
     }
 
+    // Si no es el turno de ningún color de este dispositivo, NO permitir seleccionar nada
+    if (!isMyTurn) {
+      setSelectedCellId(null);
+      return;
+    }
+
     const cell = game.cells[cellId];
-    if (cell && cell.piece && cell.piece.owner === activePlayer) {
+    // ÚNICAMENTE permitir seleccionar piezas del jugador activo Y que pertenezcan a los colores de este dispositivo
+    if (cell && cell.piece && cell.piece.owner === activePlayer && validColors.includes(cell.piece.owner)) {
       const moves = game.getLegalMovesForCell(cellId);
       if (moves.length > 0) {
         setSelectedCellId(cellId);
@@ -90,6 +121,13 @@ export const ThreePlayerHexBoard = ({
     } else {
       setSelectedCellId(null);
     }
+  };
+
+  const cycleOrientation = () => {
+    const sequence = ['white', 'black', 'red'];
+    const currentIdx = sequence.indexOf(effectiveOrientationColor);
+    const nextColor = sequence[(currentIdx + 1) % sequence.length];
+    setManualRotation(nextColor);
   };
 
   const getCellGeometry = (sec, f, r) => {
@@ -110,22 +148,15 @@ export const ThreePlayerHexBoard = ({
     const center = interp(quad[0], quad[1], quad[2], quad[3], (u0 + u1) / 2, (v0 + v1) / 2);
     const pathData = `M ${p1.x.toFixed(1)} ${p1.y.toFixed(1)} L ${p2.x.toFixed(1)} ${p2.y.toFixed(1)} L ${p3.x.toFixed(1)} ${p3.y.toFixed(1)} L ${p4.x.toFixed(1)} ${p4.y.toFixed(1)} Z`;
 
-    return { pathData, center };
+    return { pathData, center, outerEdgeMid: mid(p1, p2) };
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', width: '100%', maxWidth: '720px', margin: '0 auto' }}>
+    <div className="multiplayer-board-container">
       
       {/* HUD de Turno */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        width: '100%',
-        padding: '12px 18px',
-        backgroundColor: '#1e293b',
-        borderRadius: '16px',
-        border: `2px solid ${activePlayer === 'white' ? '#f8fafc' : activePlayer === 'red' ? '#ef4444' : '#64748b'}`,
+      <div className="multiplayer-hud-card" style={{
+        borderColor: activePlayer === 'white' ? '#f8fafc' : activePlayer === 'red' ? '#ef4444' : '#64748b',
         boxShadow: '0 8px 24px rgba(0,0,0,0.4)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -151,129 +182,151 @@ export const ThreePlayerHexBoard = ({
           </div>
         </div>
 
-        <div style={{ fontSize: '13px', color: '#38bdf8', fontWeight: 700, backgroundColor: 'rgba(15,23,42,0.6)', padding: '6px 12px', borderRadius: '10px' }}>
-          Tablero Hexagonal Clásico
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <button
+            onClick={cycleOrientation}
+            title="Girar orientación del tablero"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: 'rgba(56, 189, 248, 0.15)',
+              border: '1px solid rgba(56, 189, 248, 0.4)',
+              color: '#38bdf8',
+              padding: '6px 12px',
+              borderRadius: '10px',
+              fontSize: '12px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <span>🔄 Vista: {effectiveOrientationColor === 'white' ? 'Blanco' : effectiveOrientationColor === 'black' ? 'Negro' : 'Rojo'} (Abajo)</span>
+          </button>
         </div>
       </div>
 
       {/* Tablero SVG Hexagonal Regular (96 casillas) */}
-      <div style={{
-        width: '100%',
-        aspectRatio: '1 / 1',
-        backgroundColor: '#0a0f1d',
-        borderRadius: '24px',
-        padding: '10px',
-        boxShadow: '0 16px 40px rgba(0,0,0,0.6)',
-        border: '3px solid #1e293b'
-      }}>
+      <div className="multiplayer-board-grid three-hex-grid">
         <svg
           viewBox="0 0 800 800"
           style={{ width: '100%', height: '100%', overflow: 'visible' }}
         >
-          {/* Borde exterior del hexágono */}
-          <polygon
-            points={V.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')}
-            fill="#3d2612"
-            stroke="#1e293b"
-            strokeWidth="6"
-            strokeLinejoin="round"
-          />
+          {/* Grupo rotado según la orientación del jugador ("mi bando siempre abajo") */}
+          <g transform={`rotate(${boardRotation}, ${cx}, ${cy})`} style={{ transition: 'transform 0.4s ease' }}>
+            {/* Borde exterior del hexágono */}
+            <polygon
+              points={V.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')}
+              fill="#3d2612"
+              stroke="#1e293b"
+              strokeWidth="6"
+              strokeLinejoin="round"
+            />
 
-          {/* 96 Casillas Cuadriláteras */}
-          {['A', 'B', 'C'].map(sec => 
-            Array(4).fill(null).map((_, r) => 
-              Array(8).fill(null).map((_, f) => {
-                const cellId = `${sec}_${f}_${r}`;
-                const cell = game.cells[cellId];
-                const { pathData, center } = getCellGeometry(sec, f, r);
-                const isSelected = selectedCellId === cellId;
-                const isLegal = legalMoves.some(m => m.to === cellId);
-                const hasPiece = !!cell?.piece;
+            {/* 96 Casillas Cuadriláteras */}
+            {['A', 'B', 'C'].map(sec => 
+              Array(4).fill(null).map((_, r) => 
+                Array(8).fill(null).map((_, f) => {
+                  const cellId = `${sec}_${f}_${r}`;
+                  const cell = game.cells[cellId];
+                  const { pathData, center } = getCellGeometry(sec, f, r);
+                  const isSelected = selectedCellId === cellId;
+                  const isLegal = legalMoves.some(m => m.to === cellId);
+                  const hasPiece = !!cell?.piece;
 
-                const isDark = (f + r) % 2 === 0;
-                let fill = isDark ? DARK_SQUARE : LIGHT_SQUARE;
-                if (isSelected) fill = '#60a5fa';
-                else if (isLegal) fill = hasPiece ? '#f87171' : '#4ade80';
+                  const isDark = (f + r) % 2 === 0;
+                  let fill = isDark ? DARK_SQUARE : LIGHT_SQUARE;
+                  if (isSelected) fill = '#60a5fa';
+                  else if (isLegal) fill = hasPiece ? '#f87171' : '#4ade80';
 
-                return (
-                  <g key={cellId} onClick={() => handleCellClick(cellId)} style={{ cursor: 'pointer' }}>
-                    <path
-                      d={pathData}
-                      fill={fill}
-                      stroke="#3d2612"
-                      strokeWidth="1.2"
-                      style={{ transition: 'fill 0.15s ease' }}
-                    />
-
-                    {/* Indicador de destino legal */}
-                    {isLegal && !hasPiece && (
-                      <circle
-                        cx={center.x}
-                        cy={center.y}
-                        r="6"
-                        fill="#15803d"
-                        stroke="#ffffff"
-                        strokeWidth="1.5"
+                  return (
+                    <g key={cellId} onClick={() => handleCellClick(cellId)} style={{ cursor: 'pointer' }}>
+                      <path
+                        d={pathData}
+                        fill={fill}
+                        stroke="#3d2612"
+                        strokeWidth="1.2"
+                        style={{ transition: 'fill 0.15s ease' }}
                       />
-                    )}
 
-                    {/* Render de Pieza Centrada y con tamaño amplio y armónico */}
-                    {hasPiece && (() => {
-                      const isPawn = cell.piece.type === 'p';
-                      const pieceSize = isPawn ? 33 : 38;
-                      const half = pieceSize / 2;
-                      return (
-                        <g
-                          transform={`translate(${(center.x - half).toFixed(1)}, ${(center.y - half).toFixed(1)})`}
-                          style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}
-                        >
-                          <PieceIcon
-                            piece={cell.piece.type}
-                            color={cell.piece.owner}
-                            size={pieceSize}
-                            width={pieceSize}
-                            height={pieceSize}
-                          />
-                        </g>
-                      );
-                    })()}
-                  </g>
-                );
-              })
-            )
-          )}
+                      {/* Indicador de destino legal */}
+                      {isLegal && !hasPiece && (
+                        <circle
+                          cx={center.x}
+                          cy={center.y}
+                          r="6"
+                          fill="#15803d"
+                          stroke="#ffffff"
+                          strokeWidth="1.5"
+                        />
+                      )}
 
-          {/* Costuras centrales divisorias */}
-          <line x1={M_S.x} y1={M_S.y} x2={C.x} y2={C.y} stroke="#3d2612" strokeWidth="2.5" />
-          <line x1={M_SE.x} y1={M_SE.y} x2={C.x} y2={C.y} stroke="#3d2612" strokeWidth="3" />
-          <line x1={M_NE.x} y1={M_NE.y} x2={C.x} y2={C.y} stroke="#3d2612" strokeWidth="2.5" />
-          <line x1={M_N.x} y1={M_N.y} x2={C.x} y2={C.y} stroke="#3d2612" strokeWidth="3" />
-          <line x1={M_NW.x} y1={M_NW.y} x2={C.x} y2={C.y} stroke="#3d2612" strokeWidth="2.5" />
-          <line x1={M_SW.x} y1={M_SW.y} x2={C.x} y2={C.y} stroke="#3d2612" strokeWidth="3" />
+                      {/* Render de Pieza Centrada con contrarotación para mantenerse vertical */}
+                      {hasPiece && (() => {
+                        const isPawn = cell.piece.type === 'p';
+                        const pieceSize = isPawn ? 35 : 42;
+                        const half = pieceSize / 2;
+                        return (
+                          <g
+                            transform={`translate(${center.x}, ${center.y}) rotate(${-boardRotation}) translate(${-half}, ${-half})`}
+                            style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}
+                          >
+                            <PieceIcon
+                              piece={cell.piece.type}
+                              color={cell.piece.owner}
+                              size={pieceSize}
+                              width={pieceSize}
+                              height={pieceSize}
+                            />
+                          </g>
+                        );
+                      })()}
+                    </g>
+                  );
+                })
+              )
+            )}
 
-          {/* Letras de columnas para bando Blanco en la base exterior fuera del tablero */}
-          {['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].map((letter, idx) => {
-            const { center } = getCellGeometry('A', idx, 0);
-            return (
-              <text
-                key={letter}
-                x={center.x}
-                y={738}
-                fill="#cbd5e1"
-                fontSize="15"
-                fontWeight="800"
-                textAnchor="middle"
-                style={{ textShadow: '0 2px 4px rgba(0,0,0,0.9)' }}
-              >
-                {letter}
-              </text>
-            );
-          })}
+            {/* Costuras centrales divisorias */}
+            <line x1={M_S.x} y1={M_S.y} x2={C.x} y2={C.y} stroke="#3d2612" strokeWidth="2.5" />
+            <line x1={M_SE.x} y1={M_SE.y} x2={C.x} y2={C.y} stroke="#3d2612" strokeWidth="3" />
+            <line x1={M_NE.x} y1={M_NE.y} x2={C.x} y2={C.y} stroke="#3d2612" strokeWidth="2.5" />
+            <line x1={M_N.x} y1={M_N.y} x2={C.x} y2={C.y} stroke="#3d2612" strokeWidth="3" />
+            <line x1={M_NW.x} y1={M_NW.y} x2={C.x} y2={C.y} stroke="#3d2612" strokeWidth="2.5" />
+            <line x1={M_SW.x} y1={M_SW.y} x2={C.x} y2={C.y} stroke="#3d2612" strokeWidth="3" />
+
+            {/* Letras de columnas para el bando que está en la base inferior */}
+            {['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].map((letter, idx) => {
+              const activeSec = effectiveOrientationColor === 'black' ? 'B' : effectiveOrientationColor === 'red' ? 'C' : 'A';
+              const { outerEdgeMid } = getCellGeometry(activeSec, idx, 0);
+              const dirX = outerEdgeMid.x - cx;
+              const dirY = outerEdgeMid.y - cy;
+              const dist = Math.sqrt(dirX * dirX + dirY * dirY) || 1;
+              const labelX = (outerEdgeMid.x + (dirX / dist) * 16).toFixed(1);
+              const labelY = (outerEdgeMid.y + (dirY / dist) * 16).toFixed(1);
+              return (
+                <text
+                  key={`${activeSec}_${letter}_${idx}`}
+                  x={labelX}
+                  y={labelY}
+                  fill="#cbd5e1"
+                  fontSize="14"
+                  fontWeight="800"
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  transform={`rotate(${-boardRotation}, ${labelX}, ${labelY})`}
+                  style={{ textShadow: '0 2px 4px rgba(0,0,0,0.9)' }}
+                >
+                  {letter}
+                </text>
+              );
+            })}
+          </g>
         </svg>
       </div>
 
       {/* Marcador de Puntuación */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', width: '100%' }}>
+      <div className="multiplayer-scores-grid three-scores-grid">
         {THREE_HEX_PLAYERS.map(player => {
           const isTurn = activePlayer === player;
           const label = player === 'white' ? 'Blanco' : player === 'black' ? 'Negro' : 'Rojo';
@@ -281,21 +334,17 @@ export const ThreePlayerHexBoard = ({
           return (
             <div
               key={player}
+              className="multiplayer-score-card"
               style={{
                 backgroundColor: isTurn ? 'rgba(30, 41, 59, 0.95)' : '#0f172a',
-                border: isTurn ? `2px solid ${colorHex}` : '1px solid #334155',
-                borderRadius: '12px',
-                padding: '10px 14px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between'
+                border: isTurn ? `2px solid ${colorHex}` : '1px solid #334155'
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div className="score-card-header">
                 <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: colorHex }} />
-                <span style={{ fontSize: '14px', fontWeight: 700, color: '#f8fafc' }}>{label}</span>
+                <span className="score-card-name">{label}</span>
               </div>
-              <span style={{ fontSize: '15px', fontWeight: 900, color: '#38bdf8' }}>{game.scores[player]} pts</span>
+              <span className="score-card-pts" style={{ color: '#38bdf8' }}>{game.scores[player]} pts</span>
             </div>
           );
         })}

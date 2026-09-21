@@ -205,8 +205,13 @@ export const HomeView = ({
                   type="button"
                   className="btn-gold"
                   onClick={() => {
-                    acceptFamilyInvitation(inv.id);
-                    if (onOpenP2P) onOpenP2P(inv.roomId);
+                    const accepted = acceptFamilyInvitation(inv.id);
+                    const isMulti = ['chaturaji', 'four_player', 'three_hex', 'three_circular'].includes(inv.gameVariant || inv.variantId);
+                    if (isMulti && onOpenMultiplayer) {
+                      onOpenMultiplayer(inv.roomId);
+                    } else if (onOpenP2P) {
+                      onOpenP2P(inv.roomId);
+                    }
                   }}
                   style={{
                     padding: '10px 18px',
@@ -452,7 +457,14 @@ export const HomeView = ({
               className="btn-gold"
               onClick={() => {
                 const inv = acceptFamilyInvitation(pendingInvitationsForMe[0].id);
-                if (inv && onOpenP2P) onOpenP2P(inv.roomId, 'join');
+                if (inv) {
+                  const isMulti = ['chaturaji', 'four_player', 'three_hex', 'three_circular'].includes(inv.gameVariant || inv.variantId);
+                  if (isMulti && onOpenMultiplayer) {
+                    onOpenMultiplayer(inv.roomId);
+                  } else if (onOpenP2P) {
+                    onOpenP2P(inv.roomId, 'join');
+                  }
+                }
               }}
               style={{ padding: '10px 20px', fontSize: '0.90rem', fontWeight: '900', gap: '6px' }}
             >

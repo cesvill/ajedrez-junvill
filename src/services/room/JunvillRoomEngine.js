@@ -349,6 +349,7 @@ export class JunvillRoomEngine {
       targetSeat.botDifficulty = null;
       targetSeat.player = playerToAssign;
       targetSeat.user = playerToAssign;
+      targetSeat.isLocalDevice = !!playerToAssign.isLocalDevice;
       targetSeat.ready = true;
       targetSeat.isReady = true;
       targetSeat.isConnected = true;
@@ -373,6 +374,7 @@ export class JunvillRoomEngine {
     targetSeat.isOccupied = false;
     targetSeat.type = 'human';
     targetSeat.isBot = false;
+    targetSeat.isLocalDevice = false;
     targetSeat.bot = null;
     targetSeat.botDifficulty = null;
     targetSeat.player = null;

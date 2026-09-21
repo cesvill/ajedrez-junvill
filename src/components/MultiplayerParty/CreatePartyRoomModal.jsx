@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { P2PEngine } from '../../engine/p2pEngine';
-import { BOT_ROSTER } from '../../assets/botRoster';
-import { X, Users, Bot, Sparkles, Swords, Dices, Star, Compass, ArrowRight, ShieldCheck } from 'lucide-react';
+import { BOT_ROSTER, BotAvatarRenderer } from '../../assets/botRoster';
+import { X, Users, Bot, Sparkles, Swords, Dices, Star, Compass, ArrowRight, ShieldCheck, Globe, Monitor } from 'lucide-react';
 
 export const MULTIPLAYER_VARIANTS = [
   {
@@ -49,17 +49,24 @@ export const MULTIPLAYER_VARIANTS = [
 export const CreatePartyRoomModal = ({ isOpen, onClose, onRoomCreated, currentUser }) => {
   const [selectedVariantId, setSelectedVariantId] = useState('four_player');
   const [expectedHumans, setExpectedHumans] = useState(2); // Por defecto 2 humanos
+  const [deviceMode, setDeviceMode] = useState('online'); // 'online' (disp separados) | 'hybrid' (en este mismo equipo)
+  const [localPlayersCount, setLocalPlayersCount] = useState(2); // Cantidad de jugadores en esta misma pantalla
+  const [selectedBotId, setSelectedBotId] = useState('qwerty');
 
   if (!isOpen) return null;
 
   const currentVariant = MULTIPLAYER_VARIANTS.find(v => v.id === selectedVariantId) || MULTIPLAYER_VARIANTS[0];
   const maxPlayers = currentVariant.totalPlayers; // 3 o 4
-  const minHumans = 1; // El host al menos, o 2
+  const minHumans = 1;
   const maxHumans = maxPlayers;
 
   // Asegurar que expectedHumans esté en rango al cambiar variante
   const safeHumans = Math.min(Math.max(expectedHumans, 2), maxPlayers);
   const botsCount = maxPlayers - safeHumans;
+  const selectedBot = BOT_ROSTER.find(b => b.id === selectedBotId) || BOT_ROSTER[0];
+
+  // Ajustar localPlayersCount si excede safeHumans
+  const safeLocalPlayers = deviceMode === 'hybrid' ? Math.min(Math.max(localPlayersCount, 2), safeHumans) : 1;
 
   const handleVariantChange = (vId) => {
     setSelectedVariantId(vId);
@@ -74,9 +81,6 @@ export const CreatePartyRoomModal = ({ isOpen, onClose, onRoomCreated, currentUs
   const handleCreateSubmit = (e) => {
     e.preventDefault();
     const newRoomId = P2PEngine.generateRoomId();
-    
-    // Obtener nombres y avatares de bots del roster para rellenar los asientos restantes
-    const availableBots = BOT_ROSTER.filter(b => b.category === 'robots').slice(0, 4);
 
     // Configuración de asientos según la modalidad
     let seatColors = [];
@@ -104,8 +108,11 @@ export const CreatePartyRoomModal = ({ isOpen, onClose, onRoomCreated, currentUs
     }
 
     const seats = seatColors.map((sc, idx) => {
-      if (idx === 0) {
-        // Asiento 0: El Host (Humano)
+      const isLocalHost = idx === 0;
+      const isLocalCompanion = deviceMode === 'hybrid' && idx < safeLocalPlayers;
+
+      if (isLocalHost) {
+        // Asiento 0: El Host (Humano - Este dispositivo)
         return {
           seatIndex: 0,
           color: sc.colorKey,
@@ -113,18 +120,20 @@ export const CreatePartyRoomModal = ({ isOpen, onClose, onRoomCreated, currentUs
           colorHex: sc.hex,
           type: 'human',
           isHost: true,
+          isLocalDevice: true,
           user: {
             id: currentUser?.id || 'host_user',
             name: currentUser?.name || 'Anfitrión',
             avatar: currentUser?.avatar || 'custom_dynamic',
             avatarConfig: currentUser?.avatarConfig || null,
             elo: currentUser?.elo || 600,
-            role: currentUser?.role || 'student'
+            role: currentUser?.role || 'student',
+            isLocalDevice: true
           },
           ready: true
         };
-      } else if (idx < safeHumans) {
-        // Asientos reservados para otros Humanos
+      } else if (isLocalCompanion) {
+        // Asientos para compañeros locales que juegan en ESTE MISMO DISPOSITIVO
         return {
           seatIndex: idx,
           color: sc.colorKey,
@@ -132,13 +141,33 @@ export const CreatePartyRoomModal = ({ isOpen, onClose, onRoomCreated, currentUs
           colorHex: sc.hex,
           type: 'human',
           isHost: false,
-          user: null, // Pendiente de conexión
+          isLocalDevice: true,
+          user: {
+            id: `local_p${idx + 1}`,
+            name: `Compañero ${idx + 1} (Local)`,
+            avatar: 'teen_gamer',
+            avatarConfig: null,
+            elo: 600,
+            role: 'student',
+            isLocalDevice: true
+          },
+          ready: true
+        };
+      } else if (idx < safeHumans) {
+        // Asientos reservados para otros Humanos ONLINE en otros dispositivos
+        return {
+          seatIndex: idx,
+          color: sc.colorKey,
+          label: sc.label,
+          colorHex: sc.hex,
+          type: 'human',
+          isHost: false,
+          isLocalDevice: false,
+          user: null, // Pendiente de conexión online
           ready: false
         };
       } else {
-        // Asientos completados automáticamente con Robots
-        const botIdx = (idx - safeHumans) % availableBots.length;
-        const botData = availableBots[botIdx] || { name: `Robot ${idx}`, elo: 500 };
+        // Asientos completados automáticamente con el Robot homogéneo seleccionado
         return {
           seatIndex: idx,
           color: sc.colorKey,
@@ -146,12 +175,16 @@ export const CreatePartyRoomModal = ({ isOpen, onClose, onRoomCreated, currentUs
           colorHex: sc.hex,
           type: 'bot',
           isHost: false,
+          isLocalDevice: false,
           bot: {
-            id: botData.id,
-            name: botData.name,
-            elo: botData.elo,
-            title: botData.title || 'Robot Junvill',
-            color: botData.color || '#38bdf8'
+            id: selectedBot.id,
+            name: `${selectedBot.name} (${sc.label})`,
+            elo: selectedBot.elo,
+            title: selectedBot.title || 'Robot Junvill',
+            color: sc.hex,
+            avatar: selectedBot.avatar || 'robot_qwerty',
+            personality: selectedBot.personality || 'Equilibrado',
+            difficultyLevel: selectedBot.difficultyLevel || 1
           },
           ready: true
         };
@@ -164,7 +197,16 @@ export const CreatePartyRoomModal = ({ isOpen, onClose, onRoomCreated, currentUs
       variantName: currentVariant.name,
       totalPlayers: maxPlayers,
       expectedHumans: safeHumans,
+      deviceMode,
+      localPlayersCount: safeLocalPlayers,
       botsCount,
+      selectedBotId: selectedBot.id,
+      botModel: {
+        id: selectedBot.id,
+        name: selectedBot.name,
+        elo: selectedBot.elo,
+        avatar: selectedBot.avatar
+      },
       hostUserId: currentUser?.id || 'host_user',
       hostUser: {
         id: currentUser?.id || 'host_user',
@@ -338,6 +380,171 @@ export const CreatePartyRoomModal = ({ isOpen, onClose, onRoomCreated, currentUs
               </div>
             </div>
           </div>
+
+          {/* PASO 3: Distribución de Dispositivos (Mismo dispositivo vs Online) */}
+          <div>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#38bdf8', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              3. ¿Cómo jugarán los humanos? (Dispositivos)
+            </label>
+            <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#94a3b8' }}>
+              Puedes jugar con amigos online o compartir esta misma pantalla (Pass & Play híbrido).
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+              {/* Opción A: Dispositivos separados */}
+              <div
+                onClick={() => setDeviceMode('online')}
+                style={{
+                  padding: '12px',
+                  borderRadius: '12px',
+                  backgroundColor: deviceMode === 'online' ? 'rgba(56, 189, 248, 0.15)' : '#1e293b',
+                  border: deviceMode === 'online' ? '2px solid #38bdf8' : '1px solid #334155',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <Globe size={18} style={{ color: deviceMode === 'online' ? '#38bdf8' : '#94a3b8' }} />
+                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#f8fafc' }}>
+                    🌐 Dispositivos Separados
+                  </span>
+                </div>
+                <div style={{ fontSize: '11px', color: '#94a3b8', lineHeight: '1.4' }}>
+                  Cada persona juega desde su propio móvil, tablet o PC online.
+                </div>
+              </div>
+
+              {/* Opción B: Compartir este dispositivo */}
+              <div
+                onClick={() => setDeviceMode('hybrid')}
+                style={{
+                  padding: '12px',
+                  borderRadius: '12px',
+                  backgroundColor: deviceMode === 'hybrid' ? 'rgba(56, 189, 248, 0.15)' : '#1e293b',
+                  border: deviceMode === 'hybrid' ? '2px solid #38bdf8' : '1px solid #334155',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                  <Monitor size={18} style={{ color: deviceMode === 'hybrid' ? '#38bdf8' : '#94a3b8' }} />
+                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#f8fafc' }}>
+                    👥 En este Mismo Equipo
+                  </span>
+                </div>
+                <div style={{ fontSize: '11px', color: '#94a3b8', lineHeight: '1.4' }}>
+                  Varios juegan juntos en esta misma pantalla (Pass & Play local).
+                </div>
+              </div>
+            </div>
+
+            {/* Si elige compartir pantalla, preguntar cuántos jugarán en este equipo */}
+            {deviceMode === 'hybrid' && (
+              <div style={{
+                backgroundColor: 'rgba(15, 23, 42, 0.8)',
+                border: '1px dashed #38bdf8',
+                borderRadius: '12px',
+                padding: '12px 16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}>
+                <div style={{ fontSize: '12px', fontWeight: 800, color: '#f8fafc' }}>
+                  ¿Cuántos jugadores compartirán esta misma pantalla?
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {Array.from({ length: safeHumans - 1 }, (_, i) => i + 2).map(count => {
+                    const isSelected = safeLocalPlayers === count;
+                    const onlineRemaining = safeHumans - count;
+                    return (
+                      <button
+                        key={count}
+                        type="button"
+                        onClick={() => setLocalPlayersCount(count)}
+                        style={{
+                          flex: 1,
+                          padding: '8px 10px',
+                          borderRadius: '8px',
+                          backgroundColor: isSelected ? '#0284c7' : '#1e293b',
+                          border: isSelected ? '1.5px solid #38bdf8' : '1px solid #334155',
+                          color: '#f8fafc',
+                          fontSize: '12px',
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: '2px'
+                        }}
+                      >
+                        <span>{count} en esta pantalla</span>
+                        <span style={{ fontSize: '10px', color: isSelected ? '#e0f2fe' : '#94a3b8', fontWeight: 600 }}>
+                          {onlineRemaining > 0 ? `+ ${onlineRemaining} invitado online` : 'Todos en este equipo'}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* PASO 4: Selección del Robot para los bots de la partida */}
+          {botsCount > 0 && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 800, color: '#a855f7', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  4. Elige el Tipo de Robot para la Partida:
+                </label>
+                <span style={{ fontSize: '11px', color: '#cbd5e1', background: 'rgba(168, 85, 247, 0.2)', padding: '2px 8px', borderRadius: '6px' }}>
+                  {selectedBot.name} • {selectedBot.elo} Elo
+                </span>
+              </div>
+              <p style={{ margin: '0 0 10px 0', fontSize: '11px', color: '#94a3b8' }}>
+                💡 Si hay más de un robot en la partida ({botsCount} robots), todos adoptarán el mismo modelo para competir en igualdad de condiciones.
+              </p>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
+                gap: '8px',
+                maxHeight: '190px',
+                overflowY: 'auto',
+                padding: '4px'
+              }}>
+                {BOT_ROSTER.slice(0, 10).map(bot => {
+                  const isSelected = selectedBotId === bot.id;
+                  return (
+                    <div
+                      key={bot.id}
+                      onClick={() => setSelectedBotId(bot.id)}
+                      style={{
+                        padding: '8px 10px',
+                        borderRadius: '10px',
+                        backgroundColor: isSelected ? 'rgba(168, 85, 247, 0.2)' : '#1e293b',
+                        border: isSelected ? '2px solid #c084fc' : '1px solid #334155',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        textAlign: 'center',
+                        gap: '4px',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <BotAvatarRenderer bot={bot} size={36} />
+                      <div style={{ fontSize: '12px', fontWeight: 800, color: isSelected ? '#f8fafc' : '#cbd5e1' }}>
+                        {bot.name}
+                      </div>
+                      <div style={{ fontSize: '10px', color: isSelected ? '#facc15' : '#94a3b8', fontWeight: 700 }}>
+                        {bot.elo} Elo
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Botón de Creación */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '10px' }}>

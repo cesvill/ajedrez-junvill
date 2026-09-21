@@ -556,8 +556,19 @@ export const App = () => {
   ]);
 
   const [targetPartyRoomId, setTargetPartyRoomId] = useState(null);
+  const [playHubInitialTab, setPlayHubInitialTab] = useState('todos');
 
   const handleTabChange = (tabId) => {
+    if (tabId === 'robots') {
+      setPlayHubInitialTab('robots');
+      setActiveTab('jugar');
+      if (activeLesson) setActiveLesson(null);
+      if (targetPartyRoomId) setTargetPartyRoomId(null);
+      return;
+    }
+    if (tabId === 'jugar') {
+      setPlayHubInitialTab('todos');
+    }
     setActiveTab(tabId);
     if (tabId !== 'aprender') setActiveLesson(null);
     if (tabId !== 'jugar') setActiveBotMatch(null);
@@ -578,6 +589,7 @@ export const App = () => {
 
   const handleStartBotMatch = (bot) => {
     setActiveBotMatch(bot);
+    setPlayHubInitialTab('robots');
     setActiveTab('jugar');
   };
 
@@ -819,7 +831,14 @@ export const App = () => {
               className="btn-gold"
               onClick={() => {
                 const inv = acceptFamilyInvitation(pendingInvitationsForMe[0].id);
-                if (inv) handleOpenP2P(inv.roomId, 'join');
+                if (inv) {
+                  const isMulti = ['chaturaji', 'four_player', 'three_hex', 'three_circular'].includes(inv.gameVariant || inv.variantId);
+                  if (isMulti) {
+                    handleOpenMultiplayer(inv.roomId);
+                  } else {
+                    handleOpenP2P(inv.roomId, 'join');
+                  }
+                }
               }}
               style={{ padding: '8px 18px', fontSize: '0.88rem', fontWeight: '900', gap: '6px', background: '#eab308', color: '#000000', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
             >
@@ -838,7 +857,7 @@ export const App = () => {
       )}
 
       {/* Contenedor de Vistas */}
-      <main className="main-content">
+      <main className={`main-content ${activeTab === 'multijugador' ? 'multiplayer-active' : ''}`}>
         {isAppLocked ? (
           <div style={{
             minHeight: '65vh',
@@ -904,9 +923,13 @@ export const App = () => {
         {activeTab === 'jugar' && (
           <PlayView
             initialBotMatch={activeBotMatch}
+            initialHubTab={playHubInitialTab}
             onExitMatch={() => setActiveBotMatch(null)}
             onOpenP2P={(customRoomId, mode) => handleOpenP2P(customRoomId, mode)}
-            onOpenRobots={() => handleTabChange('robots')}
+            onOpenRobots={() => {
+              setPlayHubInitialTab('robots');
+              setActiveTab('jugar');
+            }}
             onExitToMenu={() => handleTabChange('inicio')}
             onOpenBugReport={handleOpenBugReport}
             onOpenFamilyChat={(user) => handleOpenFamilyChat(user)}
@@ -943,7 +966,11 @@ export const App = () => {
       {/* Navegación Inferior Móvil (adaptada automáticamente por CSS en móvil) */}
       {!isAppLocked && (
         <Navbar
-          activeTab={activeTab}
+          activeTab={
+            activeTab === 'multijugador'
+              ? 'jugar'
+              : (activeTab === 'jugar' && playHubInitialTab === 'robots' ? 'robots' : activeTab)
+          }
           onTabChange={handleTabChange}
         />
       )}

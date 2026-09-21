@@ -21,6 +21,7 @@ import { P2PEngine } from '../engine/p2pEngine';
 import { roomEngine, JunvillRoomEngine } from '../services/room/JunvillRoomEngine';
 import { audioManager } from '../engine/audio';
 import confetti from 'canvas-confetti';
+import { BOT_ROSTER, BotAvatarRenderer } from '../assets/botRoster';
 import {
   Users,
   Bot,
@@ -38,7 +39,10 @@ import {
   KeyRound,
   Crown,
   LogOut,
-  AlertCircle
+  AlertCircle,
+  Pause,
+  Bell,
+  Trash2
 } from 'lucide-react';
 
 const VARIANTS = [
@@ -168,6 +172,40 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
   }, [partyRoom, currentUser, mySeatIndex]);
 
   const isPartyHost = partyRoom ? (effectiveSeatIndex === 0 || partyRoom.seats[effectiveSeatIndex]?.isHost) : false;
+
+  // Bandos que se controlan desde este dispositivo (soporte híbrido Pass & Play + Online)
+  const allowedColors = useMemo(() => {
+    if (!partyRoom || partyRoom.status !== 'playing') {
+      // En partida local: todos los bandos que no sean bots
+      return Object.keys(botPlayers).filter(c => !botPlayers[c]);
+    }
+
+    // En sala online: mi asiento principal + asientos locales asignados a este mismo dispositivo
+    const colors = [];
+    const mySeat = partyRoom.seats?.[effectiveSeatIndex];
+    if (mySeat?.color) colors.push(mySeat.color);
+
+    (partyRoom.seats || []).forEach(s => {
+      if (s.isLocalDevice || s.user?.isLocalDevice) {
+        if (!colors.includes(s.color)) {
+          colors.push(s.color);
+        }
+      }
+    });
+
+    return colors;
+  }, [partyRoom, effectiveSeatIndex, botPlayers]);
+
+  // Color primario para la orientación del tablero ("mi bando siempre abajo")
+  const primaryPlayerColor = useMemo(() => {
+    if (allowedColors.includes(game?.activePlayer)) {
+      return game.activePlayer;
+    }
+    if (allowedColors.length > 0) {
+      return allowedColors[0];
+    }
+    return 'white';
+  }, [allowedColors, game?.activePlayer]);
 
   // Canal de difusión en tiempo real (<10ms local)
   const partyBcRef = useRef(null);
@@ -413,10 +451,9 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
 
   // Manejo de movimiento del jugador humano
   const handleHumanMove = (...args) => {
-    // Si estamos en sala online, verificar que sea el turno del color de mi asiento
+    // Si estamos en sala online, verificar que sea el turno de alguno de los colores asignados a este dispositivo
     if (partyRoom && partyRoom.status === 'playing') {
-      const mySeat = partyRoom.seats[effectiveSeatIndex];
-      if (!mySeat || mySeat.color !== game.activePlayer) {
+      if (!allowedColors.includes(game.activePlayer)) {
         audioManager.playWarning();
         return;
       }
@@ -445,12 +482,14 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
 
       // Difundir jugada a todos los miembros de la sala
       if (partyRoom && partyRoom.status === 'playing') {
+        const activeSeatIdx = partyRoom.seats?.findIndex(s => s.color === game.activePlayer);
         broadcastPartyMove({
           roomId: partyRoom.roomId,
           variantId: selectedVariant,
           moveArgs: args,
           isBot: false,
-          turn: game.activePlayer
+          turn: game.activePlayer,
+          seatIndex: activeSeatIdx !== -1 ? activeSeatIdx : effectiveSeatIndex
         });
       }
 
@@ -464,19 +503,20 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
   const handlePassTurn = () => {
     if (selectedVariant === 'chaturaji' && !botPlayers[game.activePlayer] && !game.winner) {
       if (partyRoom && partyRoom.status === 'playing') {
-        const mySeat = partyRoom.seats[effectiveSeatIndex];
-        if (!mySeat || mySeat.color !== game.activePlayer) return;
+        if (!allowedColors.includes(game.activePlayer)) return;
       }
       game.passTurn();
       audioManager.playMove();
       setGameTick(t => t + 1);
 
       if (partyRoom && partyRoom.status === 'playing') {
+        const activeSeatIdx = partyRoom.seats?.findIndex(s => s.color === game.activePlayer);
         broadcastPartyMove({
           roomId: partyRoom.roomId,
           variantId: selectedVariant,
           moveArgs: ['pass'],
-          turn: game.activePlayer
+          turn: game.activePlayer,
+          seatIndex: activeSeatIdx !== -1 ? activeSeatIdx : effectiveSeatIndex
         });
       }
     }
@@ -694,7 +734,51 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
     }
   };
 
-  // Salir de la sala
+  const [pingToast, setPingToast] = useState(null);
+  const [selectedLocalBotId, setSelectedLocalBotId] = useState('qwerty');
+
+  // Pausar y salir temporalmente al menú sin cancelar la sala
+  const handlePauseAndExit = () => {
+    if (partyRoom && saveActivePartyRoom) {
+      saveActivePartyRoom(partyRoom);
+    }
+    audioManager.playClick();
+    if (onBackToMenu) onBackToMenu();
+  };
+
+  // Salir definitivamente y destruir la sala (con confirmación de usuario)
+  const handleAbandonPartyRoom = async () => {
+    const isHost = partyRoom?.seats?.[effectiveSeatIndex]?.isHost;
+    const msg = isHost 
+      ? '¿Seguro que deseas cancelar esta sala definitivamente? Se eliminará de tus partidas activas y se notificará a los demás participantes.'
+      : '¿Seguro que deseas abandonar esta sala definitivamente? Se liberará tu asiento y se eliminará de tus partidas activas.';
+    const confirm = window.confirm(msg);
+    if (!confirm) return;
+    await handleLeavePartyRoom();
+  };
+
+  // Dar un toque a un compañero humano de la sala
+  const handleSendPingToSeat = (seat) => {
+    const targetUser = seat?.user;
+    if (!targetUser || !partyRoom) return;
+    try {
+      if (sendFamilyInvitation) {
+        sendFamilyInvitation(
+          targetUser,
+          0,
+          true,
+          partyRoom.roomId,
+          partyRoom.variantId || selectedVariant,
+          `¡Te doy un toque para reanudar nuestra partida multijugador en la sala ${partyRoom.roomId}!`
+        );
+      }
+      audioManager.playVictory();
+      setPingToast(`¡Toque enviado a ${targetUser.name}! Le aparecerá la notificación para reincorporarse.`);
+      setTimeout(() => setPingToast(null), 4000);
+    } catch (e) {}
+  };
+
+  // Salir de la sala (limpieza y destrucción)
   const handleLeavePartyRoom = async () => {
     try {
       await roomEngine.leaveRoom();
@@ -705,20 +789,20 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
         partyBcRef.current.postMessage({
           type: 'PARTY_ROOM_LEAVE',
           roomId: partyRoom.roomId,
-          seatIndex: mySeatIndex,
+          seatIndex: effectiveSeatIndex,
           userId: currentUser?.id
         });
       }
 
       // Si el anfitrión sale, cancelar sala; si sale un invitado, liberar su asiento
-      const isHost = partyRoom.seats[mySeatIndex]?.isHost;
+      const isHost = partyRoom.seats?.[effectiveSeatIndex]?.isHost;
       let updatedRoom;
       if (isHost) {
         updatedRoom = { ...partyRoom, status: 'cancelled', updatedAt: Date.now() };
       } else {
         const updatedSeats = [...(partyRoom.seats || [])];
-        if (updatedSeats[mySeatIndex]) {
-          updatedSeats[mySeatIndex] = { ...updatedSeats[mySeatIndex], user: null, ready: false };
+        if (updatedSeats[effectiveSeatIndex]) {
+          updatedSeats[effectiveSeatIndex] = { ...updatedSeats[effectiveSeatIndex], user: null, ready: false };
         }
         updatedRoom = { ...partyRoom, seats: updatedSeats, updatedAt: Date.now() };
       }
@@ -1035,6 +1119,110 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
 
   const currentVariantData = VARIANTS.find(v => v.id === selectedVariant) || VARIANTS[0];
 
+  const handleSetSeatLocal = async (seatIdx) => {
+    if (!partyRoom || !isPartyHost) return;
+    const targetSeat = partyRoom.seats?.[seatIdx];
+    if (!targetSeat) return;
+
+    const companionUser = {
+      id: `local_companion_${seatIdx}`,
+      name: `Compañero ${seatIdx + 1} (Local)`,
+      avatar: 'teen_gamer',
+      avatarConfig: null,
+      elo: 600,
+      role: 'student',
+      isLocalDevice: true
+    };
+
+    const updatedSeats = partyRoom.seats.map((s, idx) => {
+      if (idx === seatIdx) {
+        return {
+          ...s,
+          type: 'human',
+          isBot: false,
+          bot: null,
+          isLocalDevice: true,
+          user: companionUser,
+          player: companionUser,
+          ready: true,
+          isReady: true,
+          isConnected: true
+        };
+      }
+      return s;
+    });
+
+    const updatedRoom = {
+      ...partyRoom,
+      seats: updatedSeats,
+      version: (partyRoom.version || 0) + 1,
+      updatedAt: Date.now()
+    };
+
+    setPartyRoom(updatedRoom);
+    if (saveActivePartyRoom) saveActivePartyRoom(updatedRoom);
+
+    try {
+      await roomEngine.claimSeat(seatIdx, companionUser);
+    } catch (e) {
+      console.warn('Error claiming local seat in roomEngine:', e);
+    }
+
+    if (partyBcRef.current) {
+      partyBcRef.current.postMessage({
+        type: 'PARTY_ROOM_ANNOUNCE',
+        roomData: updatedRoom
+      });
+    }
+  };
+
+  const handleSetSeatOnline = async (seatIdx) => {
+    if (!partyRoom || !isPartyHost) return;
+    const targetSeat = partyRoom.seats?.[seatIdx];
+    if (!targetSeat) return;
+
+    const updatedSeats = partyRoom.seats.map((s, idx) => {
+      if (idx === seatIdx) {
+        return {
+          ...s,
+          type: 'human',
+          isBot: false,
+          bot: null,
+          isLocalDevice: false,
+          user: null,
+          player: null,
+          ready: false,
+          isReady: false,
+          isConnected: false
+        };
+      }
+      return s;
+    });
+
+    const updatedRoom = {
+      ...partyRoom,
+      seats: updatedSeats,
+      version: (partyRoom.version || 0) + 1,
+      updatedAt: Date.now()
+    };
+
+    setPartyRoom(updatedRoom);
+    if (saveActivePartyRoom) saveActivePartyRoom(updatedRoom);
+
+    try {
+      await roomEngine.vacateSeat(seatIdx);
+    } catch (e) {
+      console.warn('Error vacating seat in roomEngine:', e);
+    }
+
+    if (partyBcRef.current) {
+      partyBcRef.current.postMessage({
+        type: 'PARTY_ROOM_ANNOUNCE',
+        roomData: updatedRoom
+      });
+    }
+  };
+
   // =========================================================================
   // RENDER: LOBBY DE SALA ACTIVA (SI ESTÁ EN MODO ESPERA)
   // =========================================================================
@@ -1069,12 +1257,12 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
               border: '1px solid #334155',
               padding: '10px 18px',
               borderRadius: '12px',
-              fontWeight: 700,
+              fontWeight: 800,
               fontSize: '14px',
               cursor: 'pointer'
             }}
           >
-            <ArrowLeft size={18} /> Salir al Menú Multijugador
+            <Pause size={18} /> Pausar y Volver a Jugar
           </button>
         </div>
 
@@ -1085,10 +1273,13 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
           mySeatIndex={effectiveSeatIndex}
           onStartGame={handleStartPartyGame}
           onStartWithBotsNow={handleStartWithBotsNow}
-          onLeaveRoom={handleLeavePartyRoom}
+          onLeaveRoom={handleAbandonPartyRoom}
+          onPauseAndExit={handlePauseAndExit}
           onInviteFamilyMember={handleInviteFamilyMember}
           onClaimSeat={(idx) => roomEngine.claimSeat(idx, currentUser)}
           onToggleSeatBot={(idx) => roomEngine.toggleSeatBot(idx)}
+          onSetSeatLocal={handleSetSeatLocal}
+          onSetSeatOnline={handleSetSeatOnline}
           familyMembers={users}
         />
       </div>
@@ -1099,43 +1290,52 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
   // RENDER: TABLERO DE JUEGO (LOCAL O SALA ONLINE)
   // =========================================================================
   return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: '#090d16',
-      color: '#f8fafc',
-      padding: '20px 16px',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center'
-    }}>
+    <div className="multiplayer-party-container">
+      {/* Toast Flotante de Toque / Notificación */}
+      {pingToast && (
+        <div style={{
+          position: 'fixed',
+          top: '70px',
+          right: '20px',
+          backgroundColor: 'rgba(16, 185, 129, 0.95)',
+          border: '1.5px solid #34d399',
+          color: '#ffffff',
+          padding: '10px 18px',
+          borderRadius: '12px',
+          fontWeight: 800,
+          fontSize: '13px',
+          boxShadow: '0 8px 25px rgba(0, 0, 0, 0.5)',
+          zIndex: 99999,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          animation: 'pulseGlow 2s infinite ease-in-out'
+        }}>
+          <span>🔔</span>
+          <span>{pingToast}</span>
+        </div>
+      )}
       
       {/* Barra de Encabezado Superior */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        width: '100%',
-        maxWidth: '1080px',
-        marginBottom: '16px'
-      }}>
+      <div className="multiplayer-header-bar">
         <button
-          onClick={onBackToMenu}
+          onClick={handlePauseAndExit}
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
             backgroundColor: '#1e293b',
-            color: '#f8fafc',
-            border: '1px solid #334155',
+            color: '#38bdf8',
+            border: '1px solid rgba(56, 189, 248, 0.4)',
             padding: '10px 18px',
             borderRadius: '12px',
-            fontWeight: 700,
+            fontWeight: 800,
             fontSize: '14px',
             cursor: 'pointer',
             transition: 'all 0.2s ease'
           }}
         >
-          <ArrowLeft size={18} /> Volver al Menú
+          <ArrowLeft size={18} /> Volver a Jugar
         </button>
 
         <div style={{ textAlign: 'center' }}>
@@ -1370,10 +1570,11 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             {/* Indicador de turno online */}
             {partyRoom.seats.map((st, i) => {
               const isTurn = game.activePlayer === st.color;
+              const isOtherHuman = st.type === 'human' && st.user && st.user.id !== currentUser?.id;
               return (
                 <div
                   key={i}
@@ -1393,29 +1594,74 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: st.colorHex }} />
                   <span>{st.type === 'human' ? st.user?.name || 'Humano' : st.bot?.name || 'Bot'}</span>
                   {isTurn && <span>🎯</span>}
+                  {isOtherHuman && (
+                    <button
+                      onClick={() => handleSendPingToSeat(st)}
+                      title={`Dar un toque a ${st.user.name} para que juegue o regrese a la sala`}
+                      style={{
+                        backgroundColor: '#d97706',
+                        border: 'none',
+                        color: '#ffffff',
+                        borderRadius: '4px',
+                        padding: '2px 6px',
+                        fontSize: '10px',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '2px',
+                        marginLeft: '4px'
+                      }}
+                    >
+                      <Bell size={10} />
+                      <span>Toque</span>
+                    </button>
+                  )}
                 </div>
               );
             })}
 
-            <button
-              onClick={handleLeavePartyRoom}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                backgroundColor: '#dc2626',
-                color: '#ffffff',
-                border: 'none',
-                padding: '6px 12px',
-                borderRadius: '8px',
-                fontSize: '11px',
-                fontWeight: 800,
-                cursor: 'pointer',
-                marginLeft: '8px'
-              }}
-            >
-              <LogOut size={12} /> Salir
-            </button>
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginLeft: '6px' }}>
+              <button
+                onClick={handlePauseAndExit}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  backgroundColor: '#1e293b',
+                  color: '#38bdf8',
+                  border: '1px solid rgba(56, 189, 248, 0.4)',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+                title="Pausar y volver a Jugar sin perder la sala"
+              >
+                <Pause size={12} /> Pausar y Salir
+              </button>
+
+              <button
+                onClick={handleAbandonPartyRoom}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                  color: '#ef4444',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  padding: '6px 10px',
+                  borderRadius: '8px',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+                title="Abandonar definitivamente esta sala"
+              >
+                <Trash2 size={12} /> Abandonar
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1474,7 +1720,7 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
       {/* Selector Rápido de Participantes (Humano vs Bot Junvill) en Juego Local */}
       {/* Selector Rápido de Participantes (Humano vs Bot Junvill) en Juego Local */}
       {!partyRoom && game && Array.isArray(game.players) && (
-        <div style={{
+        <div className="multiplayer-bot-control-bar" style={{
           display: 'flex',
           flexWrap: 'wrap',
           alignItems: 'center',
@@ -1516,6 +1762,43 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
               </button>
             );
           })}
+
+          {/* Selector de Modelo Homogéneo para los bots en local */}
+          {Object.values(botPlayers).some(Boolean) && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: '#1e293b',
+              padding: '4px 10px',
+              borderRadius: '8px',
+              border: '1px solid #334155'
+            }}>
+              <Bot size={15} style={{ color: '#c084fc' }} />
+              <span style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: 700 }}>Modelo de Bots:</span>
+              <select
+                value={selectedLocalBotId}
+                onChange={(e) => setSelectedLocalBotId(e.target.value)}
+                style={{
+                  backgroundColor: '#0f172a',
+                  color: '#fde047',
+                  border: '1px solid #475569',
+                  borderRadius: '6px',
+                  padding: '3px 8px',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+              >
+                {BOT_ROSTER.slice(0, 10).map(b => (
+                  <option key={b.id} value={b.id}>
+                    {b.name} ({b.elo} Elo)
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <button
             onClick={() => initGameForVariant(selectedVariant)}
             style={{
@@ -1575,7 +1858,7 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
 
       {/* Banner de Bot Pensando */}
       {isBotThinking && !game?.winner && (
-        <div style={{
+        <div className="multiplayer-status-banner multiplayer-bot-thinking" style={{
           display: 'flex',
           alignItems: 'center',
           gap: '10px',
@@ -1594,8 +1877,38 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
         </div>
       )}
 
+      {/* Banner de Turno en este Dispositivo */}
+      {allowedColors.includes(game?.activePlayer) && !game?.winner && (
+        <div className="multiplayer-status-banner multiplayer-turn-banner" style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          backgroundColor: 'rgba(34, 197, 94, 0.15)',
+          border: '1.5px solid #22c55e',
+          color: '#4ade80',
+          padding: '8px 20px',
+          borderRadius: '24px',
+          fontSize: '13px',
+          fontWeight: 800,
+          marginBottom: '16px',
+          boxShadow: '0 4px 16px rgba(34, 197, 94, 0.25)'
+        }}>
+          <span>🎮</span>
+          <span>
+            {partyRoom && partyRoom.seats ? (
+              (() => {
+                const activeSeat = partyRoom.seats.find(s => s.color === game.activePlayer);
+                return `¡Turno en este dispositivo! Juega ${activeSeat?.user?.name || activeSeat?.label || game.activePlayer.toUpperCase()}`;
+              })()
+            ) : (
+              `¡Tu turno! Mueves el ejército ${game.activePlayer.toUpperCase()}`
+            )}
+          </span>
+        </div>
+      )}
+
       {/* Tablero Activo */}
-      <div style={{ width: '100%', maxWidth: '720px', display: 'flex', justifyContent: 'center' }}>
+      <div className="multiplayer-board-wrapper">
         {game && selectedVariant === 'chaturaji' && (
           <ChaturajiBoard
             key={`chaturaji_${gameTick}`}
@@ -1603,6 +1916,8 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
             onMove={handleHumanMove}
             onPass={handlePassTurn}
             isBotTurn={botPlayers[game.activePlayer] || isBotThinking}
+            allowedColors={allowedColors}
+            playerColor={primaryPlayerColor}
           />
         )}
 
@@ -1612,6 +1927,8 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
             game={game}
             onMove={handleHumanMove}
             isBotTurn={botPlayers[game.activePlayer] || isBotThinking}
+            allowedColors={allowedColors}
+            playerColor={primaryPlayerColor}
           />
         )}
 
@@ -1621,6 +1938,8 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
             game={game}
             onMove={handleHumanMove}
             isBotTurn={botPlayers[game.activePlayer] || isBotThinking}
+            allowedColors={allowedColors}
+            playerColor={primaryPlayerColor}
           />
         )}
 
@@ -1630,6 +1949,8 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null }) => 
             game={game}
             onMove={handleHumanMove}
             isBotTurn={botPlayers[game.activePlayer] || isBotThinking}
+            allowedColors={allowedColors}
+            playerColor={primaryPlayerColor}
           />
         )}
       </div>

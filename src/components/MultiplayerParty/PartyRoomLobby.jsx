@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { DynamicAvatar } from '../AvatarCreator/DynamicAvatar';
 import { AvatarIcon } from '../../assets/avatars';
+import { BotAvatarRenderer, BOT_ROSTER } from '../../assets/botRoster';
 import { QRCodeDisplay } from '../QRCodeModal/QRCodeDisplay';
 import { 
   Users, Bot, Crown, Copy, Check, QrCode, Play, LogOut, 
-  Sparkles, Clock, Swords, UserPlus, Share2, AlertCircle, RefreshCw
+  Sparkles, Clock, Swords, UserPlus, Share2, AlertCircle, RefreshCw,
+  Pause, Bell, Trash2, Monitor, Globe
 } from 'lucide-react';
 
 export const PartyRoomLobby = ({
@@ -15,9 +17,12 @@ export const PartyRoomLobby = ({
   onStartGame,
   onStartWithBotsNow,
   onLeaveRoom,
+  onPauseAndExit,
   onInviteFamilyMember,
   onClaimSeat,
   onToggleSeatBot,
+  onSetSeatLocal,
+  onSetSeatOnline,
   familyMembers = []
 }) => {
   const [copiedCode, setCopiedCode] = useState(false);
@@ -319,6 +324,22 @@ export const PartyRoomLobby = ({
                     </span>
                   )}
 
+                  {seat.isLocalDevice && !seat.isHost && (
+                    <span style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      color: '#4ade80',
+                      backgroundColor: 'rgba(34, 197, 94, 0.15)',
+                      padding: '2px 8px',
+                      borderRadius: '6px'
+                    }}>
+                      <Monitor size={12} /> Este equipo
+                    </span>
+                  )}
+
                   {isBot && (
                     <span style={{
                       display: 'flex',
@@ -361,10 +382,10 @@ export const PartyRoomLobby = ({
                           {seat.user.name}
                         </div>
                         <div style={{ fontSize: '11px', color: '#94a3b8' }}>
-                          ELO: {seat.user.elo || 600} • {seat.user.role === 'coach' ? 'Profesor' : seat.user.role === 'parent' ? 'Tutor' : 'Estudiante'}
+                          ELO: {seat.user.elo || 600} • {seat.isLocalDevice ? 'Compartiendo pantalla' : seat.user.role === 'coach' ? 'Profesor' : seat.user.role === 'parent' ? 'Tutor' : 'Estudiante'}
                         </div>
                         <div style={{ fontSize: '11px', color: '#4ade80', fontWeight: 700, marginTop: '2px' }}>
-                          🟢 En Línea y Listo
+                          🟢 {seat.isLocalDevice ? 'Listo en este equipo' : 'En Línea y Listo'}
                         </div>
                       </div>
                     </>
@@ -377,22 +398,26 @@ export const PartyRoomLobby = ({
                         width: '48px',
                         height: '48px',
                         borderRadius: '12px',
-                        backgroundColor: `${seat.bot.color || '#38bdf8'}22`,
-                        border: `1px solid ${seat.bot.color || '#38bdf8'}`,
+                        backgroundColor: `${seat.bot?.color || '#38bdf8'}22`,
+                        border: `1.5px solid ${seat.bot?.color || '#38bdf8'}`,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: '24px',
-                        flexShrink: 0
+                        flexShrink: 0,
+                        overflow: 'hidden'
                       }}>
-                        🤖
+                        {BOT_ROSTER.find(b => b.id === seat.bot?.id) ? (
+                          <BotAvatarRenderer bot={BOT_ROSTER.find(b => b.id === seat.bot?.id)} size={44} />
+                        ) : (
+                          <span style={{ fontSize: '24px' }}>🤖</span>
+                        )}
                       </div>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: '14px', fontWeight: 800, color: '#f8fafc' }}>
-                          {seat.bot.name}
+                          {seat.bot?.name || 'Robot'}
                         </div>
                         <div style={{ fontSize: '11px', color: '#94a3b8' }}>
-                          ELO: {seat.bot.elo || 500} • {seat.bot.title || 'Robot Junvill'}
+                          ELO: {seat.bot?.elo || 500} • {seat.bot?.title || 'Robot Homogéneo'}
                         </div>
                         <div style={{ fontSize: '11px', color: '#facc15', fontWeight: 700, marginTop: '2px' }}>
                           ⚡ Listo para jugar
@@ -423,6 +448,56 @@ export const PartyRoomLobby = ({
                   )}
                 </div>
 
+                {/* Si el asiento es un compañero en este equipo y somos el host, permitir volver a poner online o cambiar a bot */}
+                {seat.isLocalDevice && !seat.isHost && isHost && (
+                  <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+                    {onSetSeatOnline && (
+                      <button
+                        onClick={() => onSetSeatOnline(idx)}
+                        style={{
+                          flex: 1,
+                          padding: '6px 10px',
+                          backgroundColor: 'rgba(56, 189, 248, 0.12)',
+                          border: '1px solid rgba(56, 189, 248, 0.3)',
+                          borderRadius: '8px',
+                          color: '#38bdf8',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        <Globe size={12} />
+                        <span>Pasar a Online</span>
+                      </button>
+                    )}
+                    {onToggleSeatBot && (
+                      <button
+                        onClick={() => onToggleSeatBot(idx)}
+                        style={{
+                          padding: '6px 10px',
+                          backgroundColor: '#1e293b',
+                          border: '1px solid #475569',
+                          borderRadius: '8px',
+                          color: '#facc15',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        <Bot size={12} />
+                        <span>Bot</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 {/* Botón para que el invitado tome este asiento si aún no tiene uno */}
                 {isHumanWaiting && !isHost && mySeatIndex === -1 && onClaimSeat && (
                   <button
@@ -449,30 +524,55 @@ export const PartyRoomLobby = ({
                   </button>
                 )}
 
-                {/* Acciones para Asiento Vacío (Invitar Familiar / Bot) */}
+                {/* Acciones para Asiento Vacío (En este equipo / Invitar Familiar / Bot) */}
                 {isHumanWaiting && isHost && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <div style={{ display: 'flex', gap: '6px' }}>
+                      {onSetSeatLocal && (
+                        <button
+                          onClick={() => onSetSeatLocal(idx)}
+                          title="Jugar en este mismo dispositivo (Pass & Play)"
+                          style={{
+                            flex: 1,
+                            padding: '8px 10px',
+                            backgroundColor: 'rgba(34, 197, 94, 0.15)',
+                            border: '1px solid rgba(34, 197, 94, 0.4)',
+                            borderRadius: '8px',
+                            color: '#4ade80',
+                            fontSize: '11px',
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <Monitor size={13} />
+                          <span>En este equipo</span>
+                        </button>
+                      )}
+
                       <button
                         onClick={() => setInvitingSeatIdx(invitingSeatIdx === idx ? null : idx)}
                         style={{
                           flex: 1,
-                          padding: '8px 12px',
+                          padding: '8px 10px',
                           backgroundColor: 'rgba(56, 189, 248, 0.12)',
                           border: '1px solid rgba(56, 189, 248, 0.3)',
                           borderRadius: '8px',
                           color: '#38bdf8',
-                          fontSize: '12px',
+                          fontSize: '11px',
                           fontWeight: 700,
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          gap: '6px'
+                          gap: '4px'
                         }}
                       >
-                        <UserPlus size={14} />
-                        <span>{invitingSeatIdx === idx ? 'Cerrar' : 'Invitar Familiar'}</span>
+                        <UserPlus size={13} />
+                        <span>{invitingSeatIdx === idx ? 'Cerrar' : 'Familiar'}</span>
                       </button>
 
                       {onToggleSeatBot && (
@@ -480,12 +580,12 @@ export const PartyRoomLobby = ({
                           onClick={() => onToggleSeatBot(idx)}
                           title="Convertir a Robot IA"
                           style={{
-                            padding: '8px 12px',
+                            padding: '8px 10px',
                             backgroundColor: '#1e293b',
                             border: '1px solid #475569',
                             borderRadius: '8px',
                             color: '#facc15',
-                            fontSize: '12px',
+                            fontSize: '11px',
                             fontWeight: 700,
                             cursor: 'pointer',
                             display: 'flex',
@@ -493,7 +593,7 @@ export const PartyRoomLobby = ({
                             gap: '4px'
                           }}
                         >
-                          <Bot size={14} />
+                          <Bot size={13} />
                           <span>Bot</span>
                         </button>
                       )}
@@ -544,20 +644,29 @@ export const PartyRoomLobby = ({
                               </div>
 
                               <button
-                                disabled={isAlreadyInvited}
                                 onClick={() => handleSendInvite(member)}
                                 style={{
-                                  backgroundColor: isAlreadyInvited ? '#334155' : '#0284c7',
+                                  backgroundColor: isAlreadyInvited ? '#d97706' : '#0284c7',
                                   color: '#ffffff',
                                   border: 'none',
                                   borderRadius: '6px',
                                   padding: '4px 10px',
                                   fontSize: '11px',
                                   fontWeight: 800,
-                                  cursor: isAlreadyInvited ? 'default' : 'pointer'
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px'
                                 }}
                               >
-                                {isAlreadyInvited ? 'Invitado' : 'Invitar'}
+                                {isAlreadyInvited ? (
+                                  <>
+                                    <Bell size={11} />
+                                    <span>Dar Toque</span>
+                                  </>
+                                ) : (
+                                  <span>Invitar</span>
+                                )}
                               </button>
                             </div>
                           );
@@ -585,25 +694,49 @@ export const PartyRoomLobby = ({
         justifyContent: 'space-between',
         gap: '14px'
       }}>
-        <button
-          onClick={onLeaveRoom}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            backgroundColor: '#1e293b',
-            color: '#94a3b8',
-            border: '1px solid #334155',
-            padding: '12px 18px',
-            borderRadius: '12px',
-            fontWeight: 700,
-            fontSize: '13px',
-            cursor: 'pointer'
-          }}
-        >
-          <LogOut size={16} />
-          <span>{isHost ? 'Cancelar Sala' : 'Salir de la Sala'}</span>
-        </button>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button
+            onClick={onPauseAndExit || onLeaveRoom}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              backgroundColor: '#1e293b',
+              color: '#38bdf8',
+              border: '1.5px solid rgba(56, 189, 248, 0.4)',
+              padding: '12px 18px',
+              borderRadius: '12px',
+              fontWeight: 800,
+              fontSize: '13px',
+              cursor: 'pointer'
+            }}
+            title="Guarda la sala en tus partidas pendientes y vuelve al menú"
+          >
+            <Pause size={16} />
+            <span>Pausar y Volver a Jugar</span>
+          </button>
+
+          <button
+            onClick={onLeaveRoom}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: 'rgba(239, 68, 68, 0.12)',
+              color: '#ef4444',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              padding: '12px 14px',
+              borderRadius: '12px',
+              fontWeight: 700,
+              fontSize: '13px',
+              cursor: 'pointer'
+            }}
+            title={isHost ? 'Cancelar y eliminar esta sala' : 'Abandonar sala'}
+          >
+            <Trash2 size={16} />
+            <span>{isHost ? 'Cancelar Sala' : 'Abandonar'}</span>
+          </button>
+        </div>
 
         {/* Acciones del Anfitrión */}
         {isHost ? (

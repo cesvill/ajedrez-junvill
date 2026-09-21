@@ -281,28 +281,28 @@ export const Header = ({
               </div>
             </div>
 
-            {/* Botón de acceso directo al Simulador (solo PC local) */}
-            {isLocalEnvironment && (
+            {/* Botón de acceso directo al Simulador (solo PC local y solo en modo escritorio sin simular) */}
+            {isLocalEnvironment && simulatedDevice === 'responsive' && (
               <button
                 type="button"
                 onClick={onToggleSimulator}
                 title="Abrir Simulador de Dispositivos (Tablets y Smartphones)"
-                className="btn-secondary header-tools-toggle-btn"
+                className="btn-secondary header-tools-toggle-btn header-simulator-btn"
                 style={{
                   position: 'relative',
                   padding: '5px 11px',
                   fontSize: '0.80rem',
                   fontWeight: '800',
                   gap: '5px',
-                  border: simulatedDevice !== 'responsive' ? '1.5px solid #38bdf8' : '1px solid var(--bg-parchment-border)',
-                  background: simulatedDevice !== 'responsive' ? 'rgba(56, 189, 248, 0.2)' : 'var(--bg-parchment-card)',
-                  color: simulatedDevice !== 'responsive' ? '#38bdf8' : 'var(--text-parchment-main)',
+                  border: '1px solid var(--bg-parchment-border)',
+                  background: 'var(--bg-parchment-card)',
+                  color: 'var(--text-parchment-main)',
                   display: 'inline-flex',
                   alignItems: 'center',
                   cursor: 'pointer'
                 }}
               >
-                <Smartphone size={14} color={simulatedDevice !== 'responsive' ? '#38bdf8' : '#facc15'} />
+                <Smartphone size={14} color="#facc15" />
                 <span>Simulador</span>
               </button>
             )}
