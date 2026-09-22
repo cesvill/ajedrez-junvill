@@ -13,6 +13,7 @@ export const parseUrlState = () => {
     const roomId = params.get('room') || null;
     const modal = params.get('modal') || null;
     const tab = params.get('tab') || null;
+    const variant = params.get('variant') || null;
 
     return {
       view,
@@ -20,7 +21,8 @@ export const parseUrlState = () => {
       botId,
       roomId,
       modal,
-      tab
+      tab,
+      variant
     };
   } catch (e) {
     console.error("Error parsing URL state:", e);
@@ -28,7 +30,7 @@ export const parseUrlState = () => {
   }
 };
 
-export const syncUrl = ({ view, lessonId, botId, roomId, modal, tab }, replace = false) => {
+export const syncUrl = ({ view, lessonId, botId, roomId, modal, tab, variant }, replace = false) => {
   try {
     const url = new URL(window.location.href);
     const params = new URLSearchParams();
@@ -44,6 +46,9 @@ export const syncUrl = ({ view, lessonId, botId, roomId, modal, tab }, replace =
     }
     if (roomId) {
       params.set('room', roomId);
+    }
+    if (variant) {
+      params.set('variant', variant);
     }
     if (modal) {
       params.set('modal', modal);

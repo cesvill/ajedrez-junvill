@@ -2800,6 +2800,18 @@ html.in-simulator .multiplayer-board-wrapper {
   margin: 0 auto !important;
 }
 
+/* Hub Selector de Modalidades Multijugador */
+.multiplayer-hub-screen {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 12px 16px 36px 16px;
+  box-sizing: border-box;
+}
+
 /* =========================================================
    TABLETS Y PANTALLAS EN MODO HORIZONTAL (LANDSCAPE)
    Diseño de 2 Columnas:
@@ -2824,7 +2836,24 @@ html.in-simulator .multiplayer-board-wrapper {
     box-sizing: border-box !important;
   }
 
-  /* Ocultar banners verticales y tarjetas en landscape */
+  /* En modo Hub de selección, el contenedor debe permitir scroll vertical para ver las 4 modalidades completas */
+  .main-content.multiplayer-active:has(.multiplayer-hub-mode) {
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .multiplayer-party-container.multiplayer-hub-mode {
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    padding: 10px 16px 36px 16px !important;
+  }
+
+  /* Ocultar banners verticales y tarjetas en landscape durante la partida */
   .multiplayer-portrait-top-banners,
   .multiplayer-variant-cards-grid {
     display: none !important;

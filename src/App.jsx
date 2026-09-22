@@ -204,13 +204,17 @@ export const App = () => {
 
   // Sincronizar estado inicial desde la URL (Deep Linking al cargar la página o al navegar con botones del navegador)
   const applyUrlState = useCallback(() => {
-    const { view, lessonId, botId, roomId, modal } = parseUrlState();
+    const { view, lessonId, botId, roomId, modal, variant } = parseUrlState();
 
     if (roomId) {
       setUrlRoomId(roomId.toUpperCase());
       setIsP2POpen(true);
     } else if (modal === 'p2p') {
       setIsP2POpen(true);
+    }
+
+    if (variant && ['chaturaji', 'four_player', 'three_hex', 'three_circular'].includes(variant)) {
+      setTargetPartyVariantId(variant);
     }
 
     if (modal === 'cuby3x3' || view === 'cuby3x3' || modal === 'cuby') {
@@ -521,6 +525,17 @@ export const App = () => {
     }
   }, [isInsideSimulator, applyUrlState]);
 
+  const [targetPartyRoomId, setTargetPartyRoomId] = useState(null);
+  const [targetPartyVariantId, setTargetPartyVariantId] = useState(() => {
+    try {
+      const v = new URLSearchParams(window.location.search).get('variant');
+      return ['chaturaji', 'four_player', 'three_hex', 'three_circular'].includes(v) ? v : null;
+    } catch (e) {
+      return null;
+    }
+  });
+  const [playHubInitialTab, setPlayHubInitialTab] = useState('todos');
+
   // Actualizar URL dinámicamente cuando el usuario interactúa
   useEffect(() => {
     let currentModal = null;
@@ -537,7 +552,8 @@ export const App = () => {
       view: activeTab,
       lessonId: activeTab === 'aprender' ? (activeLesson?.id || null) : null,
       botId: activeTab === 'jugar' ? (activeBotMatch?.id || null) : null,
-      roomId: isP2POpen ? urlRoomId : null,
+      roomId: isP2POpen ? urlRoomId : (activeTab === 'multijugador' ? targetPartyRoomId : null),
+      variant: activeTab === 'multijugador' ? targetPartyVariantId : null,
       modal: currentModal
     }, true);
   }, [
@@ -552,11 +568,10 @@ export const App = () => {
     isPgnOpen,
     isP2POpen,
     isAvatarBuilderOpen,
-    urlRoomId
+    urlRoomId,
+    targetPartyRoomId,
+    targetPartyVariantId
   ]);
-
-  const [targetPartyRoomId, setTargetPartyRoomId] = useState(null);
-  const [playHubInitialTab, setPlayHubInitialTab] = useState('todos');
 
   const handleTabChange = (tabId) => {
     if (tabId === 'robots') {
@@ -564,6 +579,7 @@ export const App = () => {
       setActiveTab('jugar');
       if (activeLesson) setActiveLesson(null);
       if (targetPartyRoomId) setTargetPartyRoomId(null);
+      setTargetPartyVariantId(null);
       return;
     }
     if (tabId === 'jugar') {
@@ -572,14 +588,29 @@ export const App = () => {
     setActiveTab(tabId);
     if (tabId !== 'aprender') setActiveLesson(null);
     if (tabId !== 'jugar') setActiveBotMatch(null);
-    if (tabId !== 'multijugador') setTargetPartyRoomId(null);
+    if (tabId !== 'multijugador') {
+      setTargetPartyRoomId(null);
+      setTargetPartyVariantId(null);
+    }
   };
 
-  const handleOpenMultiplayer = (roomId = null) => {
-    const safeRoomId = typeof roomId === 'string' && roomId.trim() 
-      ? roomId.trim().toUpperCase().replace(/[^A-Z0-9-]/g, '') 
-      : null;
-    setTargetPartyRoomId(safeRoomId && safeRoomId !== 'OBJECTOBJECT' ? safeRoomId : null);
+  const handleOpenMultiplayer = (roomIdOrVariant = null, explicitVariant = null) => {
+    let roomId = null;
+    let variantId = null;
+
+    const KNOWN_VARIANTS = ['chaturaji', 'four_player', 'three_hex', 'three_circular'];
+    if (typeof roomIdOrVariant === 'string' && KNOWN_VARIANTS.includes(roomIdOrVariant)) {
+      variantId = roomIdOrVariant;
+    } else if (typeof roomIdOrVariant === 'string' && roomIdOrVariant.trim()) {
+      roomId = roomIdOrVariant.trim().toUpperCase().replace(/[^A-Z0-9-]/g, '');
+    }
+
+    if (typeof explicitVariant === 'string' && KNOWN_VARIANTS.includes(explicitVariant)) {
+      variantId = explicitVariant;
+    }
+
+    setTargetPartyRoomId(roomId && roomId !== 'OBJECTOBJECT' ? roomId : null);
+    setTargetPartyVariantId(variantId);
     setActiveTab('multijugador');
   };
 
@@ -954,6 +985,7 @@ export const App = () => {
         {activeTab === 'multijugador' && (
           <MultiplayerPartyView
             initialRoomId={targetPartyRoomId}
+            initialVariant={targetPartyVariantId}
             onBackToMenu={() => handleTabChange('inicio')}
             onTabChange={handleTabChange}
           />

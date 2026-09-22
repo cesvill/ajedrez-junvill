@@ -2608,7 +2608,7 @@ export const PlayView = ({
                 <button
                   type="button"
                   className="btn-gold"
-                  onClick={() => onOpenMultiplayer && onOpenMultiplayer()}
+                  onClick={() => onOpenMultiplayer && onOpenMultiplayer(null, 'chaturaji')}
                   style={{ width: '100%', padding: '8px', fontSize: '0.82rem', fontWeight: '900', marginTop: 'auto' }}
                 >
                   Jugar Chaturaji ➔
@@ -2638,7 +2638,7 @@ export const PlayView = ({
                 <button
                   type="button"
                   className="btn-gold"
-                  onClick={() => onOpenMultiplayer && onOpenMultiplayer()}
+                  onClick={() => onOpenMultiplayer && onOpenMultiplayer(null, 'four_player')}
                   style={{ width: '100%', padding: '8px', fontSize: '0.82rem', fontWeight: '900', marginTop: 'auto' }}
                 >
                   Jugar 4 en Cruz ➔
@@ -2668,7 +2668,7 @@ export const PlayView = ({
                 <button
                   type="button"
                   className="btn-gold"
-                  onClick={() => onOpenMultiplayer && onOpenMultiplayer()}
+                  onClick={() => onOpenMultiplayer && onOpenMultiplayer(null, 'three_hex')}
                   style={{ width: '100%', padding: '8px', fontSize: '0.82rem', fontWeight: '900', marginTop: 'auto' }}
                 >
                   Jugar Tres Hexagonal ➔
@@ -2698,7 +2698,7 @@ export const PlayView = ({
                 <button
                   type="button"
                   className="btn-gold"
-                  onClick={() => onOpenMultiplayer && onOpenMultiplayer()}
+                  onClick={() => onOpenMultiplayer && onOpenMultiplayer(null, 'three_circular')}
                   style={{ width: '100%', padding: '8px', fontSize: '0.82rem', fontWeight: '900', marginTop: 'auto' }}
                 >
                   Jugar Tres Circular ➔

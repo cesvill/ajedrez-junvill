@@ -133,7 +133,14 @@ const VARIANTS = [
   }
 ];
 
-export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null, onTabChange = null }) => {
+export const SHORT_VARIANT_NAMES = {
+  chaturaji: 'Chaturaji',
+  four_player: '4 en Cruz',
+  three_hex: '3 Hexagonal',
+  three_circular: '3 Circular'
+};
+
+export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null, initialVariant = null, onTabChange = null }) => {
   const { currentUser, users, activeGroup, sendFamilyInvitation, activePartyRoom, saveActivePartyRoom, clearActivePartyRoom } = useUser();
   const [isNavDropdownOpen, setIsNavDropdownOpen] = useState(false);
   const navDropdownRef = useRef(null);
@@ -148,15 +155,18 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null, onTab
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const getInitialVariant = () => {
+  const getExplicitVariant = useCallback(() => {
+    if (initialVariant && ['chaturaji', 'four_player', 'three_hex', 'three_circular'].includes(initialVariant)) {
+      return initialVariant;
+    }
     try {
       const v = new URLSearchParams(window.location.search).get('variant');
       if (v && ['chaturaji', 'four_player', 'three_hex', 'three_circular'].includes(v)) {
         return v;
       }
     } catch (e) {}
-    return 'chaturaji';
-  };
+    return null;
+  }, [initialVariant]);
 
   const getDefaultBotPlayers = (variantId) => {
     if (variantId === 'three_hex' || variantId === 'three_circular') {
@@ -168,10 +178,20 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null, onTab
     return { red: false, green: true, yellow: true, black: true };
   };
 
-  const [selectedVariant, setSelectedVariant] = useState(getInitialVariant);
-  const [botPlayers, setBotPlayers] = useState(() => getDefaultBotPlayers(getInitialVariant()));
+  const [isPickingVariant, setIsPickingVariant] = useState(() => {
+    if (initialRoomId) return false;
+    const explicit = getExplicitVariant();
+    return !explicit;
+  });
+
+  const [selectedVariant, setSelectedVariant] = useState(() => {
+    const explicit = getExplicitVariant();
+    return explicit || 'chaturaji';
+  });
+
+  const [botPlayers, setBotPlayers] = useState(() => getDefaultBotPlayers(getExplicitVariant() || 'chaturaji'));
   const [game, setGame] = useState(() => {
-    const v = getInitialVariant();
+    const v = getExplicitVariant() || 'chaturaji';
     if (v === 'four_player') return new FourPlayerGame('ffa');
     if (v === 'three_hex') return new ThreePlayerHexGame();
     if (v === 'three_circular') return new ThreePlayerCircularGame();
@@ -476,12 +496,21 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null, onTab
     setSelectedVariant(vId);
     setBotPlayers(getDefaultBotPlayers(vId));
     initGameForVariant(vId);
+    setIsPickingVariant(false);
     try {
       const url = new URL(window.location.href);
       url.searchParams.set('variant', vId);
       window.history.replaceState({}, '', url.toString());
     } catch (e) {}
   };
+
+  // Sincronizar si cambia initialVariant externamente
+  useEffect(() => {
+    if (initialVariant && ['chaturaji', 'four_player', 'three_hex', 'three_circular'].includes(initialVariant)) {
+      handleVariantChange(initialVariant);
+      setIsPickingVariant(false);
+    }
+  }, [initialVariant]);
 
   // Referencia y Set de jugadas procesadas para evitar ejecuciones duplicadas
   const lastProcessedMoveRef = useRef(0);
@@ -607,7 +636,7 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null, onTab
 
   // Turno del bot automático
   useEffect(() => {
-    if (!game || game.winner) {
+    if (isPickingVariant || !game || game.winner) {
       setIsBotThinking(false);
       return;
     }
@@ -1781,6 +1810,74 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null, onTab
         </button>
       </div>
 
+      {/* Selector Prominente de Modalidad en el Sidebar */}
+      {!partyRoom && (
+        <div style={{
+          backgroundColor: '#0f172a',
+          border: '1.5px solid #334155',
+          borderRadius: '12px',
+          padding: '6px 8px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '5px',
+          width: '100%',
+          boxSizing: 'border-box'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 800, color: '#f8fafc' }}>
+              <span>🎮 Modalidad:</span>
+              <span style={{ color: currentVariantData.badgeColor }}>{currentVariantData.icon} {SHORT_VARIANT_NAMES[currentVariantData.id] || currentVariantData.name}</span>
+            </div>
+            <button
+              onClick={() => setIsPickingVariant(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                backgroundColor: 'rgba(234, 179, 8, 0.15)',
+                border: '1px solid rgba(234, 179, 8, 0.35)',
+                color: '#facc15',
+                borderRadius: '6px',
+                padding: '2px 7px',
+                fontSize: '10px',
+                fontWeight: 800,
+                cursor: 'pointer'
+              }}
+              title="Volver a la selección de modalidades"
+            >
+              <RotateCcw size={10} /> Cambiar
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: '2px' }}>
+            {VARIANTS.map(v => {
+              const isCurr = selectedVariant === v.id;
+              return (
+                <button
+                  key={v.id}
+                  onClick={() => handleVariantChange(v.id)}
+                  style={{
+                    flex: '1 0 auto',
+                    padding: '3px 6px',
+                    borderRadius: '6px',
+                    fontSize: '9.5px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    border: isCurr ? `1.5px solid ${v.badgeColor}` : '1px solid #334155',
+                    backgroundColor: isCurr ? v.badgeColor : '#1e293b',
+                    color: isCurr ? '#0f172a' : '#94a3b8',
+                    transition: 'all 0.15s ease'
+                  }}
+                  title={v.name}
+                >
+                  {v.icon} {SHORT_VARIANT_NAMES[v.id] || v.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Retomar Sala Activa (Solo en Landscape si existe) */}
       {!partyRoom && activePartyRoom && (
         <div className="multiplayer-landscape-only" style={{
@@ -2143,7 +2240,7 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null, onTab
                   transition: 'all 0.15s ease'
                 }}
               >
-                {v.icon} {v.name.split(' ')[0]}
+                {v.icon} {SHORT_VARIANT_NAMES[v.id] || v.name}
               </button>
             ))}
           </div>
@@ -2332,7 +2429,522 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null, onTab
   );
 
   // =========================================================================
-  // RENDER: TABLERO DE JUEGO (LOCAL O SALA ONLINE)
+  // RENDER 1: HUB SELECTOR DE MODALIDADES MULTIJUGADOR (LOCAL Y ONLINE)
+  // =========================================================================
+  if (isPickingVariant && !partyRoom) {
+    return (
+      <div className="multiplayer-party-container multiplayer-hub-mode">
+        {/* Toast Flotante de Toque / Notificación */}
+        {pingToast && (
+          <div style={{
+            position: 'fixed',
+            top: '70px',
+            right: '20px',
+            backgroundColor: 'rgba(16, 185, 129, 0.95)',
+            border: '1.5px solid #34d399',
+            color: '#ffffff',
+            padding: '10px 18px',
+            borderRadius: '12px',
+            fontWeight: 800,
+            fontSize: '13px',
+            boxShadow: '0 8px 25px rgba(0, 0, 0, 0.5)',
+            zIndex: 99999,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            animation: 'pulseGlow 2s infinite ease-in-out'
+          }}>
+            <span>🔔</span>
+            <span>{pingToast}</span>
+          </div>
+        )}
+
+        {/* HUB SELECTOR DE MODALIDADES MULTIJUGADOR */}
+        <div className="multiplayer-hub-screen">
+          {/* Header Superior del Hub */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '10px',
+            backgroundColor: '#0f172a',
+            border: '1.5px solid #1e293b',
+            borderRadius: '16px',
+            padding: '12px 18px',
+            boxShadow: '0 8px 25px rgba(0,0,0,0.4)',
+            width: '100%',
+            boxSizing: 'border-box'
+          }}>
+            <button
+              onClick={handlePauseAndExit}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                backgroundColor: '#1e293b',
+                color: '#38bdf8',
+                border: '1px solid rgba(56, 189, 248, 0.4)',
+                padding: '8px 16px',
+                borderRadius: '10px',
+                fontWeight: 800,
+                fontSize: '13px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <ArrowLeft size={16} /> Volver a Jugar
+            </button>
+
+            <div style={{ textAlign: 'center' }}>
+              <h1 style={{
+                fontSize: '1.25rem',
+                fontWeight: 900,
+                margin: 0,
+                color: '#f8fafc',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}>
+                <Users size={22} style={{ color: '#facc15' }} />
+                Ajedrez Multijugador Junvill
+              </h1>
+              <p style={{ fontSize: '0.78rem', color: '#94a3b8', margin: '2px 0 0 0' }}>
+                Selecciona la modalidad para 3 o 4 jugadores que deseas disputar
+              </p>
+            </div>
+
+            <button
+              onClick={() => setIsRulesOpen(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                backgroundColor: 'rgba(56, 189, 248, 0.12)',
+                color: '#38bdf8',
+                border: '1px solid rgba(56, 189, 248, 0.3)',
+                padding: '8px 14px',
+                borderRadius: '10px',
+                fontWeight: 800,
+                fontSize: '13px',
+                cursor: 'pointer'
+              }}
+            >
+              <BookOpen size={16} /> Reglas
+            </button>
+          </div>
+
+          {/* BANNER DE SALA EN CURSO GUARDADA PARA RETOMAR (si existe) */}
+          {activePartyRoom && (
+            <div style={{
+              width: '100%',
+              background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(147, 51, 234, 0.25) 100%)',
+              border: '2px solid #a855f7',
+              borderRadius: '16px',
+              padding: '14px 18px',
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+              boxShadow: '0 8px 25px rgba(168, 85, 247, 0.3)',
+              boxSizing: 'border-box'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '10px',
+                  backgroundColor: 'rgba(168, 85, 247, 0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '22px'
+                }}>
+                  ⏳
+                </div>
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: 900, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>Partida Multijugador Activa:</span>
+                    <span style={{ color: '#facc15', fontFamily: 'monospace' }}>{activePartyRoom.roomId}</span>
+                    <span style={{ fontSize: '11px', background: activePartyRoom.status === 'playing' ? '#10b981' : '#38bdf8', color: '#0f172a', padding: '2px 8px', borderRadius: '6px', fontWeight: 800 }}>
+                      {activePartyRoom.status === 'playing' ? 'En Juego' : 'En Lobby'}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#cbd5e1', marginTop: '2px' }}>
+                    Modalidad: <b>{activePartyRoom.variantName || 'Ajedrez Multijugador'}</b> • Puedes reincorporarte a tu asiento de inmediato.
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  onClick={() => handleJoinRoomByCode(activePartyRoom.roomId)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    backgroundColor: '#9333ea',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '8px 16px',
+                    borderRadius: '10px',
+                    fontWeight: 900,
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(147, 51, 234, 0.4)'
+                  }}
+                >
+                  <Play size={15} />
+                  <span>Retomar Sala</span>
+                </button>
+                <button
+                  onClick={() => clearActivePartyRoom && clearActivePartyRoom(activePartyRoom.roomId)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                    color: '#ef4444',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    padding: '8px 12px',
+                    borderRadius: '10px',
+                    fontWeight: 700,
+                    fontSize: '12px',
+                    cursor: 'pointer'
+                  }}
+                  title="Descartar esta sala"
+                >
+                  <X size={14} />
+                  <span>Descartar</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* BANNER MULTIJUGADOR ONLINE (Crear o Unirse a Sala) */}
+          <div style={{
+            width: '100%',
+            backgroundColor: '#0f172a',
+            border: '2px solid rgba(56, 189, 248, 0.4)',
+            borderRadius: '16px',
+            padding: '14px 18px',
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            boxShadow: '0 8px 25px rgba(0, 0, 0, 0.5)',
+            boxSizing: 'border-box'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '12px',
+                backgroundColor: 'rgba(56, 189, 248, 0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '22px'
+              }}>
+                🌐
+              </div>
+              <div>
+                <div style={{ fontSize: '14px', fontWeight: 900, color: '#f8fafc' }}>
+                  ¿Quieres jugar con amigos o familiares en red?
+                </div>
+                <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                  Crea una sala de espera en vivo para 3 o 4 personas y completa los asientos restantes con robots.
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <button
+                onClick={() => setIsJoinRoomModalOpen(true)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  backgroundColor: '#1e293b',
+                  color: '#f8fafc',
+                  border: '1px solid #334155',
+                  padding: '9px 15px',
+                  borderRadius: '10px',
+                  fontWeight: 800,
+                  fontSize: '12.5px',
+                  cursor: 'pointer'
+                }}
+              >
+                <KeyRound size={15} style={{ color: '#facc15' }} />
+                <span>Unirse con Código</span>
+              </button>
+
+              <button
+                onClick={() => setIsCreateRoomModalOpen(true)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  backgroundColor: '#0284c7',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '9px 18px',
+                  borderRadius: '10px',
+                  fontWeight: 900,
+                  fontSize: '12.5px',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)'
+                }}
+              >
+                <Users size={15} />
+                <span>Crear Sala Online</span>
+              </button>
+            </div>
+          </div>
+
+          {/* CUADRÍCULA DE LAS 4 MODALIDADES DE JUEGO */}
+          <div>
+            <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '13px', fontWeight: 900, color: '#fde047', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                ⚔️ Selecciona Modalidad de Partida Local vs Bots:
+              </span>
+            </div>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+              gap: '14px',
+              width: '100%'
+            }}>
+              {VARIANTS.map(v => (
+                <div
+                  key={v.id}
+                  style={{
+                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                    border: `2px solid ${v.badgeColor}66`,
+                    borderRadius: '16px',
+                    padding: '16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    gap: '12px',
+                    transition: 'all 0.2s ease',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}
+                >
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', backgroundColor: v.badgeColor }} />
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '28px' }}>{v.icon}</span>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <span style={{
+                          fontSize: '11px',
+                          fontWeight: 800,
+                          color: v.badgeColor,
+                          backgroundColor: `${v.badgeColor}20`,
+                          border: `1px solid ${v.badgeColor}40`,
+                          padding: '3px 8px',
+                          borderRadius: '6px'
+                        }}>
+                          {v.badge}
+                        </span>
+                        <span style={{
+                          fontSize: '11px',
+                          fontWeight: 800,
+                          color: '#f8fafc',
+                          backgroundColor: 'rgba(255,255,255,0.1)',
+                          padding: '3px 8px',
+                          borderRadius: '6px'
+                        }}>
+                          {v.playersCount} Bandos
+                        </span>
+                      </div>
+                    </div>
+
+                    <h3 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: 900, color: '#f8fafc' }}>
+                      {v.name}
+                    </h3>
+                    <div style={{ fontSize: '11.5px', color: '#94a3b8', fontWeight: 700, marginBottom: '8px' }}>
+                      {v.subtitle}
+                    </div>
+
+                    <p style={{ margin: 0, fontSize: '12px', color: '#cbd5e1', lineHeight: 1.45 }}>
+                      {v.desc}
+                    </p>
+
+                    <div style={{
+                      marginTop: '10px',
+                      padding: '8px 10px',
+                      backgroundColor: 'rgba(30, 41, 59, 0.6)',
+                      borderRadius: '8px',
+                      border: '1px solid #334155'
+                    }}>
+                      <div style={{ fontSize: '10.5px', color: v.badgeColor, fontWeight: 800, textTransform: 'uppercase', marginBottom: '4px' }}>
+                        Reglas Clave:
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '11px', color: '#94a3b8', lineHeight: 1.4 }}>
+                        {v.rules.slice(0, 2).map((r, rIdx) => (
+                          <li key={rIdx}>{r}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleVariantChange(v.id)}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      fontSize: '13px',
+                      fontWeight: 900,
+                      backgroundColor: v.badgeColor,
+                      color: '#0f172a',
+                      border: 'none',
+                      borderRadius: '10px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      boxShadow: `0 4px 14px ${v.badgeColor}40`,
+                      transition: 'transform 0.15s ease'
+                    }}
+                  >
+                    <span>Jugar {SHORT_VARIANT_NAMES[v.id] || v.name}</span>
+                    <Play size={14} fill="#0f172a" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Modales Reglas y Salas */}
+        {isRulesOpen && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.75)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px',
+            zIndex: 9999
+          }}>
+            <div style={{
+              backgroundColor: '#0f172a',
+              border: '2px solid #334155',
+              borderRadius: '24px',
+              maxWidth: '560px',
+              width: '100%',
+              padding: '24px',
+              boxShadow: '0 24px 60px rgba(0,0,0,0.8)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ fontSize: '28px' }}>{currentVariantData.icon}</span>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#f8fafc' }}>
+                      {currentVariantData.name}
+                    </h3>
+                    <span style={{ fontSize: '12px', color: '#94a3b8' }}>
+                      {currentVariantData.subtitle}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsRulesOpen(false)}
+                  style={{
+                    backgroundColor: '#1e293b',
+                    border: 'none',
+                    color: '#94a3b8',
+                    borderRadius: '50%',
+                    width: '36px',
+                    height: '36px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <p style={{ fontSize: '14px', color: '#cbd5e1', lineHeight: '1.6', marginBottom: '16px' }}>
+                {currentVariantData.desc}
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {currentVariantData.rules.map((rule, idx) => (
+                  <div key={idx} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', fontSize: '13px', color: '#94a3b8', lineHeight: '1.5' }}>
+                    <span style={{
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '50%',
+                      backgroundColor: 'rgba(56, 189, 248, 0.15)',
+                      color: '#38bdf8',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 700,
+                      fontSize: '11px',
+                      flexShrink: 0,
+                      marginTop: '2px'
+                    }}>
+                      {idx + 1}
+                    </span>
+                    <span>{rule}</span>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={() => setIsRulesOpen(false)}
+                style={{
+                  width: '100%',
+                  marginTop: '20px',
+                  padding: '12px',
+                  backgroundColor: '#38bdf8',
+                  color: '#0f172a',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontWeight: 800,
+                  fontSize: '14px',
+                  cursor: 'pointer'
+                }}
+              >
+                ¡Entendido!
+              </button>
+            </div>
+          </div>
+        )}
+
+        <CreatePartyRoomModal
+          isOpen={isCreateRoomModalOpen}
+          onClose={() => setIsCreateRoomModalOpen(false)}
+          onRoomCreated={handleRoomCreated}
+          currentUser={currentUser}
+        />
+
+        <JoinPartyRoomModal
+          isOpen={isJoinRoomModalOpen}
+          onClose={() => setIsJoinRoomModalOpen(false)}
+          onJoin={handleJoinRoomByCode}
+        />
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // RENDER 2: TABLERO DE JUEGO ACTIVO (LOCAL O SALA ONLINE)
   // =========================================================================
   return (
     <div className="multiplayer-party-container">
@@ -2395,24 +3007,46 @@ export const MultiplayerPartyView = ({ onBackToMenu, initialRoomId = null, onTab
           </p>
         </div>
 
-        <button
-          onClick={() => setIsRulesOpen(true)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            backgroundColor: 'rgba(56, 189, 248, 0.12)',
-            color: '#38bdf8',
-            border: '1px solid rgba(56, 189, 248, 0.3)',
-            padding: '10px 16px',
-            borderRadius: '12px',
-            fontWeight: 700,
-            fontSize: '14px',
-            cursor: 'pointer'
-          }}
-        >
-          <BookOpen size={18} /> Reglas
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button
+            onClick={() => setIsPickingVariant(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: 'rgba(234, 179, 8, 0.15)',
+              color: '#facc15',
+              border: '1px solid rgba(234, 179, 8, 0.35)',
+              padding: '10px 14px',
+              borderRadius: '12px',
+              fontWeight: 800,
+              fontSize: '13px',
+              cursor: 'pointer'
+            }}
+            title="Cambiar Modalidad"
+          >
+            <RotateCcw size={16} /> Cambiar
+          </button>
+
+          <button
+            onClick={() => setIsRulesOpen(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              backgroundColor: 'rgba(56, 189, 248, 0.12)',
+              color: '#38bdf8',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+              padding: '10px 16px',
+              borderRadius: '12px',
+              fontWeight: 700,
+              fontSize: '14px',
+              cursor: 'pointer'
+            }}
+          >
+            <BookOpen size={18} /> Reglas
+          </button>
+        </div>
       </div>
 
       {/* BANNER DE SALA EN CURSO GUARDADA PARA RETOMAR */}
