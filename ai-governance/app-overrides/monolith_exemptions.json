@@ -1,0 +1,218 @@
+{
+  "governance_version": "2026.1",
+  "project": "Ajedrez Junvill",
+  "exemptions": [
+    {
+      "file": "vite-plugin-tunnel.js",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente vite-plugin-tunnel.js (290L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "api\\sync.js",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente sync.js (582L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\App.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente App.jsx (1160L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\assets\\avatars.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente avatars.jsx (267L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\assets\\botRoster.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente botRoster.jsx (530L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\components\\AvatarCreator\\AvatarBuilderModal.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente AvatarBuilderModal.jsx (669L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\components\\AvatarCreator\\DynamicAvatar.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente DynamicAvatar.jsx (383L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\components\\AvatarCreator\\FullBodyAvatar.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente FullBodyAvatar.jsx (369L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\components\\BugReport\\BugReportModal.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente BugReportModal.jsx (944L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\components\\ChessBoard\\ChessBoard.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente ChessBoard.jsx (436L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\components\\ChessCuby3x3\\ChessCuby3x3Modal.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente ChessCuby3x3Modal.jsx (1140L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\components\\FamilyChallenges\\FamilyChallengeDialog.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente FamilyChallengeDialog.jsx (320L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\components\\FamilyChat\\FamilyChatDrawer.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente FamilyChatDrawer.jsx (460L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\components\\FamilyGroups\\CreateFamilyGroupModal.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente CreateFamilyGroupModal.jsx (329L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\components\\FamilyGroups\\FamilyGatekeeperModal.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente FamilyGatekeeperModal.jsx (1138L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\components\\GameModeModal\\GameModeModal.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente GameModeModal.jsx (815L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\components\\HandicapModal\\HandicapConfigModal.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente HandicapConfigModal.jsx (730L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\components\\Manual\\ManualModal.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente ManualModal.jsx (519L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\components\\MultiplayerParty\\CreatePartyRoomModal.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente CreatePartyRoomModal.jsx (592L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\components\\MultiplayerParty\\PartyRoomLobby.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente PartyRoomLobby.jsx (799L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\components\\Navigation\\Header.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente Header.jsx (627L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\components\\OpeningsTrainer\\OpeningsTrainerModal.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente OpeningsTrainerModal.jsx (317L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\components\\ProfileModal\\ProfileModal.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente ProfileModal.jsx (754L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\components\\ProfileModal\\WelcomeProfileModal.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente WelcomeProfileModal.jsx (465L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\components\\Variants\\MultiplayerBoards\\ChaturajiBoard.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente ChaturajiBoard.jsx (368L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\components\\Variants\\MultiplayerBoards\\FourPlayerBoard.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente FourPlayerBoard.jsx (297L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\components\\Variants\\MultiplayerBoards\\ThreePlayerCircularBoard.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente ThreePlayerCircularBoard.jsx (331L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\components\\Variants\\MultiplayerBoards\\ThreePlayerHexBoard.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente ThreePlayerHexBoard.jsx (378L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\components\\VictoryCard\\VictoryCardModal.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente VictoryCardModal.jsx (260L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\context\\UserContext.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente UserContext.jsx (2409L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\curriculum\\lessonsData.js",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente lessonsData.js (7792L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\curriculum\\openingsData.js",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente openingsData.js (351L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\engine\\aiBot.js",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente aiBot.js (327L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\engine\\chessCubyEngine.js",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente chessCubyEngine.js (913L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\engine\\cloudSync.js",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente cloudSync.js (720L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\engine\\kinglessEngine.js",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente kinglessEngine.js (494L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\engine\\multiplayerChessEngine.js",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente multiplayerChessEngine.js (1299L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\engine\\p2pEngine.js",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente p2pEngine.js (445L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\engine\\variantsEngine.js",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente variantsEngine.js (416L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\services\\room\\JunvillRoomEngine.js",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente JunvillRoomEngine.js (794L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\services\\room\\SupabaseRealtimeAdapter.js",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente SupabaseRealtimeAdapter.js (255L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\views\\AvatarStudioView.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente AvatarStudioView.jsx (528L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\views\\FamilyChallengesModal.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente FamilyChallengesModal.jsx (1067L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\views\\GameReviewModal.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente GameReviewModal.jsx (409L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\views\\HomeView.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente HomeView.jsx (1219L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\views\\LessonPlayerModal.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente LessonPlayerModal.jsx (678L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\views\\LessonsView.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente LessonsView.jsx (419L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\views\\MultiplayerPartyView.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente MultiplayerPartyView.jsx (3642L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\views\\P2PPlayModal.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente P2PPlayModal.jsx (3291L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\views\\PlayView.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente PlayView.jsx (3971L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\views\\PuzzlesView.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente PuzzlesView.jsx (289L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\views\\SettingsModal.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente SettingsModal.jsx (1063L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    },
+    {
+      "file": "src\\views\\TournamentsView.jsx",
+      "reason": "Exencion de arquitectura frontend/motor cliente: Componente TournamentsView.jsx (410L) con logica de renderizado de ajedrez, estado y dinamicas de juego."
+    }
+  ]
+}
